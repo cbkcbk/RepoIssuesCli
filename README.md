@@ -38,7 +38,7 @@ Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name 
 - Prompts never appear when you pass `--json` or `--no-interactive`, set `ISSUES_NONINTERACTIVE=1`, or when stdin/stdout aren't a terminal. In those modes, missing input is an error.
 - Errors go to stderr.
 - Exit codes: `0` ok, `1` validation problems, `2` usage error / missing input, `3` issue not found, `4` unexpected error.
-- `--root <path>` overrides repository discovery. By default `issues` walks up from the current directory to the nearest folder containing `.repo-issues`, then `.git`.
+- `--root <path>` overrides repository discovery. By default `issues` walks up from the current directory to the nearest folder containing `.repo-issues` or `.git` (a folder, or the file used by worktrees and submodules), so running it from a subfolder uses the repository root. Outside any repository it uses the current directory.
 
 ## Claude Code plugin
 

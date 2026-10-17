@@ -139,7 +139,7 @@ public class IssueStoreTests
     }
 
     [Test]
-    public void LocatorPrefersIssuesFolderThenGitThenStart()
+    public void LocatorPicksNearestIssuesFolderOrGitThenStart()
     {
         var nested = Directory.CreateDirectory(Path.Combine(repo.Root, "a", "b")).FullName;
         Assert.That(RepoLocator.FindRoot(null, nested), Is.EqualTo(nested));

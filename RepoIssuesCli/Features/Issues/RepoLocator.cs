@@ -4,23 +4,22 @@ public static class RepoLocator
 {
     public const string IssuesFolderName = ".repo-issues";
 
+    static readonly string[] RootMarkers = [IssuesFolderName, ".git"];
+
     public static string FindRoot(string? explicitRoot, string startDirectory)
     {
         if (!string.IsNullOrWhiteSpace(explicitRoot))
             return Path.GetFullPath(explicitRoot, startDirectory);
 
         var start = Path.GetFullPath(startDirectory);
-        return FindAncestorContaining(start, IssuesFolderName)
-            ?? FindAncestorContaining(start, ".git")
-            ?? start;
+        return FindNearestMarkedAncestor(start) ?? start;
     }
 
-    static string? FindAncestorContaining(string start, string entryName)
+    static string? FindNearestMarkedAncestor(string start)
     {
         for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
         {
-            var candidate = Path.Combine(directory.FullName, entryName);
-            if (Directory.Exists(candidate) || File.Exists(candidate))
+            if (RootMarkers.Any(marker => Path.Exists(Path.Combine(directory.FullName, marker))))
                 return directory.FullName;
         }
 
