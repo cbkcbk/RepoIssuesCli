@@ -17,6 +17,7 @@
         <Description>Issue tracker that stores issues as JSON files inside your repository (.repo-issues). Works interactively and in scripts.</Description>
         <PackageTags>issues;issue-tracker;cli;git;dotnet-tool</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageOutputPath>$(MSBuildThisFileDirectory)../nupkg</PackageOutputPath>
     </PropertyGroup>
 
