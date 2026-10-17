@@ -104,6 +104,14 @@ public sealed class IssueStore(string root)
 
     public string PathFor(Issue issue) => PathOf(files.GetValueOrDefault(issue.Id) ?? FileNameFor(issue));
 
+    public int? LineCount(string relativePath)
+    {
+        var path = Path.Combine(root, relativePath);
+        if (Directory.Exists(path))
+            return 0;
+        return File.Exists(path) ? File.ReadLines(path).Count() : null;
+    }
+
     public static string FileNameFor(Issue issue)
     {
         var slug = Slug(issue.Name);
