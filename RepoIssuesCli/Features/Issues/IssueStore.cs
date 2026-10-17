@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -15,11 +16,19 @@ public sealed record IssueSnapshot(IReadOnlyList<Issue> Issues, IReadOnlyList<Is
 public sealed class IssueFileConflictException(string fileName)
     : Exception($"{fileName} already belongs to another issue. Run 'issues validate' to find duplicate numbers.");
 
+public sealed class IssueLockTimeoutException(string path)
+    : Exception($"Timed out waiting for {path}. Another 'issues' command is still creating or renumbering an issue; try again.");
+
 public sealed class IssueStore(string root)
 {
     const int MaxSlugLength = 60;
+    const string LockFileName = ".lock";
+    const string IgnoreFileName = ".gitignore";
+    static readonly TimeSpan LockRetryDelay = TimeSpan.FromMilliseconds(25);
 
     readonly Dictionary<Guid, string> files = [];
+
+    public TimeSpan LockTimeout { get; init; } = TimeSpan.FromSeconds(10);
 
     public string Root => root;
 
@@ -37,7 +46,38 @@ public sealed class IssueStore(string root)
 
         Directory.CreateDirectory(Folder);
         File.WriteAllText(Path.Combine(Folder, ".gitkeep"), "");
+        WriteIgnoreFile();
         return true;
+    }
+
+    public IDisposable Lock()
+    {
+        Directory.CreateDirectory(Folder);
+        var lease = OpenLockFile();
+        if (!File.Exists(PathOf(IgnoreFileName)))
+            WriteIgnoreFile();
+        return lease;
+    }
+
+    FileStream OpenLockFile()
+    {
+        var path = PathOf(LockFileName);
+        var waited = Stopwatch.StartNew();
+        while (true)
+        {
+            try
+            {
+                return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException) when (waited.Elapsed < LockTimeout)
+            {
+                Thread.Sleep(LockRetryDelay);
+            }
+            catch (IOException)
+            {
+                throw new IssueLockTimeoutException(path);
+            }
+        }
     }
 
     public IssueSnapshot Load()
@@ -147,6 +187,8 @@ public sealed class IssueStore(string root)
         Git.Move(root, PathOf(current), PathOf(target));
         files[issue.Id] = target;
     }
+
+    void WriteIgnoreFile() => File.WriteAllText(PathOf(IgnoreFileName), LockFileName + "\n");
 
     string PathOf(string fileName) => Path.Combine(Folder, fileName);
 }
