@@ -1,0 +1,21 @@
+{
+  "id": "01a14ac3-7012-75f8-a45f-55f3e7ea83c8",
+  "number": 8,
+  "name": "validate should flag locations pointing at missing files",
+  "description": "Source locations go stale when files move or are deleted. Add a warning-level problem (that doesn\u0027t fail the exit code, or opt-in via a flag).",
+  "status": "Open",
+  "priority": "Low",
+  "locations": [
+    {
+      "path": "RepoIssuesCli/Features/Issues/IssueValidator.cs",
+      "line": 16,
+      "column": 5
+    }
+  ],
+  "tags": [
+    "feature",
+    "validate"
+  ],
+  "created": "2026-10-17T16:48:04+00:00",
+  "updated": "2026-10-17T16:48:04+00:00"
+}

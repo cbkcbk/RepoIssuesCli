@@ -1,0 +1,20 @@
+{
+  "id": "01a14ac3-7073-7591-bdcf-2354897c458e",
+  "number": 9,
+  "name": "Init output wraps long folder paths",
+  "description": "MarkupLine wraps at console width, splitting the path across lines, which breaks copy/paste. Write the path without wrapping.",
+  "status": "Open",
+  "priority": "Low",
+  "locations": [
+    {
+      "path": "RepoIssuesCli/Cli/Commands/InitCommand.cs",
+      "line": 19,
+      "column": 13
+    }
+  ],
+  "tags": [
+    "ux"
+  ],
+  "created": "2026-10-17T16:48:04+00:00",
+  "updated": "2026-10-17T16:48:04+00:00"
+}

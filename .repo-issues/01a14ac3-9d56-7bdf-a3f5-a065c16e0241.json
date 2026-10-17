@@ -1,0 +1,20 @@
+{
+  "id": "01a14ac3-9d56-7bdf-a3f5-a065c16e0241",
+  "number": 11,
+  "name": "List table wraps names badly in narrow terminals",
+  "description": "At 80 columns every name wraps over 2-4 lines because all columns share width equally. Give Name the flexible width, keep #, Status and Priority NoWrap, and truncate Tags/Blocked by (or hide them) when space is short.",
+  "status": "Open",
+  "priority": "Medium",
+  "locations": [
+    {
+      "path": "RepoIssuesCli/Cli/IssueRenderer.cs",
+      "line": 19,
+      "column": 9
+    }
+  ],
+  "tags": [
+    "ux"
+  ],
+  "created": "2026-10-17T16:48:16+00:00",
+  "updated": "2026-10-17T16:48:16+00:00"
+}

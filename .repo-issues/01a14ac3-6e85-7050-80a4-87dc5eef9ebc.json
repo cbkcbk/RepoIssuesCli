@@ -1,0 +1,21 @@
+{
+  "id": "01a14ac3-6e85-7050-80a4-87dc5eef9ebc",
+  "number": 4,
+  "name": "Always emit arrays in --json output",
+  "description": "Empty collections are omitted (good for file diffs), but --json consumers then see a missing key, e.g. jq \u0027.blockedBy\u0027 gives null instead of []. Use a separate serializer option for CLI output that keeps empty arrays.",
+  "status": "Open",
+  "priority": "Medium",
+  "locations": [
+    {
+      "path": "RepoIssuesCli/Features/Issues/IssueJson.cs",
+      "line": 32,
+      "column": 5
+    }
+  ],
+  "tags": [
+    "automation",
+    "json"
+  ],
+  "created": "2026-10-17T16:48:04+00:00",
+  "updated": "2026-10-17T16:48:04+00:00"
+}

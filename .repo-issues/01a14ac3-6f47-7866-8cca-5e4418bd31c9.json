@@ -1,0 +1,21 @@
+{
+  "id": "01a14ac3-6f47-7866-8cca-5e4418bd31c9",
+  "number": 6,
+  "name": "Dangling blockers count as not blocking",
+  "description": "OpenBlockers skips blocker numbers that don\u0027t resolve, so an issue blocked only by a deleted or never-merged issue shows up in list --ready. Decide: treat unknown blockers as blocking, or keep current behavior and document it.",
+  "status": "Open",
+  "priority": "Low",
+  "locations": [
+    {
+      "path": "RepoIssuesCli/Features/Issues/BlockerGraph.cs",
+      "line": 8,
+      "column": 13
+    }
+  ],
+  "tags": [
+    "bug",
+    "blockers"
+  ],
+  "created": "2026-10-17T16:48:04+00:00",
+  "updated": "2026-10-17T16:48:04+00:00"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "01a14ac3-6dbb-7382-aefd-bc23b9dfa921",
+  "number": 2,
+  "name": "Publish to nuget.org from CI",
+  "description": "No CI pipeline yet. Add a workflow that builds, runs tests, packs with a real version and pushes to nuget.org on tag.",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    1
+  ],
+  "tags": [
+    "ci",
+    "packaging"
+  ],
+  "created": "2026-10-17T16:48:04+00:00",
+  "updated": "2026-10-17T16:48:04+00:00"
+}

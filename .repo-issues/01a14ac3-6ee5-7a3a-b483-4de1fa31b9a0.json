@@ -1,0 +1,21 @@
+{
+  "id": "01a14ac3-6ee5-7a3a-b483-4de1fa31b9a0",
+  "number": 5,
+  "name": "init --json reports created as a string",
+  "description": "Output is {\u0022created\u0022: \u0022true\u0022} because it serializes a Dictionary\u003Cstring,string\u003E. Use a typed result record so created is a JSON boolean.",
+  "status": "Open",
+  "priority": "Low",
+  "locations": [
+    {
+      "path": "RepoIssuesCli/Cli/Commands/InitCommand.cs",
+      "line": 17,
+      "column": 13
+    }
+  ],
+  "tags": [
+    "bug",
+    "json"
+  ],
+  "created": "2026-10-17T16:48:04+00:00",
+  "updated": "2026-10-17T16:48:04+00:00"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a14ac3-6fb0-7e35-b177-06d1ec2be6ff",
+  "number": 7,
+  "name": "No locking when two processes create issues at once",
+  "description": "NextNumber is computed from a snapshot, so parallel \u0027issues new\u0027 runs (e.g. several agents) can pick the same number. Consider a lock file in .repo-issues during create.",
+  "status": "Open",
+  "priority": "Low",
+  "locations": [
+    {
+      "path": "RepoIssuesCli/Features/Issues/IssueStore.cs",
+      "line": 64,
+      "column": 5
+    }
+  ],
+  "tags": [
+    "concurrency"
+  ],
+  "created": "2026-10-17T16:48:04+00:00",
+  "updated": "2026-10-17T16:48:04+00:00"
+}

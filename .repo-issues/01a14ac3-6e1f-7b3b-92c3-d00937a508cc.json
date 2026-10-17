@@ -1,0 +1,26 @@
+{
+  "id": "01a14ac3-6e1f-7b3b-92c3-d00937a508cc",
+  "number": 3,
+  "name": "Add a renumber command for duplicate numbers after merges",
+  "description": "Numbers are max\u002B1, so two branches can create the same number. validate reports DuplicateNumber but there is no way to fix it besides hand-editing JSON. Add \u0027issues renumber \u003Cref\u003E\u0027 that assigns the next free number and rewrites blockedBy references, with care for which duplicate the references meant.",
+  "status": "Open",
+  "priority": "Medium",
+  "locations": [
+    {
+      "path": "RepoIssuesCli/Features/Issues/IssueStore.cs",
+      "line": 9,
+      "column": 5
+    },
+    {
+      "path": "RepoIssuesCli/Features/Issues/IssueValidator.cs",
+      "line": 29,
+      "column": 17
+    }
+  ],
+  "tags": [
+    "feature",
+    "merge"
+  ],
+  "created": "2026-10-17T16:48:04+00:00",
+  "updated": "2026-10-17T16:48:04+00:00"
+}
