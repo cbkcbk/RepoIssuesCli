@@ -16,6 +16,7 @@ public sealed record Issue
     public IReadOnlyList<string> Tags { get; set; } = [];
     public required DateTimeOffset Created { get; init; }
     public required DateTimeOffset Updated { get; init; }
+    public IReadOnlyList<IssueComment> Comments { get; set; } = [];
 
     [JsonIgnore]
     public string Title => FormatTitle(Number, Name);

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using RepoIssuesCli.Cli;
 using RepoIssuesCli.Features.Issues;
 using Spectre.Console.Testing;
@@ -125,6 +126,57 @@ public class CommandTests
         var output = repo.Run("list").Output;
 
         Assert.That(output, Does.Contain("0001").And.Contain("First").And.Contain("Second"));
+    }
+
+    [Test]
+    public void NarrowListKeepsFittingNamesOnOneLine()
+    {
+        repo.Add("Multi-target net10.0 (LTS) alongside net11.0", "-p", "high", "-t", "build,packaging");
+        repo.Add("Publish to nuget.org from CI", "-t", "ci,packaging", "-b", "1");
+
+        var lines = ListLines(80);
+
+        Assert.That(lines, Has.Exactly(1).Contains("│ 0001 │ Multi-target net10.0 (LTS) alongside net11.0 "));
+        Assert.That(lines, Has.Exactly(1).Contains("│ 0002 │ Publish to nuget.org from CI "));
+        Assert.That(lines, Has.Count.EqualTo(6));
+    }
+
+    [Test]
+    public void NarrowListNeverWrapsNumberStatusOrPriority()
+    {
+        repo.Add(string.Join(' ', Enumerable.Repeat("verylongword", 12)), "-s", "in-progress", "-p", "critical");
+
+        var lines = ListLines(80);
+
+        var first = lines.Single(line => line.Contains("0001"));
+        Assert.That(first, Does.Contain("InProgress").And.Contain("Critical"));
+        Assert.That(lines, Has.All.Length.LessThanOrEqualTo(80));
+    }
+
+    [Test]
+    public void ListTruncatesTagsAndBlockersThatDoNotFit()
+    {
+        repo.Add("A");
+        repo.Add("B");
+        repo.Add("Short name", "-t", "feature,git-integration,automation,json", "-b", "1", "-b", "2");
+
+        var lines = ListLines(70);
+
+        var row = lines.Single(line => line.Contains("0003"));
+        Assert.That(row, Does.Contain("Short name").And.Contain("…"));
+        Assert.That(lines, Has.All.Length.LessThanOrEqualTo(70));
+        Assert.That(lines, Has.Count.EqualTo(7));
+    }
+
+    [Test]
+    public void WideListShowsTagsAndBlockersInFull()
+    {
+        repo.Add("A");
+        repo.Add("Short name", "-t", "feature,git-integration,automation,json", "-b", "1");
+
+        var output = repo.Run("list").Output;
+
+        Assert.That(output, Does.Contain("feature, git-integration, automation, json").And.Contain("0001").And.Not.Contain("…"));
     }
 
     [Test]
@@ -265,6 +317,60 @@ public class CommandTests
     }
 
     [Test]
+    public void CommentAppendsCommentsAndUpdatesTimestamp()
+    {
+        repo.InitGit();
+        var created = repo.Add("A");
+
+        Assert.That(repo.Run("comment", "A", "First thought").ExitCode, Is.Zero);
+        var result = repo.Run("comment", "1", "Second thought", "--author", "Ada", "--json");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        var issue = IssueJson.Deserialize<Issue>(result.Output)!;
+        Assert.That(issue.Comments.Select(comment => comment.Text), Is.EqualTo(new[] { "First thought", "Second thought" }));
+        Assert.That(issue.Comments.Select(comment => comment.Author), Is.EqualTo(new[] { "Test User <test@example.com>", "Ada" }));
+        Assert.That(issue.Comments[0].Created, Is.GreaterThanOrEqualTo(created.Created));
+        Assert.That(issue.Updated, Is.GreaterThanOrEqualTo(issue.Comments[1].Created));
+        Assert.That(repo.Issues.Single().Comments, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void CommentWithoutTextFailsWhenNotInteractive()
+    {
+        repo.Add("A");
+
+        var result = repo.Run("comment", "1");
+
+        Assert.That(result.ExitCode, Is.EqualTo(ExitCodes.Usage));
+        Assert.That(result.Errors, Does.Contain("[text]"));
+        Assert.That(repo.Issues.Single().Comments, Is.Empty);
+    }
+
+    [Test]
+    public void CommentPromptsForTextWhenInteractive()
+    {
+        repo.Add("A");
+        var console = new TestConsole().Width(250).Interactive();
+        console.Input.PushTextWithEnter("Prompted comment");
+
+        var result = repo.Run(console, "comment", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Comments.Single().Text, Is.EqualTo("Prompted comment"));
+    }
+
+    [Test]
+    public void ShowRendersComments()
+    {
+        repo.Add("A");
+        repo.Run("comment", "1", "Looks reproducible", "--author", "Grace");
+
+        var output = repo.Run("show", "1").Output;
+
+        Assert.That(output, Does.Contain("Comments").And.Contain("Grace").And.Contain("Looks reproducible"));
+    }
+
+    [Test]
     public void DeleteRequiresForceWhenNotInteractive()
     {
         repo.Add("A");
@@ -282,6 +388,98 @@ public class CommandTests
         Assert.That(repo.Run("delete", "A", "--force").ExitCode, Is.Zero);
 
         Assert.That(repo.Issues.Single().BlockedBy, Is.Empty);
+    }
+
+    [Test]
+    public void RenumberGivesADuplicateTheNextNumberAndKeepsReferencesOnTheOther()
+    {
+        repo.InitGit();
+        var duplicate = AddDuplicateOfFirstWithReference();
+
+        var result = repo.Run("renumber", "B", "--json");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        var renumbered = IssueJson.Deserialize<RenumberResult>(result.Output)!;
+        Assert.That(renumbered.Issue.Id, Is.EqualTo(duplicate.Id));
+        Assert.That(renumbered.Issue.Number, Is.EqualTo(4));
+        Assert.That(renumbered.PreviousNumber, Is.EqualTo(1));
+        Assert.That(renumbered.Rewritten, Is.Empty);
+        Assert.That(renumbered.KeptReferences.Select(issue => issue.Name), Is.EqualTo(new[] { "C" }));
+        Assert.That(IssueFiles(), Is.EqualTo(new[] { "00001-a.json", "00003-c.json", "00004-b.json" }));
+        Assert.That(repo.Issues.Single(issue => issue.Name == "C").BlockedBy, Is.EqualTo(new[] { 1 }));
+        Assert.That(repo.Git("ls-files"), Does.Contain(".repo-issues/00004-b.json").And.Not.Contain("00001-b.json"));
+        Assert.That(repo.Run("validate").ExitCode, Is.Zero);
+    }
+
+    [Test]
+    public void RenumberExplainsWhichIssueKeepsTheReferences()
+    {
+        var duplicate = AddDuplicateOfFirstWithReference();
+
+        var result = repo.Run("renumber", duplicate.Id.ToString());
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(result.Output, Does.Contain("0001 B").And.Contain("0004 B").And.Contain("0001 A").And.Contain("0003 C"));
+    }
+
+    Issue AddDuplicateOfFirstWithReference()
+    {
+        repo.Add("A");
+        var duplicate = repo.Add("B");
+        repo.Add("C", "-b", "1");
+        var store = repo.Store;
+        store.Load();
+        store.Save(duplicate with { Number = 1 });
+        return duplicate;
+    }
+
+    [Test]
+    public void RenumberRewritesReferencesWhenTheNumberIsNotShared()
+    {
+        repo.Add("A");
+        repo.Add("B", "-b", "1");
+
+        var result = repo.Run("renumber", "A", "--json");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        var renumbered = IssueJson.Deserialize<RenumberResult>(result.Output)!;
+        Assert.That(renumbered.Issue.Number, Is.EqualTo(3));
+        Assert.That(renumbered.Rewritten.Select(issue => issue.Name), Is.EqualTo(new[] { "B" }));
+        Assert.That(repo.Issues.Single(issue => issue.Name == "B").BlockedBy, Is.EqualTo(new[] { 3 }));
+    }
+
+    [Test]
+    public void RenumberByDuplicatedNumberIsAUsageErrorListingIdsWhenNotInteractive()
+    {
+        var first = repo.Add("A");
+        var duplicate = repo.Add("B");
+        var store = repo.Store;
+        store.Load();
+        store.Save(duplicate with { Number = 1 });
+
+        var result = repo.Run("renumber", "1");
+
+        Assert.That(result.ExitCode, Is.EqualTo(ExitCodes.Usage));
+        Assert.That(result.Errors, Does.Contain(first.Id.ToString()).And.Contain(duplicate.Id.ToString()));
+        Assert.That(repo.Issues.Select(issue => issue.Number), Is.EqualTo(new[] { 1, 1 }));
+    }
+
+    [Test]
+    public void RenumberByDuplicatedNumberPromptsWhenInteractive()
+    {
+        repo.Add("A");
+        var duplicate = repo.Add("B");
+        var store = repo.Store;
+        store.Load();
+        store.Save(duplicate with { Number = 1 });
+        var console = new TestConsole().Width(250).Interactive();
+        PushDown(console, 2);
+
+        var result = repo.Run(console, "renumber", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single(issue => issue.Name == "B").Number, Is.EqualTo(2), result.Output);
+        Assert.That(repo.Issues.Single(issue => issue.Name == "A").Number, Is.EqualTo(1));
     }
 
     [Test]
@@ -307,6 +505,59 @@ public class CommandTests
         var output = repo.Run(new TestConsole().Width(20), "list", "--json").Output;
 
         Assert.That(IssueJson.Deserialize<List<Issue>>(output), Has.Count.EqualTo(1));
+    }
+
+    [TestCase("new", "B")]
+    [TestCase("show", "A")]
+    [TestCase("edit", "A", "-d", "Changed")]
+    [TestCase("status", "A", "done")]
+    [TestCase("delete", "A", "--force")]
+    public void JsonOutputAlwaysEmitsArrays(params string[] args)
+    {
+        repo.Add("A");
+
+        var result = repo.Run([.. args, "--json"]);
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        AssertEmptyArrays(JsonDocument.Parse(result.Output).RootElement);
+    }
+
+    [Test]
+    public void ListJsonAlwaysEmitsArrays()
+    {
+        repo.Add("A");
+
+        var result = repo.Run("list", "--json");
+
+        AssertEmptyArrays(JsonDocument.Parse(result.Output).RootElement.EnumerateArray().Single());
+    }
+
+    [Test]
+    public void JsonOutputKeepsFilesFreeOfEmptyArrays()
+    {
+        var issue = repo.Add("A");
+
+        Assert.That(repo.Run("status", "A", "done", "--json").ExitCode, Is.Zero);
+
+        var json = File.ReadAllText(repo.Store.PathFor(issue));
+        Assert.That(json, Does.Not.Contain("tags").And.Not.Contain("blockedBy").And.Not.Contain("locations"));
+    }
+
+    static void AssertEmptyArrays(JsonElement issue)
+    {
+        foreach (var name in new[] { "blockedBy", "locations", "tags" })
+        {
+            Assert.That(issue.TryGetProperty(name, out var value), Is.True, name);
+            Assert.That(value.ValueKind, Is.EqualTo(JsonValueKind.Array), name);
+            Assert.That(value.GetArrayLength(), Is.Zero, name);
+        }
+    }
+
+    List<string> ListLines(int width)
+    {
+        var result = repo.Run(new TestConsole().Width(width), "list");
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        return result.Output.TrimEnd('\n').Split('\n').ToList();
     }
 
     List<string> ListNames(params string[] args)

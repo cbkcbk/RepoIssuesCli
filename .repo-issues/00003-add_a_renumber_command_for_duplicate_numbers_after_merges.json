@@ -3,7 +3,7 @@
   "number": 3,
   "name": "Add a renumber command for duplicate numbers after merges",
   "description": "Numbers are max\u002B1, so two branches can create the same number. validate reports DuplicateNumber but there is no way to fix it besides hand-editing JSON. Add \u0027issues renumber \u003Cref\u003E\u0027 that assigns the next free number and rewrites blockedBy references, with care for which duplicate the references meant.",
-  "status": "Open",
+  "status": "Done",
   "priority": "Medium",
   "locations": [
     {
@@ -22,5 +22,5 @@
     "merge"
   ],
   "created": "2026-10-17T16:48:04+00:00",
-  "updated": "2026-10-17T16:48:04+00:00"
+  "updated": "2026-10-17T18:21:12+00:00"
 }

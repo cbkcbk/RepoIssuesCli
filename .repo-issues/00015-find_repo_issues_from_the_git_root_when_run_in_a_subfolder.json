@@ -3,11 +3,11 @@
   "number": 15,
   "name": "Find .repo-issues from the git root when run in a subfolder",
   "description": "When the CLI is called from a subfolder of the repository, it should locate the git root and use the .repo-issues folder there, instead of failing or using the current directory.",
-  "status": "Open",
+  "status": "Done",
   "priority": "Medium",
   "tags": [
     "feature"
   ],
   "created": "2026-10-17T17:13:32+00:00",
-  "updated": "2026-10-17T17:13:32+00:00"
+  "updated": "2026-10-17T18:18:27+00:00"
 }
