@@ -41,6 +41,19 @@ public class IssueResolverTests
         Assert.That(exception!.Message, Does.Contain("0001 Login fails").And.Contain("0003 Logout"));
     }
 
+    [Test]
+    public void AmbiguousNumberListsIds()
+    {
+        Issue[] duplicates = [Make(5, "First"), Make(5, "Second")];
+
+        var exception = Assert.Throws<AmbiguousIssueReferenceException>(() => IssueResolver.Resolve(duplicates, "5"));
+        Assert.That(exception!.Message, Does.Contain(duplicates[0].Id.ToString()).And.Contain(duplicates[1].Id.ToString()));
+    }
+
+    [Test]
+    public void FindAllReturnsEveryDuplicate() =>
+        Assert.That(IssueResolver.FindAll([Make(5, "First"), Make(5, "Second"), Make(6, "Other")], "5"), Has.Count.EqualTo(2));
+
     [TestCase("9")]
     [TestCase("Nope")]
     public void UnknownReferenceThrowsNotFound(string reference) =>
