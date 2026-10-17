@@ -3,7 +3,7 @@
   "number": 5,
   "name": "init --json reports created as a string",
   "description": "Output is {\u0022created\u0022: \u0022true\u0022} because it serializes a Dictionary\u003Cstring,string\u003E. Use a typed result record so created is a JSON boolean.",
-  "status": "Open",
+  "status": "Done",
   "priority": "Low",
   "locations": [
     {
@@ -17,5 +17,5 @@
     "json"
   ],
   "created": "2026-10-17T16:48:04+00:00",
-  "updated": "2026-10-17T16:48:04+00:00"
+  "updated": "2026-10-17T18:37:40+00:00"
 }

@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using RepoIssuesCli.Cli.Plugin;
+using Spectre.Console.Testing;
 
 namespace RepoIssuesCli.Tests.Cli.Plugin;
 
@@ -21,6 +22,18 @@ public class PluginGeneratorTests
         var manifest = JsonNode.Parse(File.ReadAllText(Path.Combine(repo.Root, "plugins", "issues", ".claude-plugin", "plugin.json")))!;
         Assert.That(manifest["name"]!.GetValue<string>(), Is.EqualTo(entry["name"]!.GetValue<string>()));
         Assert.That(manifest["version"]!.GetValue<string>(), Is.EqualTo(entry["version"]!.GetValue<string>()));
+    }
+
+    [Test]
+    public void KeepsWrittenPathsOnOneLine()
+    {
+        using var repo = new TempRepo();
+
+        var result = repo.Run(new TestConsole().Width(20), GeneratePluginCommand.Name);
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        var expected = PluginGenerator.Generate(repo.Root).Select(file => $"Wrote {file.Path}");
+        Assert.That(result.Output.TrimEnd('\n').Split('\n'), Is.EqualTo(expected));
     }
 
     [Test]
