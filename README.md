@@ -58,7 +58,7 @@ dotnet run --project RepoIssuesCli -- generate-plugin
 
 ## File format
 
-`.repo-issues/{uuid-v7}.json`:
+`.repo-issues/{number:00000}-{name_in_snake_case}.json`, e.g. `00001-login_fails_on_empty_password.json`:
 
 ```json
 {
@@ -77,6 +77,8 @@ dotnet run --project RepoIssuesCli -- generate-plugin
 }
 ```
 
+- The name part is cut at a word boundary after 60 characters. Changing an issue's name or number renames its file with `git mv`, so git keeps its history. Files with any other name, such as the older `{uuid}.json` files, are renamed the next time `issues` runs.
+- New issue files are `git add`ed and deleted ones `git rm`ed. Outside a git repository, plain file operations are used.
 - `status`: `Open`, `InProgress`, `Done`, `Cancelled`.
 - `priority`: `Low`, `Medium`, `High`, `Critical`.
 - `author` defaults to the git author (`user.name <user.email>`, honoring `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL`). Override it with `--author`, and filter with `issues list --author <text>`.

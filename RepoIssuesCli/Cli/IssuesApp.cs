@@ -53,7 +53,7 @@ public static class IssuesApp
         errors.MarkupLine($"[red]Error:[/] {Markup.Escape(exception.Message)}");
         return exception switch
         {
-            UsageException or AmbiguousIssueReferenceException or CommandAppException => ExitCodes.Usage,
+            UsageException or AmbiguousIssueReferenceException or IssueFileConflictException or CommandAppException => ExitCodes.Usage,
             IssueNotFoundException => ExitCodes.NotFound,
             _ => ExitCodes.Error,
         };

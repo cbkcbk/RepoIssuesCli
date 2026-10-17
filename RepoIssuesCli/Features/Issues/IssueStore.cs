@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 namespace RepoIssuesCli.Features.Issues;
@@ -11,8 +12,15 @@ public sealed record IssueSnapshot(IReadOnlyList<Issue> Issues, IReadOnlyList<Is
     public Issue? FindByNumber(int number) => Issues.FirstOrDefault(issue => issue.Number == number);
 }
 
+public sealed class IssueFileConflictException(string fileName)
+    : Exception($"{fileName} already belongs to another issue. Run 'issues validate' to find duplicate numbers.");
+
 public sealed class IssueStore(string root)
 {
+    const int MaxSlugLength = 60;
+
+    readonly Dictionary<Guid, string> files = [];
+
     public string Root => root;
 
     public string Folder => Path.Combine(root, RepoLocator.IssuesFolderName);
@@ -34,6 +42,7 @@ public sealed class IssueStore(string root)
 
     public IssueSnapshot Load()
     {
+        files.Clear();
         if (!IsInitialized)
             return new IssueSnapshot([], []);
 
@@ -46,11 +55,13 @@ public sealed class IssueStore(string root)
             {
                 var issue = IssueJson.Deserialize<Issue>(File.ReadAllText(file));
                 if (issue is null)
+                {
                     errors.Add(new IssueFileError(fileName, "File is empty."));
-                else if (FileNameFor(issue.Id) != fileName)
-                    errors.Add(new IssueFileError(fileName, $"Id {issue.Id} does not match the file name."));
-                else
-                    issues.Add(issue);
+                    continue;
+                }
+
+                issues.Add(issue);
+                files[issue.Id] = fileName;
             }
             catch (JsonException exception)
             {
@@ -58,21 +69,76 @@ public sealed class IssueStore(string root)
             }
         }
 
+        foreach (var issue in issues)
+            RenameToCanonical(issue);
+
         return new IssueSnapshot(issues.OrderBy(issue => issue.Number).ToList(), errors);
     }
 
     public void Save(Issue issue)
     {
         Directory.CreateDirectory(Folder);
-        var path = PathFor(issue.Id);
+        var current = files.GetValueOrDefault(issue.Id);
+        var target = FileNameFor(issue);
+        if (current != target && File.Exists(PathOf(target)))
+            throw new IssueFileConflictException(target);
+
+        if (current is not null && current != target)
+            Git.Move(root, PathOf(current), PathOf(target));
+
+        var path = PathOf(target);
         var temporary = path + ".tmp";
         File.WriteAllText(temporary, IssueJson.Serialize(issue));
         File.Move(temporary, path, overwrite: true);
+        files[issue.Id] = target;
+
+        if (current is null)
+            Git.Add(root, path);
     }
 
-    public void Delete(Issue issue) => File.Delete(PathFor(issue.Id));
+    public void Delete(Issue issue)
+    {
+        Git.Remove(root, PathOf(files.GetValueOrDefault(issue.Id) ?? FileNameFor(issue)));
+        files.Remove(issue.Id);
+    }
 
-    public string PathFor(Guid id) => Path.Combine(Folder, FileNameFor(id));
+    public string PathFor(Issue issue) => PathOf(files.GetValueOrDefault(issue.Id) ?? FileNameFor(issue));
 
-    static string FileNameFor(Guid id) => $"{id:D}.json";
+    public static string FileNameFor(Issue issue)
+    {
+        var slug = Slug(issue.Name);
+        return slug.Length == 0 ? $"{issue.Number:D5}.json" : $"{issue.Number:D5}-{slug}.json";
+    }
+
+    static string Slug(string name)
+    {
+        var slug = new StringBuilder();
+        foreach (var character in name.Normalize(NormalizationForm.FormC))
+        {
+            if (char.IsLetterOrDigit(character))
+                slug.Append(char.ToLowerInvariant(character));
+            else if (slug.Length > 0 && slug[^1] != '_')
+                slug.Append('_');
+        }
+
+        var text = slug.ToString().TrimEnd('_');
+        if (text.Length <= MaxSlugLength)
+            return text;
+
+        var cut = text.LastIndexOf('_', MaxSlugLength);
+        return cut > 0 ? text[..cut] : text[..MaxSlugLength];
+    }
+
+    void RenameToCanonical(Issue issue)
+    {
+        var current = files[issue.Id];
+        var target = FileNameFor(issue);
+        if (current == target || File.Exists(PathOf(target)) || files.ContainsValue(target))
+            return;
+
+        Git.Move(root, PathOf(current), PathOf(target));
+        files[issue.Id] = target;
+    }
+
+    string PathOf(string fileName) => Path.Combine(Folder, fileName);
 }

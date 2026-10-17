@@ -1,6 +1,5 @@
 using RepoIssuesCli.Cli;
 using RepoIssuesCli.Features.Issues;
-using RepoIssuesCli.Tests.Features;
 using Spectre.Console.Testing;
 
 namespace RepoIssuesCli.Tests.Cli;
@@ -45,9 +44,7 @@ public class CommandTests
     [Test]
     public void NewDefaultsAuthorToGitAuthor()
     {
-        GitIdentityTests.Git(repo.Root, "init", "-q");
-        GitIdentityTests.Git(repo.Root, "config", "user.name", "Test User");
-        GitIdentityTests.Git(repo.Root, "config", "user.email", "test@example.com");
+        repo.InitGit();
 
         Assert.That(repo.Add("A").Author, Is.EqualTo("Test User <test@example.com>"));
         Assert.That(repo.Add("B", "--author", "Someone Else").Author, Is.EqualTo("Someone Else"));
@@ -141,6 +138,50 @@ public class CommandTests
         var output = repo.Run("show", "Second").Output;
         Assert.That(output, Does.Contain("0001 Renamed"));
     }
+
+    [Test]
+    public void EditNameRenamesTheFile()
+    {
+        repo.Add("First");
+
+        Assert.That(repo.Run("edit", "1", "--name", "Renamed issue").ExitCode, Is.Zero);
+
+        Assert.That(IssueFiles(), Is.EqualTo(new[] { "00001-renamed_issue.json" }));
+    }
+
+    [Test]
+    public void EditOntoAnotherIssuesFileNameIsAUsageError()
+    {
+        repo.Add("Taken");
+        var other = repo.Add("Other");
+        var store = repo.Store;
+        store.Load();
+        store.Save(other with { Number = 1 });
+
+        var result = repo.Run("edit", other.Id.ToString(), "--name", "Taken");
+
+        Assert.That(result.ExitCode, Is.EqualTo(ExitCodes.Usage));
+        Assert.That(result.Errors, Does.Contain("00001-taken.json"));
+    }
+
+    [Test]
+    public void GitTracksNewRenamedAndDeletedIssues()
+    {
+        repo.InitGit();
+        repo.Add("First");
+        repo.Add("Second");
+        Assert.That(repo.Git("ls-files"), Does.Contain(".repo-issues/00001-first.json").And.Contain(".repo-issues/00002-second.json"));
+
+        repo.Git("commit", "-q", "-m", "issues");
+        Assert.That(repo.Run("edit", "1", "--name", "Renamed").ExitCode, Is.Zero);
+        Assert.That(repo.Git("status", "--porcelain"), Does.Contain("RM .repo-issues/00001-first.json -> .repo-issues/00001-renamed.json"));
+
+        Assert.That(repo.Run("delete", "2", "--force").ExitCode, Is.Zero);
+        Assert.That(repo.Git("ls-files"), Does.Not.Contain("00002-second.json"));
+    }
+
+    string[] IssueFiles() =>
+        Directory.EnumerateFiles(repo.Store.Folder, "*.json").Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray()!;
 
     [Test]
     public void ShowUnknownIssueReturnsNotFound() =>
@@ -249,8 +290,9 @@ public class CommandTests
         repo.Add("A");
         Assert.That(repo.Run("validate").ExitCode, Is.Zero);
 
-        var issue = repo.Issues.Single();
-        repo.Store.Save(issue with { BlockedBy = [7] });
+        var store = repo.Store;
+        var issue = store.Load().Issues.Single();
+        store.Save(issue with { BlockedBy = [7] });
         var result = repo.Run("validate", "--json");
 
         Assert.That(result.ExitCode, Is.EqualTo(ExitCodes.ValidationFailed));
