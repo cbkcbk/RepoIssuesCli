@@ -96,6 +96,18 @@ public static class PluginGenerator
 
         Status: {{Values<IssueStatus>()}}. Priority: {{Values<IssuePriority>()}}.
 
+        ## Creating an issue
+
+        Create an issue in one call. The name is positional and every other field is a flag. `-t`, `-b` and `-l` repeat:
+
+        ```sh
+        issues new "Login fails on empty password" -d "Submitting an empty password returns 500 instead of a validation error." -p High -t bug -t auth -b 3 -l src/Auth/Login.cs:42:9 --json
+        ```
+
+        The output is the created issue; read its `number` to refer to it later.
+
+        Author: when the user asks for the issue, keep the default (their git identity). When you file an issue on your own initiative, such as a bug or follow-up you noticed while working, mark it as yours with `--author "Claude"`.
+
         ## Workflow
 
         1. Pick: `issues list --ready --json` returns unblocked Open and InProgress issues, highest priority first.

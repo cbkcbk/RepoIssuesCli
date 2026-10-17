@@ -35,6 +35,7 @@ public class PluginGeneratorTests
             Assert.That(skill, Does.Contain($"`issues {command}`"));
         Assert.That(skill, Does.Contain("| 3 | issue not found |"));
         Assert.That(skill, Does.Contain("`InProgress`"));
+        Assert.That(skill, Does.Contain("--author \"Claude\""));
         Assert.That(skill, Does.Not.Contain($"| `issues {GeneratePluginCommand.Name}"));
     }
 
