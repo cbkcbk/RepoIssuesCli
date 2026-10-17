@@ -190,7 +190,7 @@ public static class IssueRenderer
             var blocker = all.FirstOrDefault(candidate => candidate.Number == number);
             return blocker switch
             {
-                null => $"[red]{number:D4}?[/]",
+                null => $"[red]{number:D4} (missing)[/]",
                 { Status: var status } when status.IsClosed() => $"[grey strikethrough]{number:D4}[/]",
                 _ => $"[yellow]{number:D4}[/]",
             };

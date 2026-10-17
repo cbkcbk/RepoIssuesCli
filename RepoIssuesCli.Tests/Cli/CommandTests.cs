@@ -118,6 +118,21 @@ public class CommandTests
     }
 
     [Test]
+    public void MissingBlockerCountsAsBlocking()
+    {
+        repo.Add("Ready");
+        var dangling = repo.Add("Dangling");
+        var store = repo.Store;
+        store.Load();
+        store.Save(dangling with { BlockedBy = [7] });
+
+        Assert.That(ListNames("list", "--ready"), Is.EqualTo(new[] { "Ready" }));
+        Assert.That(ListNames("list", "--blocked"), Is.EqualTo(new[] { "Dangling" }));
+        Assert.That(repo.Run("list").Output, Does.Contain("0007 (missing)"));
+        Assert.That(repo.Run("show", "Dangling").Output, Does.Contain("0007 (missing)"));
+    }
+
+    [Test]
     public void ListTableShowsTitlesAndBlockers()
     {
         repo.Add("First");
