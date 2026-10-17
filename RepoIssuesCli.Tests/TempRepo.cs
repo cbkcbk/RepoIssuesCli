@@ -30,5 +30,19 @@ public sealed class TempRepo : IDisposable
         return IssueJson.Deserialize<Issue>(result.Output)!;
     }
 
+    public void InitGit()
+    {
+        Git("init", "-q");
+        Git("config", "user.name", "Test User");
+        Git("config", "user.email", "test@example.com");
+    }
+
+    public string Git(params string[] args)
+    {
+        var result = RepoIssuesCli.Features.Issues.Git.Run(Root, args);
+        Assert.That(result?.ExitCode, Is.Zero, $"git {string.Join(' ', args)}");
+        return result!.Output;
+    }
+
     public void Dispose() => Directory.Delete(Root, recursive: true);
 }

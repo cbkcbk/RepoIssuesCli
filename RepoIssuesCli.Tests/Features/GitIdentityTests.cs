@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using RepoIssuesCli.Features.Issues;
 
 namespace RepoIssuesCli.Tests.Features;
@@ -15,17 +14,8 @@ public class GitIdentityTests
     public void ReadsAuthorFromRepoConfig()
     {
         using var repo = new TempRepo();
-        Git(repo.Root, "init", "-q");
-        Git(repo.Root, "config", "user.name", "Test User");
-        Git(repo.Root, "config", "user.email", "test@example.com");
+        repo.InitGit();
 
         Assert.That(GitIdentity.Author(repo.Root), Is.EqualTo("Test User <test@example.com>"));
-    }
-
-    public static void Git(string directory, params string[] args)
-    {
-        using var process = Process.Start(new ProcessStartInfo("git", args) { WorkingDirectory = directory })!;
-        process.WaitForExit();
-        Assert.That(process.ExitCode, Is.Zero, $"git {string.Join(' ', args)}");
     }
 }

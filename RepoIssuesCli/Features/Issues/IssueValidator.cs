@@ -31,7 +31,7 @@ public static class IssueValidator
 
         foreach (var issue in issues)
         {
-            var file = $"{issue.Id:D}.json";
+            var file = IssueStore.FileNameFor(issue);
             if (issue.BlockedBy.Contains(issue.Number))
                 problems.Add(new ValidationProblem(ProblemKind.SelfBlock, $"{issue.Title} blocks itself.", file));
 

@@ -9,7 +9,7 @@ dotnet tool install -g RepoIssuesCli     # global
 dotnet tool install RepoIssuesCli        # local (tool manifest)
 ```
 
-Requires the .NET 11 runtime or later.
+Requires the .NET 10 runtime or later.
 
 To build and install the current checkout as a global tool, run `./pack-install.sh` or `./pack-install.ps1`.
 
@@ -56,9 +56,19 @@ The marketplace and skill files (`.claude-plugin/`, `plugins/issues/`) are gener
 dotnet run --project RepoIssuesCli -- generate-plugin
 ```
 
+## Releasing
+
+CI (`.github/workflows/ci.yml`) tests and packs every push and pull request. Pushing a `vX.Y.Z` tag also publishes `RepoIssuesCli` version `X.Y.Z` to nuget.org:
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+Publishing uses nuget.org trusted publishing, so no API key is stored. One-time setup: on nuget.org, add a trusted publishing policy for this repository with workflow file `ci.yml` and environment `nuget`, then add your nuget.org username as the `NUGET_USER` repository secret.
+
 ## File format
 
-`.repo-issues/{uuid-v7}.json`:
+`.repo-issues/{number:00000}-{name_in_snake_case}.json`, e.g. `00001-login_fails_on_empty_password.json`:
 
 ```json
 {
@@ -77,6 +87,8 @@ dotnet run --project RepoIssuesCli -- generate-plugin
 }
 ```
 
+- The name part is cut at a word boundary after 60 characters. Changing an issue's name or number renames its file with `git mv`, so git keeps its history. Files with any other name, such as the older `{uuid}.json` files, are renamed the next time `issues` runs.
+- New issue files are `git add`ed and deleted ones `git rm`ed. Outside a git repository, plain file operations are used.
 - `status`: `Open`, `InProgress`, `Done`, `Cancelled`.
 - `priority`: `Low`, `Medium`, `High`, `Critical`.
 - `author` defaults to the git author (`user.name <user.email>`, honoring `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL`). Override it with `--author`, and filter with `issues list --author <text>`.

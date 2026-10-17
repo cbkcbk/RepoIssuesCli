@@ -21,15 +21,87 @@ public class IssueStoreTests
         Updated = Issue.Timestamp(),
     };
 
+    string[] IssueFiles() =>
+        Directory.EnumerateFiles(repo.Store.Folder, "*.json").Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray()!;
+
     [Test]
-    public void SavesFileNamedByIdAndLoadsItBack()
+    public void SavesFileNamedByNumberAndNameAndLoadsItBack()
     {
-        var issue = NewIssue(1) with { Tags = ["bug"], BlockedBy = [2], Locations = [new SourceLocation("a.cs", 3, 4)] };
+        var issue = NewIssue(1, "Login fails") with { Tags = ["bug"], BlockedBy = [2], Locations = [new SourceLocation("a.cs", 3, 4)] };
         repo.Store.Save(issue);
 
-        Assert.That(File.Exists(Path.Combine(repo.Root, ".repo-issues", $"{issue.Id:D}.json")), Is.True);
+        Assert.That(IssueFiles(), Is.EqualTo(new[] { "00001-login_fails.json" }));
         var loaded = repo.Issues.Single();
         Assert.That(IssueJson.Serialize(loaded), Is.EqualTo(IssueJson.Serialize(issue)));
+    }
+
+    [Test]
+    public void MissingOptionalFieldsLoadWithDefaults()
+    {
+        var issue = IssueJson.Deserialize<Issue>(
+            """{ "id": "01a14ac3-6d44-74e6-b11f-852a3f553cb2", "number": 1, "name": "A", "created": "2026-10-17T16:48:03+00:00", "updated": "2026-10-17T16:48:03+00:00" }""")!;
+
+        Assert.That(issue.Status, Is.EqualTo(IssueStatus.Open));
+        Assert.That(issue.Priority, Is.EqualTo(IssuePriority.Medium));
+        Assert.That(issue.BlockedBy, Is.Empty);
+        Assert.That(issue.Locations, Is.Empty);
+        Assert.That(issue.Tags, Is.Empty);
+    }
+
+    [TestCase(15, "Find .repo-issues from the git root", "00015-find_repo_issues_from_the_git_root.json")]
+    [TestCase(3, "  Fix: æøå -- Ölrückgabe!  ", "00003-fix_æøå_ölrückgabe.json")]
+    [TestCase(7, "?!", "00007.json")]
+    [TestCase(12345, "x", "12345-x.json")]
+    public void FileNameIsNumberAndSnakeCaseName(int number, string name, string expected) =>
+        Assert.That(IssueStore.FileNameFor(NewIssue(number, name)), Is.EqualTo(expected));
+
+    [Test]
+    public void LongNamesAreCutAtAWordBoundary()
+    {
+        var fileName = IssueStore.FileNameFor(NewIssue(15, "Find .repo-issues from the git root when run in a subfolder of the repository"));
+
+        Assert.That(fileName, Is.EqualTo("00015-find_repo_issues_from_the_git_root_when_run_in_a_subfolder.json"));
+    }
+
+    [Test]
+    public void LongNamesWithoutSpacesAreCutHard()
+    {
+        var fileName = IssueStore.FileNameFor(NewIssue(1, new string('a', 80)));
+
+        Assert.That(fileName, Is.EqualTo($"00001-{new string('a', 60)}.json"));
+    }
+
+    [Test]
+    public void SavingARenamedIssueMovesItsFile()
+    {
+        var store = repo.Store;
+        var issue = NewIssue(1, "Old name");
+        store.Save(issue);
+        store.Save(issue with { Name = "New name" });
+
+        Assert.That(IssueFiles(), Is.EqualTo(new[] { "00001-new_name.json" }));
+    }
+
+    [Test]
+    public void SavingOntoAnotherIssuesFileThrows()
+    {
+        var store = repo.Store;
+        store.Save(NewIssue(1, "Taken"));
+        var other = NewIssue(1, "Other");
+        store.Save(other);
+
+        Assert.Throws<IssueFileConflictException>(() => store.Save(other with { Name = "Taken" }));
+    }
+
+    [Test]
+    public void LoadRenamesLegacyIdFiles()
+    {
+        repo.Store.Initialize();
+        var issue = NewIssue(4, "Legacy");
+        File.WriteAllText(Path.Combine(repo.Store.Folder, $"{issue.Id:D}.json"), IssueJson.Serialize(issue));
+
+        Assert.That(repo.Issues.Single().Id, Is.EqualTo(issue.Id));
+        Assert.That(IssueFiles(), Is.EqualTo(new[] { "00004-legacy.json" }));
     }
 
     [Test]
@@ -38,7 +110,7 @@ public class IssueStoreTests
         var issue = NewIssue(1);
         repo.Store.Save(issue);
 
-        var json = File.ReadAllText(repo.Store.PathFor(issue.Id));
+        var json = File.ReadAllText(repo.Store.PathFor(issue));
         Assert.That(json, Does.Not.Contain("tags").And.Not.Contain("blockedBy").And.Not.Contain("description"));
         Assert.That(json, Does.Contain("\"status\": \"Open\"").And.Contain("\"priority\": \"Medium\""));
         Assert.That(json, Does.EndWith("\n"));
@@ -58,8 +130,7 @@ public class IssueStoreTests
     {
         repo.Store.Initialize();
         File.WriteAllText(Path.Combine(repo.Store.Folder, "broken.json"), "{ not json");
-        var mismatched = NewIssue(2);
-        File.WriteAllText(Path.Combine(repo.Store.Folder, $"{Guid.CreateVersion7():D}.json"), IssueJson.Serialize(mismatched));
+        File.WriteAllText(Path.Combine(repo.Store.Folder, "empty.json"), "null");
 
         var snapshot = repo.Store.Load();
 
