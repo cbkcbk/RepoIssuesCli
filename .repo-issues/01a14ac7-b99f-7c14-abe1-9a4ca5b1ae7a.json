@@ -1,0 +1,13 @@
+{
+  "id": "01a14ac7-b99f-7c14-abe1-9a4ca5b1ae7a",
+  "number": 13,
+  "name": "add cmd to regenerate claude plugin",
+  "description": "debug only, not shipped in nuget; preferably in a way that this git repo can be added as a plugin marketplace to install the skill",
+  "status": "Open",
+  "priority": "High",
+  "tags": [
+    "AI"
+  ],
+  "created": "2026-10-17T16:52:45+00:00",
+  "updated": "2026-10-17T16:52:45+00:00"
+}

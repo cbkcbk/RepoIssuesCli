@@ -8,6 +8,7 @@ public sealed record Issue
     public required int Number { get; init; }
     public required string Name { get; init; }
     public string? Description { get; init; }
+    public string? Author { get; init; }
     public IssueStatus Status { get; init; } = IssueStatus.Open;
     public IssuePriority Priority { get; init; } = IssuePriority.Medium;
     public IReadOnlyList<int> BlockedBy { get; init; } = [];

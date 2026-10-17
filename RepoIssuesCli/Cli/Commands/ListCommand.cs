@@ -24,6 +24,10 @@ public sealed class ListCommand(IAnsiConsole console) : IssueCommand<ListCommand
         [Description("Only issues with all these tags; repeatable.")]
         public string[] Tags { get; init; } = [];
 
+        [CommandOption("--author <TEXT>")]
+        [Description("Only issues whose author contains this text.")]
+        public string? Author { get; init; }
+
         [CommandOption("--blocked")]
         [Description("Only issues with an unfinished blocker.")]
         public bool Blocked { get; init; }
@@ -49,6 +53,7 @@ public sealed class ListCommand(IAnsiConsole console) : IssueCommand<ListCommand
             .Where(issue => settings.Statuses.Length > 0 ? settings.Statuses.Contains(issue.Status) : settings.All || !issue.Status.IsClosed())
             .Where(issue => settings.Priorities.Length == 0 || settings.Priorities.Contains(issue.Priority))
             .Where(issue => tags.All(tag => issue.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)))
+            .Where(issue => settings.Author is null || (issue.Author?.Contains(settings.Author, StringComparison.OrdinalIgnoreCase) ?? false))
             .Where(issue => !settings.Blocked || BlockerGraph.IsBlocked(issue, issues))
             .Where(issue => !settings.Ready || !BlockerGraph.IsBlocked(issue, issues))
             .OrderByDescending(issue => issue.Priority)

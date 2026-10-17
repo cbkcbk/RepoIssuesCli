@@ -17,6 +17,10 @@ public sealed class NewCommand(IAnsiConsole console) : IssueCommand<NewCommand.S
         [CommandOption("-d|--description <TEXT>")]
         public string? Description { get; init; }
 
+        [CommandOption("-a|--author <AUTHOR>")]
+        [Description("Author. Defaults to the git author (user.name <user.email>).")]
+        public string? Author { get; init; }
+
         [CommandOption("-p|--priority <PRIORITY>")]
         [Description("Low, Medium (default), High or Critical.")]
         [TypeConverter(typeof(EnumOptionConverter<IssuePriority>))]
@@ -73,6 +77,7 @@ public sealed class NewCommand(IAnsiConsole console) : IssueCommand<NewCommand.S
             Number = session.Snapshot.NextNumber(),
             Name = name,
             Description = string.IsNullOrWhiteSpace(description) ? null : description,
+            Author = string.IsNullOrWhiteSpace(settings.Author) ? GitIdentity.Author(session.Store.Root) : settings.Author.Trim(),
             Status = settings.Status ?? IssueStatus.Open,
             Priority = priority ?? IssuePriority.Medium,
             BlockedBy = blockers,

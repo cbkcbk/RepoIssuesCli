@@ -50,6 +50,7 @@ Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name 
   "number": 1,
   "name": "Login fails on empty password",
   "description": "Optional text",
+  "author": "Ada Lovelace <ada@example.com>",
   "status": "Open",
   "priority": "High",
   "blockedBy": [3, 7],
@@ -62,6 +63,7 @@ Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name 
 
 - `status`: `Open`, `InProgress`, `Done`, `Cancelled`.
 - `priority`: `Low`, `Medium`, `High`, `Critical`.
+- `author` defaults to the git author (`user.name <user.email>`, honoring `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL`). Override it with `--author`, and filter with `issues list --author <text>`.
 - `blockedBy` holds issue numbers, so renaming an issue never breaks references.
 - Empty lists and missing values are omitted.
 - Location paths are repo-relative with `/` separators.

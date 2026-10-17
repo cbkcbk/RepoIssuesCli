@@ -43,6 +43,8 @@ public static class IssueRenderer
         var grid = new Grid().AddColumn(new GridColumn().NoWrap()).AddColumn();
         grid.AddRow(new Markup("[grey]Status[/]"), Status(issue.Status));
         grid.AddRow(new Markup("[grey]Priority[/]"), Priority(issue.Priority));
+        if (issue.Author is not null)
+            grid.AddRow(new Markup("[grey]Author[/]"), new Text(issue.Author));
         if (issue.Tags.Count > 0)
             grid.AddRow(new Markup("[grey]Tags[/]"), new Text(string.Join(", ", issue.Tags)));
         grid.AddRow(new Markup("[grey]Created[/]"), new Text(issue.Created.ToString("u")));

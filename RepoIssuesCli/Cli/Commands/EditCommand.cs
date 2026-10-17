@@ -23,6 +23,9 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
         [CommandOption("--clear-description")]
         public bool ClearDescription { get; init; }
 
+        [CommandOption("-a|--author <AUTHOR>")]
+        public string? Author { get; init; }
+
         [CommandOption("-p|--priority <PRIORITY>")]
         [TypeConverter(typeof(EnumOptionConverter<IssuePriority>))]
         public IssuePriority? Priority { get; init; }
@@ -51,7 +54,7 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
         public string[] RemoveLocations { get; init; } = [];
 
         public bool HasChanges =>
-            Name is not null || Description is not null || ClearDescription || Priority is not null || Status is not null
+            Name is not null || Description is not null || ClearDescription || Author is not null || Priority is not null || Status is not null
             || AddTags.Length > 0 || RemoveTags.Length > 0 || AddBlockers.Length > 0 || RemoveBlockers.Length > 0
             || AddLocations.Length > 0 || RemoveLocations.Length > 0;
 
@@ -115,6 +118,7 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
         {
             Name = string.IsNullOrWhiteSpace(settings.Name) ? issue.Name : settings.Name.Trim(),
             Description = settings.ClearDescription ? null : settings.Description ?? issue.Description,
+            Author = string.IsNullOrWhiteSpace(settings.Author) ? issue.Author : settings.Author.Trim(),
             Priority = settings.Priority ?? issue.Priority,
             Status = settings.Status ?? issue.Status,
             Tags = Distinct(tags, StringComparer.OrdinalIgnoreCase),
@@ -143,6 +147,9 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
                     break;
                 case EditField.Description:
                     issue = issue with { Description = interaction.AskOptionalText("Description [grey](empty clears)[/]:", issue.Description) };
+                    break;
+                case EditField.Author:
+                    issue = issue with { Author = interaction.AskOptionalText("Author [grey](empty clears)[/]:", issue.Author) };
                     break;
                 case EditField.Status:
                     issue = issue with { Status = interaction.ChooseEnum("Status:", issue.Status) };
@@ -208,6 +215,7 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
     {
         Name,
         Description,
+        Author,
         Status,
         Priority,
         Tags,

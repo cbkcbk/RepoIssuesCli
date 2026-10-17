@@ -1,5 +1,6 @@
 using RepoIssuesCli.Cli;
 using RepoIssuesCli.Features.Issues;
+using RepoIssuesCli.Tests.Features;
 using Spectre.Console.Testing;
 
 namespace RepoIssuesCli.Tests.Cli;
@@ -39,6 +40,29 @@ public class CommandTests
         Assert.That(issue.BlockedBy, Is.EqualTo(new[] { blocker.Number }));
         Assert.That(issue.Locations, Is.EqualTo(new[] { new SourceLocation("src/a.cs", 3, 5) }));
         Assert.That(repo.Issues, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void NewDefaultsAuthorToGitAuthor()
+    {
+        GitIdentityTests.Git(repo.Root, "init", "-q");
+        GitIdentityTests.Git(repo.Root, "config", "user.name", "Test User");
+        GitIdentityTests.Git(repo.Root, "config", "user.email", "test@example.com");
+
+        Assert.That(repo.Add("A").Author, Is.EqualTo("Test User <test@example.com>"));
+        Assert.That(repo.Add("B", "--author", "Someone Else").Author, Is.EqualTo("Someone Else"));
+    }
+
+    [Test]
+    public void EditAndListByAuthor()
+    {
+        repo.Add("A", "--author", "Ada");
+        repo.Add("B", "--author", "Grace");
+
+        Assert.That(repo.Run("edit", "B", "--author", "Grace Hopper").ExitCode, Is.Zero);
+
+        Assert.That(ListNames("list", "--author", "hopper"), Is.EqualTo(new[] { "B" }));
+        Assert.That(repo.Run("show", "B").Output, Does.Contain("Grace Hopper"));
     }
 
     [Test]
@@ -161,9 +185,9 @@ public class CommandTests
     {
         repo.Add("A");
         var console = new TestConsole().Width(250).Interactive();
-        PushDown(console, 2);
+        PushDown(console, 3);
         PushDown(console, 1);
-        PushDown(console, 7);
+        PushDown(console, 8);
 
         var result = repo.Run(console, "edit", "1");
 
