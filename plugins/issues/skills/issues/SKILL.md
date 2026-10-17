@@ -18,7 +18,7 @@ Issues are JSON files in `.repo-issues/`, committed alongside the code. Change t
 | Exit code | Meaning |
 |---|---|
 | 0 | success |
-| 1 | validate found problems |
+| 1 | validate found errors, or warnings with --strict |
 | 2 | usage error or missing input |
 | 3 | issue not found |
 | 4 | unexpected error |
@@ -36,7 +36,7 @@ Issues are JSON files in `.repo-issues/`, committed alongside the code. Change t
 | `issues comment [ref] [text]` | Add a comment to an issue. Prompts for the text when run interactively without it. |
 | `issues delete [ref]` | Delete an issue and remove it from other issues' blockers. |
 | `issues renumber [ref]` | Give an issue the next free number, e.g. to fix a duplicate number after a merge. Blockers on an unshared number follow the issue; blockers on a duplicated number keep pointing at the issue that keeps it. |
-| `issues validate` | Check for invalid files, duplicate numbers, missing blockers and blocker cycles. Exits with 1 on problems. |
+| `issues validate` | Check for invalid files, duplicate numbers, missing blockers and blocker cycles, and warn about locations pointing at missing files or lines. Exits with 1 on errors. |
 
 `<ref>` accepts a number (`3` or `0003`), a unique name prefix, a full title (`0003 Fix login`) or the id. Prefer the number.
 
