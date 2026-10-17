@@ -7,13 +7,26 @@ public enum ProblemKind
     SelfBlock,
     DanglingBlocker,
     BlockerCycle,
+    MissingLocationFile,
+    LocationLineOutOfRange,
 }
 
-public sealed record ValidationProblem(ProblemKind Kind, string Message, string? File = null);
+public enum Severity
+{
+    Error,
+    Warning,
+}
+
+public sealed record ValidationProblem(ProblemKind Kind, string Message, string? File = null)
+{
+    public Severity Severity => Kind is ProblemKind.MissingLocationFile or ProblemKind.LocationLineOutOfRange
+        ? Severity.Warning
+        : Severity.Error;
+}
 
 public static class IssueValidator
 {
-    public static IReadOnlyList<ValidationProblem> Validate(IssueSnapshot snapshot)
+    public static IReadOnlyList<ValidationProblem> Validate(IssueSnapshot snapshot, Func<string, int?> lineCount)
     {
         var issues = snapshot.Issues;
         var numbers = issues.Select(issue => issue.Number).ToHashSet();
@@ -37,6 +50,15 @@ public static class IssueValidator
 
             foreach (var missing in issue.BlockedBy.Where(number => !numbers.Contains(number)))
                 problems.Add(new ValidationProblem(ProblemKind.DanglingBlocker, $"{issue.Title} is blocked by {missing:D4}, which does not exist.", file));
+
+            foreach (var location in issue.Locations)
+            {
+                var lines = lineCount(location.Path);
+                if (lines is null)
+                    problems.Add(new ValidationProblem(ProblemKind.MissingLocationFile, $"{issue.Title} points at {location}, which does not exist.", file));
+                else if (location.Line > lines)
+                    problems.Add(new ValidationProblem(ProblemKind.LocationLineOutOfRange, $"{issue.Title} points at {location}, but {location.Path} has {lines} lines.", file));
+            }
         }
 
         problems.AddRange(BlockerGraph.FindCycles(issues)

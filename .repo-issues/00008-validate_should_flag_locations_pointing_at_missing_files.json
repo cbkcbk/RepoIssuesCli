@@ -3,7 +3,7 @@
   "number": 8,
   "name": "validate should flag locations pointing at missing files",
   "description": "Source locations go stale when files move or are deleted. Add a warning-level problem (that doesn\u0027t fail the exit code, or opt-in via a flag).",
-  "status": "Open",
+  "status": "Done",
   "priority": "Low",
   "locations": [
     {
@@ -17,5 +17,5 @@
     "validate"
   ],
   "created": "2026-10-17T16:48:04+00:00",
-  "updated": "2026-10-17T16:48:04+00:00"
+  "updated": "2026-10-17T18:38:19+00:00"
 }

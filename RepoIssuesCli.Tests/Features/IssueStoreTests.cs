@@ -25,6 +25,17 @@ public class IssueStoreTests
         Directory.EnumerateFiles(repo.Store.Folder, "*.json").Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray()!;
 
     [Test]
+    public void LineCountResolvesRepoRelativePaths()
+    {
+        Directory.CreateDirectory(Path.Combine(repo.Root, "src"));
+        File.WriteAllText(Path.Combine(repo.Root, "src", "a.cs"), "one\ntwo\nthree\n");
+
+        Assert.That(repo.Store.LineCount("src/a.cs"), Is.EqualTo(3));
+        Assert.That(repo.Store.LineCount("src"), Is.Zero);
+        Assert.That(repo.Store.LineCount("src/gone.cs"), Is.Null);
+    }
+
+    [Test]
     public void SavesFileNamedByNumberAndNameAndLoadsItBack()
     {
         var issue = NewIssue(1, "Login fails") with { Tags = ["bug"], BlockedBy = [2], Locations = [new SourceLocation("a.cs", 3, 4)] };

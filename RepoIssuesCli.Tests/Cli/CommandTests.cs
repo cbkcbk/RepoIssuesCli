@@ -597,7 +597,33 @@ public class CommandTests
         var result = repo.Run("validate", "--json");
 
         Assert.That(result.ExitCode, Is.EqualTo(ExitCodes.ValidationFailed));
-        Assert.That(result.Output, Does.Contain("\"kind\": \"DanglingBlocker\""));
+        Assert.That(result.Output, Does.Contain("\"kind\": \"DanglingBlocker\"").And.Contain("\"severity\": \"Error\""));
+    }
+
+    [Test]
+    public void ValidateWarnsAboutMissingLocationFilesWithoutFailing()
+    {
+        Directory.CreateDirectory(Path.Combine(repo.Root, "src"));
+        File.WriteAllText(Path.Combine(repo.Root, "src", "kept.cs"), "line\n");
+        repo.Add("A", "-l", Path.Combine(repo.Root, "src", "kept.cs") + ":1", "-l", Path.Combine(repo.Root, "src", "gone.cs") + ":4");
+
+        var text = repo.Run("validate");
+        var json = repo.Run("validate", "--json");
+
+        Assert.That(text.ExitCode, Is.Zero, text.Errors);
+        Assert.That(text.Output, Does.Contain("MissingLocationFile").And.Contain("src/gone.cs:4").And.Contain("1 warning(s) found."));
+        Assert.That(json.ExitCode, Is.Zero, json.Errors);
+        var problem = JsonDocument.Parse(json.Output).RootElement.EnumerateArray().Single();
+        Assert.That(problem.GetProperty("kind").GetString(), Is.EqualTo("MissingLocationFile"));
+        Assert.That(problem.GetProperty("severity").GetString(), Is.EqualTo("Warning"));
+    }
+
+    [Test]
+    public void ValidateStrictFailsOnWarnings()
+    {
+        repo.Add("A", "-l", Path.Combine(repo.Root, "gone.cs"));
+
+        Assert.That(repo.Run("validate", "--strict").ExitCode, Is.EqualTo(ExitCodes.ValidationFailed));
     }
 
     [Test]
