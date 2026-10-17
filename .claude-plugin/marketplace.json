@@ -1,0 +1,15 @@
+{
+  "name": "repo-issues",
+  "description": "Claude Code plugin for the issues CLI (RepoIssuesCli).",
+  "owner": {
+    "name": "ChristofferBK"
+  },
+  "plugins": [
+    {
+      "name": "issues",
+      "source": "./plugins/issues",
+      "description": "Track work as issues stored in the repository with the issues CLI.",
+      "version": "0.1.0"
+    }
+  ]
+}

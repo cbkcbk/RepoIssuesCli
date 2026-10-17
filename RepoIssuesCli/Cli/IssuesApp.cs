@@ -32,6 +32,9 @@ public static class IssuesApp
             config.AddCommand<DeleteCommand>("delete").WithAlias("rm")
                 .WithExample("delete", "3", "--force");
             config.AddCommand<ValidateCommand>("validate");
+#if DEBUG
+            config.AddCommand<Plugin.GeneratePluginCommand>(Plugin.GeneratePluginCommand.Name);
+#endif
         });
         return app;
     }

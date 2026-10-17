@@ -40,6 +40,22 @@ Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name 
 - Exit codes: `0` ok, `1` validation problems, `2` usage error / missing input, `3` issue not found, `4` unexpected error.
 - `--root <path>` overrides repository discovery. By default `issues` walks up from the current directory to the nearest folder containing `.repo-issues`, then `.git`.
 
+## Claude Code plugin
+
+This repository is also a Claude Code plugin marketplace (`repo-issues`). Its `issues` plugin ships a skill that teaches Claude to drive the CLI. Install it with:
+
+```
+/plugin install issues --marketplace <owner>/RepoIssuesCli
+```
+
+On older Claude Code versions, run `/plugin marketplace add <owner>/RepoIssuesCli` and then `/plugin install issues@repo-issues`.
+
+The marketplace and skill files (`.claude-plugin/`, `plugins/issues/`) are generated from the CLI's own command model. After changing commands, regenerate them with the debug-only command, which is never packed into the NuGet tool:
+
+```sh
+dotnet run --project RepoIssuesCli -- generate-plugin
+```
+
 ## File format
 
 `.repo-issues/{uuid-v7}.json`:

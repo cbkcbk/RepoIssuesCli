@@ -20,6 +20,10 @@
         <Using Include="NUnit.Framework" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+        <Compile Remove="Cli/Plugin/**" />
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="../RepoIssuesCli/RepoIssuesCli.csproj" />
     </ItemGroup>

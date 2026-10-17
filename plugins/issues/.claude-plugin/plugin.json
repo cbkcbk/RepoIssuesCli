@@ -1,0 +1,8 @@
+{
+  "name": "issues",
+  "version": "0.1.0",
+  "description": "Track work as issues stored in the repository with the issues CLI.",
+  "author": {
+    "name": "ChristofferBK"
+  }
+}
