@@ -3,7 +3,7 @@
   "number": 11,
   "name": "List table wraps names badly in narrow terminals",
   "description": "At 80 columns every name wraps over 2-4 lines because all columns share width equally. Give Name the flexible width, keep #, Status and Priority NoWrap, and truncate Tags/Blocked by (or hide them) when space is short.",
-  "status": "Open",
+  "status": "Done",
   "priority": "Medium",
   "locations": [
     {
@@ -16,5 +16,5 @@
     "ux"
   ],
   "created": "2026-10-17T16:48:16+00:00",
-  "updated": "2026-10-17T16:48:16+00:00"
+  "updated": "2026-10-17T18:21:29+00:00"
 }
