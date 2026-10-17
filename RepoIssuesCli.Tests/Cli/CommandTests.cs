@@ -24,6 +24,27 @@ public class CommandTests
     }
 
     [Test]
+    public void InitJsonReportsCreatedAsBoolean()
+    {
+        var first = JsonDocument.Parse(repo.Run("init", "--json").Output).RootElement;
+        var second = JsonDocument.Parse(repo.Run("init", "--json").Output).RootElement;
+
+        Assert.That(first.GetProperty("folder").GetString(), Is.EqualTo(repo.Store.Folder));
+        Assert.That(first.GetProperty("created").ValueKind, Is.EqualTo(JsonValueKind.True));
+        Assert.That(second.GetProperty("created").ValueKind, Is.EqualTo(JsonValueKind.False));
+    }
+
+    [Test]
+    public void InitKeepsLongFolderPathOnOneLine()
+    {
+        var created = repo.Run(new TestConsole().Width(30), "init").Output;
+        var existing = repo.Run(new TestConsole().Width(30), "init").Output;
+
+        Assert.That(created, Is.EqualTo($"Initialized {repo.Store.Folder}\n"));
+        Assert.That(existing, Is.EqualTo($"Already initialized: {repo.Store.Folder}\n"));
+    }
+
+    [Test]
     public void NewWithFlagsWritesAllFields()
     {
         var blocker = repo.Add("Blocker");
@@ -40,6 +61,21 @@ public class CommandTests
         Assert.That(issue.BlockedBy, Is.EqualTo(new[] { blocker.Number }));
         Assert.That(issue.Locations, Is.EqualTo(new[] { new SourceLocation("src/a.cs", 3, 5) }));
         Assert.That(repo.Issues, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void ParallelNewCommandsGetUniqueNumbers()
+    {
+        const int count = 24;
+        repo.Run("init");
+
+        var runs = Enumerable.Range(0, count)
+            .Select(index => Task.Factory.StartNew(() => repo.Run("new", $"Issue {index}"), TaskCreationOptions.LongRunning))
+            .ToArray();
+        var results = Task.WhenAll(runs).GetAwaiter().GetResult();
+
+        Assert.That(results.Select(result => result.ExitCode), Is.All.Zero, string.Join(Environment.NewLine, results.Select(result => result.Errors)));
+        Assert.That(repo.Issues.Select(issue => issue.Number).Order(), Is.EqualTo(Enumerable.Range(1, count)));
     }
 
     [Test]
@@ -94,6 +130,23 @@ public class CommandTests
     }
 
     [Test]
+    public void NewWizardReadsMultiLineDescription()
+    {
+        var console = new TestConsole().Width(250).Interactive();
+        console.Input.PushTextWithEnter("Prompted issue");
+        console.Input.PushTextWithEnter("Steps:");
+        console.Input.PushTextWithEnter("  1. Run it");
+        console.Input.PushTextWithEnter("");
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushTextWithEnter("");
+
+        var result = repo.Run(console, "new");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Description, Is.EqualTo("Steps:\n  1. Run it"));
+    }
+
+    [Test]
     public void InvalidEnumGivesReadableUsageError()
     {
         var result = repo.Run("new", "X", "-p", "urgent");
@@ -115,6 +168,21 @@ public class CommandTests
         Assert.That(ListNames("list", "-t", "BUG"), Is.EqualTo(new[] { "Open bug" }));
         Assert.That(ListNames("list", "--ready"), Is.EqualTo(new[] { "Open bug" }));
         Assert.That(ListNames("list", "--blocked"), Is.EqualTo(new[] { "Blocked" }));
+    }
+
+    [Test]
+    public void MissingBlockerCountsAsBlocking()
+    {
+        repo.Add("Ready");
+        var dangling = repo.Add("Dangling");
+        var store = repo.Store;
+        store.Load();
+        store.Save(dangling with { BlockedBy = [7] });
+
+        Assert.That(ListNames("list", "--ready"), Is.EqualTo(new[] { "Ready" }));
+        Assert.That(ListNames("list", "--blocked"), Is.EqualTo(new[] { "Dangling" }));
+        Assert.That(repo.Run("list").Output, Does.Contain("0007 (missing)"));
+        Assert.That(repo.Run("show", "Dangling").Output, Does.Contain("0007 (missing)"));
     }
 
     [Test]
@@ -288,6 +356,39 @@ public class CommandTests
         Assert.That(repo.Issues.Single().Status, Is.EqualTo(IssueStatus.InProgress));
     }
 
+    [Test]
+    public void EditMenuReplacesDescriptionWithMultipleLines()
+    {
+        repo.Add("A", "-d", "Old text");
+        var console = new TestConsole().Width(250).Interactive();
+        PushDown(console, 1);
+        console.Input.PushTextWithEnter("New first");
+        console.Input.PushTextWithEnter("New second");
+        console.Input.PushTextWithEnter("");
+        PushDown(console, 8);
+
+        var result = repo.Run(console, "edit", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Description, Is.EqualTo("New first\nNew second"));
+    }
+
+    [TestCase("", "Old text")]
+    [TestCase("-", null)]
+    public void EditMenuKeepsOrClearsDescription(string firstLine, string? expected)
+    {
+        repo.Add("A", "-d", "Old text");
+        var console = new TestConsole().Width(250).Interactive();
+        PushDown(console, 1);
+        console.Input.PushTextWithEnter(firstLine);
+        PushDown(console, 8);
+
+        var result = repo.Run(console, "edit", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Description, Is.EqualTo(expected));
+    }
+
     static void PushDown(TestConsole console, int times)
     {
         for (var i = 0; i < times; i++)
@@ -352,11 +453,28 @@ public class CommandTests
         repo.Add("A");
         var console = new TestConsole().Width(250).Interactive();
         console.Input.PushTextWithEnter("Prompted comment");
+        console.Input.PushTextWithEnter("");
 
         var result = repo.Run(console, "comment", "1");
 
         Assert.That(result.ExitCode, Is.Zero, result.Errors);
         Assert.That(repo.Issues.Single().Comments.Single().Text, Is.EqualTo("Prompted comment"));
+    }
+
+    [Test]
+    public void CommentPromptReadsLinesUntilBlankAndRepromptsWhenEmpty()
+    {
+        repo.Add("A");
+        var console = new TestConsole().Width(250).Interactive();
+        console.Input.PushTextWithEnter("");
+        console.Input.PushTextWithEnter("First line");
+        console.Input.PushTextWithEnter("Second line");
+        console.Input.PushTextWithEnter("");
+
+        var result = repo.Run(console, "comment", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Comments.Single().Text, Is.EqualTo("First line\nSecond line"));
     }
 
     [Test]
@@ -494,7 +612,33 @@ public class CommandTests
         var result = repo.Run("validate", "--json");
 
         Assert.That(result.ExitCode, Is.EqualTo(ExitCodes.ValidationFailed));
-        Assert.That(result.Output, Does.Contain("\"kind\": \"DanglingBlocker\""));
+        Assert.That(result.Output, Does.Contain("\"kind\": \"DanglingBlocker\"").And.Contain("\"severity\": \"Error\""));
+    }
+
+    [Test]
+    public void ValidateWarnsAboutMissingLocationFilesWithoutFailing()
+    {
+        Directory.CreateDirectory(Path.Combine(repo.Root, "src"));
+        File.WriteAllText(Path.Combine(repo.Root, "src", "kept.cs"), "line\n");
+        repo.Add("A", "-l", Path.Combine(repo.Root, "src", "kept.cs") + ":1", "-l", Path.Combine(repo.Root, "src", "gone.cs") + ":4");
+
+        var text = repo.Run("validate");
+        var json = repo.Run("validate", "--json");
+
+        Assert.That(text.ExitCode, Is.Zero, text.Errors);
+        Assert.That(text.Output, Does.Contain("MissingLocationFile").And.Contain("src/gone.cs:4").And.Contain("1 warning(s) found."));
+        Assert.That(json.ExitCode, Is.Zero, json.Errors);
+        var problem = JsonDocument.Parse(json.Output).RootElement.EnumerateArray().Single();
+        Assert.That(problem.GetProperty("kind").GetString(), Is.EqualTo("MissingLocationFile"));
+        Assert.That(problem.GetProperty("severity").GetString(), Is.EqualTo("Warning"));
+    }
+
+    [Test]
+    public void ValidateStrictFailsOnWarnings()
+    {
+        repo.Add("A", "-l", Path.Combine(repo.Root, "gone.cs"));
+
+        Assert.That(repo.Run("validate", "--strict").ExitCode, Is.EqualTo(ExitCodes.ValidationFailed));
     }
 
     [Test]

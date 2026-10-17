@@ -17,8 +17,13 @@ public sealed class RenumberCommand(IAnsiConsole console) : IssueCommand<Renumbe
 
     protected override int Run(IssueSession session, Settings settings)
     {
-        var issue = session.Interaction.ChooseIssue(session.Issues, settings.Reference, "Renumber which issue?");
-        var result = IssueRenumbering.Renumber(session.Snapshot, issue);
+        var chosen = session.Interaction.ChooseIssue(session.Issues, settings.Reference, "Renumber which issue?");
+
+        using var lease = session.Store.Lock();
+        var snapshot = session.Store.Load();
+        var issue = snapshot.Issues.FirstOrDefault(candidate => candidate.Id == chosen.Id)
+            ?? throw new IssueNotFoundException(chosen.Id.ToString());
+        var result = IssueRenumbering.Renumber(snapshot, issue);
 
         session.Store.Save(result.Issue);
         foreach (var rewritten in result.Rewritten)
@@ -27,7 +32,7 @@ public sealed class RenumberCommand(IAnsiConsole console) : IssueCommand<Renumbe
         if (settings.Json)
             IssueRenderer.WriteJson(Console, result);
         else
-            WriteSummary(session.Issues, issue, result);
+            WriteSummary(snapshot.Issues, issue, result);
 
         return ExitCodes.Success;
     }

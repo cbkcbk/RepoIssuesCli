@@ -30,6 +30,39 @@ public sealed class Interaction(IAnsiConsole console, GlobalSettings settings)
         return answer.Length == 0 ? null : answer;
     }
 
+    public string RequireMultilineText(string? value, string option, string question)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            return value.Trim();
+
+        EnsureInteractive(option);
+        while (true)
+        {
+            if (AskMultilineText(question) is { } text)
+                return text;
+        }
+    }
+
+    public string? AskMultilineText(string question, string? current = null)
+    {
+        var hint = current is null ? "blank line finishes" : "blank line finishes; blank first line keeps current, - clears";
+        console.MarkupLine($"{question} [grey]({hint})[/]");
+
+        var first = ReadLine();
+        if (first.Length == 0)
+            return current;
+        if (first.Trim() == "-")
+            return null;
+
+        var lines = new List<string> { first };
+        while (ReadLine() is { Length: > 0 } line)
+            lines.Add(line);
+
+        return string.Join('\n', lines).Trim();
+    }
+
+    string ReadLine() => console.Prompt(new TextPrompt<string>("[grey]>[/]").AllowEmpty()).TrimEnd();
+
     public T Choose<T>(string title, IEnumerable<T> choices, Func<T, string> display, string option) where T : notnull
     {
         EnsureInteractive(option);

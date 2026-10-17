@@ -7,7 +7,7 @@ public static class ExitCodes
     [Description("success")]
     public const int Success = 0;
 
-    [Description("validate found problems")]
+    [Description("validate found errors, or warnings with --strict")]
     public const int ValidationFailed = 1;
 
     [Description("usage error or missing input")]

@@ -59,7 +59,7 @@ public sealed class NewCommand(IAnsiConsole console) : IssueCommand<NewCommand.S
 
         if (wizard)
         {
-            description ??= interaction.AskOptionalText("Description [grey](optional)[/]:");
+            description ??= interaction.AskMultilineText("Description [grey](optional)[/]:");
             priority ??= interaction.ChooseEnum("Priority:", IssuePriority.Medium);
             if (tags.Count == 0)
                 tags = IssueInput.ParseTags([interaction.AskOptionalText("Tags [grey](comma-separated, optional)[/]:") ?? ""]);
@@ -70,14 +70,17 @@ public sealed class NewCommand(IAnsiConsole console) : IssueCommand<NewCommand.S
             }
         }
 
+        var author = string.IsNullOrWhiteSpace(settings.Author) ? GitIdentity.Author(session.Store.Root) : settings.Author.Trim();
+
+        using var lease = session.Store.Lock();
         var now = Issue.Timestamp();
         var created = new Issue
         {
             Id = Guid.CreateVersion7(),
-            Number = session.Snapshot.NextNumber(),
+            Number = session.Store.Load().NextNumber(),
             Name = name,
             Description = string.IsNullOrWhiteSpace(description) ? null : description,
-            Author = string.IsNullOrWhiteSpace(settings.Author) ? GitIdentity.Author(session.Store.Root) : settings.Author.Trim(),
+            Author = author,
             Status = settings.Status ?? IssueStatus.Open,
             Priority = priority ?? IssuePriority.Medium,
             BlockedBy = blockers,

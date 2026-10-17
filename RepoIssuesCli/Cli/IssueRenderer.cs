@@ -148,13 +148,27 @@ public static class IssueRenderer
 
         var table = new Table().Border(TableBorder.Rounded).AddColumn("Problem").AddColumn("Details").AddColumn("File");
         foreach (var problem in problems)
-            table.AddRow(new Markup($"[red]{problem.Kind}[/]"), new Text(problem.Message), new Text(problem.File ?? ""));
+            table.AddRow(new Markup($"[{SeverityColor(problem.Severity)}]{problem.Kind}[/]"), new Text(problem.Message), new Text(problem.File ?? ""));
         console.Write(table);
-        console.MarkupLine($"[red]{problems.Count} problem(s) found.[/]");
+
+        var errors = problems.Count(problem => problem.Severity == Severity.Error);
+        var warnings = problems.Count - errors;
+        if (errors > 0)
+            console.MarkupLine($"[red]{errors} error(s) found.[/]");
+        if (warnings > 0)
+            console.MarkupLine($"[yellow]{warnings} warning(s) found.[/]");
     }
+
+    static string SeverityColor(Severity severity) => severity == Severity.Warning ? "yellow" : "red";
 
     public static void WriteSaved(IAnsiConsole console, string verb, Issue issue) =>
         console.MarkupLine($"{verb} [bold]{Markup.Escape(issue.Title)}[/]");
+
+    public static void WriteUnwrappedLine(IAnsiConsole console, string markup)
+    {
+        console.Write(new Unwrapped(new Markup(markup)));
+        console.WriteLine();
+    }
 
     static Tree BlockerTree(Issue issue, IReadOnlyCollection<Issue> all)
     {
@@ -190,7 +204,7 @@ public static class IssueRenderer
             var blocker = all.FirstOrDefault(candidate => candidate.Number == number);
             return blocker switch
             {
-                null => $"[red]{number:D4}?[/]",
+                null => $"[red]{number:D4} (missing)[/]",
                 { Status: var status } when status.IsClosed() => $"[grey strikethrough]{number:D4}[/]",
                 _ => $"[yellow]{number:D4}[/]",
             };

@@ -14,11 +14,11 @@ public sealed class InitCommand(IAnsiConsole console) : Command<GlobalSettings>
         var created = store.Initialize();
 
         if (settings.Json)
-            IssueRenderer.WriteJson(console, new Dictionary<string, string> { ["folder"] = store.Folder, ["created"] = created.ToString().ToLowerInvariant() });
+            IssueRenderer.WriteJson(console, new InitResult(store.Folder, created));
         else if (created)
-            console.MarkupLine($"Initialized [bold]{Markup.Escape(store.Folder)}[/]");
+            IssueRenderer.WriteUnwrappedLine(console, $"Initialized [bold]{Markup.Escape(store.Folder)}[/]");
         else
-            console.MarkupLine($"[grey]Already initialized:[/] {Markup.Escape(store.Folder)}");
+            IssueRenderer.WriteUnwrappedLine(console, $"[grey]Already initialized:[/] {Markup.Escape(store.Folder)}");
 
         return ExitCodes.Success;
     }

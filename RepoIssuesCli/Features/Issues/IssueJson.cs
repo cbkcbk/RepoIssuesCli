@@ -14,7 +14,7 @@ namespace RepoIssuesCli.Features.Issues;
 [JsonSerializable(typeof(List<Issue>))]
 [JsonSerializable(typeof(List<ValidationProblem>))]
 [JsonSerializable(typeof(RenumberResult))]
-[JsonSerializable(typeof(Dictionary<string, string>))]
+[JsonSerializable(typeof(InitResult))]
 public partial class IssueJsonContext : JsonSerializerContext;
 
 public static class IssueJson

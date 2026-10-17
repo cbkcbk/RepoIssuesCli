@@ -25,6 +25,17 @@ public class IssueStoreTests
         Directory.EnumerateFiles(repo.Store.Folder, "*.json").Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray()!;
 
     [Test]
+    public void LineCountResolvesRepoRelativePaths()
+    {
+        Directory.CreateDirectory(Path.Combine(repo.Root, "src"));
+        File.WriteAllText(Path.Combine(repo.Root, "src", "a.cs"), "one\ntwo\nthree\n");
+
+        Assert.That(repo.Store.LineCount("src/a.cs"), Is.EqualTo(3));
+        Assert.That(repo.Store.LineCount("src"), Is.Zero);
+        Assert.That(repo.Store.LineCount("src/gone.cs"), Is.Null);
+    }
+
+    [Test]
     public void SavesFileNamedByNumberAndNameAndLoadsItBack()
     {
         var issue = NewIssue(1, "Login fails") with { Tags = ["bug"], BlockedBy = [2], Locations = [new SourceLocation("a.cs", 3, 4)] };
@@ -124,6 +135,40 @@ public class IssueStoreTests
         repo.Store.Save(NewIssue(7));
 
         Assert.That(repo.Store.Load().NextNumber(), Is.EqualTo(8));
+    }
+
+    [Test]
+    public void LockIsExclusiveUntilReleased()
+    {
+        var waiting = new IssueStore(repo.Root) { LockTimeout = TimeSpan.FromMilliseconds(100) };
+
+        using (repo.Store.Lock())
+            Assert.Throws<IssueLockTimeoutException>(() => waiting.Lock());
+
+        Assert.DoesNotThrow(() => waiting.Lock().Dispose());
+    }
+
+    [Test]
+    public void LockFileIsGitIgnoredAndNotAnIssue()
+    {
+        repo.InitGit();
+        repo.Store.Save(NewIssue(1));
+
+        using (repo.Store.Lock())
+        {
+            var snapshot = repo.Store.Load();
+            Assert.That(snapshot.Issues, Has.Count.EqualTo(1));
+            Assert.That(snapshot.Errors, Is.Empty);
+            Assert.That(repo.Git("status", "--porcelain", "--untracked-files=all"), Does.Not.Contain(".lock"));
+        }
+    }
+
+    [Test]
+    public void InitializeWritesIgnoreFileForTheLock()
+    {
+        repo.Store.Initialize();
+
+        Assert.That(File.ReadAllText(Path.Combine(repo.Store.Folder, ".gitignore")), Is.EqualTo(".lock\n"));
     }
 
     [Test]

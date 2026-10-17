@@ -9,7 +9,11 @@ public static class BlockerGraph
             .Where(blocker => !blocker.Status.IsClosed())
             .ToList();
 
-    public static bool IsBlocked(Issue issue, IReadOnlyCollection<Issue> issues) => OpenBlockers(issue, issues).Count > 0;
+    public static IReadOnlyList<int> MissingBlockers(Issue issue, IReadOnlyCollection<Issue> issues) =>
+        issue.BlockedBy.Where(number => issues.All(candidate => candidate.Number != number)).ToList();
+
+    public static bool IsBlocked(Issue issue, IReadOnlyCollection<Issue> issues) =>
+        OpenBlockers(issue, issues).Count > 0 || MissingBlockers(issue, issues).Count > 0;
 
     public static IReadOnlyList<Issue> Blocks(Issue issue, IReadOnlyCollection<Issue> issues) =>
         issues.Where(candidate => candidate.BlockedBy.Contains(issue.Number)).ToList();
