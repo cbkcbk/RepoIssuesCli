@@ -36,6 +36,8 @@ A `blockedBy` number with no matching issue counts as blocking: the issue shows 
 
 `renumber` rewrites `blockedBy` references when the old number was unique. When the number is duplicated, references can't tell the duplicates apart, so they stay with the issue that keeps the number; the output lists them so you can move any with `issues edit`. A bare duplicated number is ambiguous: pass the id or name, or pick from the prompt.
 
+Interactive description and comment prompts take multiple lines; a blank line finishes. When editing, a blank first line keeps the current description and `-` clears it.
+
 Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name prefix, a full title (`0003 Fix login`), or the issue id.
 
 ## Automation

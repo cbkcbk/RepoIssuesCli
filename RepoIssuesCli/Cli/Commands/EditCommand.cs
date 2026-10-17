@@ -146,7 +146,7 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
                     issue = issue with { Name = interaction.AskOptionalText("Name:", issue.Name) ?? issue.Name };
                     break;
                 case EditField.Description:
-                    issue = issue with { Description = interaction.AskOptionalText("Description [grey](empty clears)[/]:", issue.Description) };
+                    issue = issue with { Description = interaction.AskMultilineText("Description:", issue.Description) };
                     break;
                 case EditField.Author:
                     issue = issue with { Author = interaction.AskOptionalText("Author [grey](empty clears)[/]:", issue.Author) };

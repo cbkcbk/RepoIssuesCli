@@ -3,7 +3,7 @@
   "number": 10,
   "name": "Allow multi-line descriptions in the interactive wizard",
   "description": "The description prompt is a single-line TextPrompt. Offer an $EDITOR option or a multi-line input.",
-  "status": "Open",
+  "status": "Done",
   "priority": "Low",
   "locations": [
     {
@@ -17,5 +17,5 @@
     "interactive"
   ],
   "created": "2026-10-17T16:48:04+00:00",
-  "updated": "2026-10-17T16:48:04+00:00"
+  "updated": "2026-10-17T18:37:26+00:00"
 }
