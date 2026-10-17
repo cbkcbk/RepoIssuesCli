@@ -122,6 +122,16 @@ public static class IssueRenderer
             sections.Add(tree);
         }
 
+        if (issue.Comments.Count > 0)
+        {
+            var comments = new Tree("[bold]Comments[/]");
+            foreach (var comment in issue.Comments)
+                comments.AddNode(new Rows(
+                    new Markup($"[grey]{Markup.Escape(comment.Author ?? "unknown")} · {comment.Created:u}[/]"),
+                    new Text(comment.Text)));
+            sections.Add(comments);
+        }
+
         console.Write(new Panel(new Rows(sections))
             .Header($" {Markup.Escape(issue.Title)} ")
             .Border(BoxBorder.Rounded)

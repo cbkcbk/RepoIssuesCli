@@ -29,6 +29,8 @@ public static class IssuesApp
                 .WithExample("edit", "3", "--status", "InProgress", "--add-blocker", "1");
             config.AddCommand<StatusCommand>("status")
                 .WithExample("status", "3", "Done");
+            config.AddCommand<CommentCommand>("comment")
+                .WithExample("comment", "3", "\"Reproduced on main\"");
             config.AddCommand<DeleteCommand>("delete").WithAlias("rm")
                 .WithExample("delete", "3", "--force");
             config.AddCommand<ValidateCommand>("validate");
