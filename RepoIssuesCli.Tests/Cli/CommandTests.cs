@@ -94,6 +94,23 @@ public class CommandTests
     }
 
     [Test]
+    public void NewWizardReadsMultiLineDescription()
+    {
+        var console = new TestConsole().Width(250).Interactive();
+        console.Input.PushTextWithEnter("Prompted issue");
+        console.Input.PushTextWithEnter("Steps:");
+        console.Input.PushTextWithEnter("  1. Run it");
+        console.Input.PushTextWithEnter("");
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushTextWithEnter("");
+
+        var result = repo.Run(console, "new");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Description, Is.EqualTo("Steps:\n  1. Run it"));
+    }
+
+    [Test]
     public void InvalidEnumGivesReadableUsageError()
     {
         var result = repo.Run("new", "X", "-p", "urgent");
@@ -288,6 +305,39 @@ public class CommandTests
         Assert.That(repo.Issues.Single().Status, Is.EqualTo(IssueStatus.InProgress));
     }
 
+    [Test]
+    public void EditMenuReplacesDescriptionWithMultipleLines()
+    {
+        repo.Add("A", "-d", "Old text");
+        var console = new TestConsole().Width(250).Interactive();
+        PushDown(console, 1);
+        console.Input.PushTextWithEnter("New first");
+        console.Input.PushTextWithEnter("New second");
+        console.Input.PushTextWithEnter("");
+        PushDown(console, 8);
+
+        var result = repo.Run(console, "edit", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Description, Is.EqualTo("New first\nNew second"));
+    }
+
+    [TestCase("", "Old text")]
+    [TestCase("-", null)]
+    public void EditMenuKeepsOrClearsDescription(string firstLine, string? expected)
+    {
+        repo.Add("A", "-d", "Old text");
+        var console = new TestConsole().Width(250).Interactive();
+        PushDown(console, 1);
+        console.Input.PushTextWithEnter(firstLine);
+        PushDown(console, 8);
+
+        var result = repo.Run(console, "edit", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Description, Is.EqualTo(expected));
+    }
+
     static void PushDown(TestConsole console, int times)
     {
         for (var i = 0; i < times; i++)
@@ -352,11 +402,28 @@ public class CommandTests
         repo.Add("A");
         var console = new TestConsole().Width(250).Interactive();
         console.Input.PushTextWithEnter("Prompted comment");
+        console.Input.PushTextWithEnter("");
 
         var result = repo.Run(console, "comment", "1");
 
         Assert.That(result.ExitCode, Is.Zero, result.Errors);
         Assert.That(repo.Issues.Single().Comments.Single().Text, Is.EqualTo("Prompted comment"));
+    }
+
+    [Test]
+    public void CommentPromptReadsLinesUntilBlankAndRepromptsWhenEmpty()
+    {
+        repo.Add("A");
+        var console = new TestConsole().Width(250).Interactive();
+        console.Input.PushTextWithEnter("");
+        console.Input.PushTextWithEnter("First line");
+        console.Input.PushTextWithEnter("Second line");
+        console.Input.PushTextWithEnter("");
+
+        var result = repo.Run(console, "comment", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Comments.Single().Text, Is.EqualTo("First line\nSecond line"));
     }
 
     [Test]

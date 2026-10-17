@@ -27,7 +27,7 @@ public sealed class CommentCommand(IAnsiConsole console) : IssueCommand<CommentC
     {
         var interaction = session.Interaction;
         var issue = interaction.ChooseIssue(session.Issues, settings.Reference, "Comment on which issue?");
-        var text = interaction.RequireText(settings.Text, "[text]", "Comment:");
+        var text = interaction.RequireMultilineText(settings.Text, "[text]", "Comment:");
 
         var now = Issue.Timestamp();
         var comment = new IssueComment(

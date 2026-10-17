@@ -59,7 +59,7 @@ public sealed class NewCommand(IAnsiConsole console) : IssueCommand<NewCommand.S
 
         if (wizard)
         {
-            description ??= interaction.AskOptionalText("Description [grey](optional)[/]:");
+            description ??= interaction.AskMultilineText("Description [grey](optional)[/]:");
             priority ??= interaction.ChooseEnum("Priority:", IssuePriority.Medium);
             if (tags.Count == 0)
                 tags = IssueInput.ParseTags([interaction.AskOptionalText("Tags [grey](comma-separated, optional)[/]:") ?? ""]);
