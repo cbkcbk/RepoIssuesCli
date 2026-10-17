@@ -127,6 +127,40 @@ public class IssueStoreTests
     }
 
     [Test]
+    public void LockIsExclusiveUntilReleased()
+    {
+        var waiting = new IssueStore(repo.Root) { LockTimeout = TimeSpan.FromMilliseconds(100) };
+
+        using (repo.Store.Lock())
+            Assert.Throws<IssueLockTimeoutException>(() => waiting.Lock());
+
+        Assert.DoesNotThrow(() => waiting.Lock().Dispose());
+    }
+
+    [Test]
+    public void LockFileIsGitIgnoredAndNotAnIssue()
+    {
+        repo.InitGit();
+        repo.Store.Save(NewIssue(1));
+
+        using (repo.Store.Lock())
+        {
+            var snapshot = repo.Store.Load();
+            Assert.That(snapshot.Issues, Has.Count.EqualTo(1));
+            Assert.That(snapshot.Errors, Is.Empty);
+            Assert.That(repo.Git("status", "--porcelain", "--untracked-files=all"), Does.Not.Contain(".lock"));
+        }
+    }
+
+    [Test]
+    public void InitializeWritesIgnoreFileForTheLock()
+    {
+        repo.Store.Initialize();
+
+        Assert.That(File.ReadAllText(Path.Combine(repo.Store.Folder, ".gitignore")), Is.EqualTo(".lock\n"));
+    }
+
+    [Test]
     public void ReportsInvalidFilesInsteadOfThrowing()
     {
         repo.Store.Initialize();

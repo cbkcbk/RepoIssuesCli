@@ -43,6 +43,21 @@ public class CommandTests
     }
 
     [Test]
+    public void ParallelNewCommandsGetUniqueNumbers()
+    {
+        const int count = 24;
+        repo.Run("init");
+
+        var runs = Enumerable.Range(0, count)
+            .Select(index => Task.Factory.StartNew(() => repo.Run("new", $"Issue {index}"), TaskCreationOptions.LongRunning))
+            .ToArray();
+        var results = Task.WhenAll(runs).GetAwaiter().GetResult();
+
+        Assert.That(results.Select(result => result.ExitCode), Is.All.Zero, string.Join(Environment.NewLine, results.Select(result => result.Errors)));
+        Assert.That(repo.Issues.Select(issue => issue.Number).Order(), Is.EqualTo(Enumerable.Range(1, count)));
+    }
+
+    [Test]
     public void NewDefaultsAuthorToGitAuthor()
     {
         repo.InitGit();

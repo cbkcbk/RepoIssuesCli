@@ -101,4 +101,4 @@ Publishing uses nuget.org trusted publishing, so no API key is stored. One-time 
 - `blockedBy` holds issue numbers, so renaming an issue never breaks references.
 - Empty lists and missing values are omitted.
 - Location paths are repo-relative with `/` separators.
-- Numbers are assigned as highest + 1. If two branches create the same number, `issues validate` reports the duplicate after the merge and `issues renumber` fixes it.
+- Numbers are assigned as highest + 1 while holding `.repo-issues/.lock`, so concurrent `issues new` and `issues renumber` runs in one checkout (e.g. several agents) never pick the same number. The lock file is listed in `.repo-issues/.gitignore`. If two branches create the same number, `issues validate` reports the duplicate after the merge and `issues renumber` fixes it.
