@@ -46,6 +46,7 @@ public class IssueStoreTests
         Assert.That(issue.BlockedBy, Is.Empty);
         Assert.That(issue.Locations, Is.Empty);
         Assert.That(issue.Tags, Is.Empty);
+        Assert.That(issue.Comments, Is.Empty);
     }
 
     [TestCase(15, "Find .repo-issues from the git root", "00015-find_repo_issues_from_the_git_root.json")]
@@ -111,7 +112,7 @@ public class IssueStoreTests
         repo.Store.Save(issue);
 
         var json = File.ReadAllText(repo.Store.PathFor(issue));
-        Assert.That(json, Does.Not.Contain("tags").And.Not.Contain("blockedBy").And.Not.Contain("description"));
+        Assert.That(json, Does.Not.Contain("tags").And.Not.Contain("blockedBy").And.Not.Contain("description").And.Not.Contain("comments"));
         Assert.That(json, Does.Contain("\"status\": \"Open\"").And.Contain("\"priority\": \"Medium\""));
         Assert.That(json, Does.EndWith("\n"));
     }

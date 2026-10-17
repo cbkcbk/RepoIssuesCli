@@ -265,6 +265,60 @@ public class CommandTests
     }
 
     [Test]
+    public void CommentAppendsCommentsAndUpdatesTimestamp()
+    {
+        repo.InitGit();
+        var created = repo.Add("A");
+
+        Assert.That(repo.Run("comment", "A", "First thought").ExitCode, Is.Zero);
+        var result = repo.Run("comment", "1", "Second thought", "--author", "Ada", "--json");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        var issue = IssueJson.Deserialize<Issue>(result.Output)!;
+        Assert.That(issue.Comments.Select(comment => comment.Text), Is.EqualTo(new[] { "First thought", "Second thought" }));
+        Assert.That(issue.Comments.Select(comment => comment.Author), Is.EqualTo(new[] { "Test User <test@example.com>", "Ada" }));
+        Assert.That(issue.Comments[0].Created, Is.GreaterThanOrEqualTo(created.Created));
+        Assert.That(issue.Updated, Is.GreaterThanOrEqualTo(issue.Comments[1].Created));
+        Assert.That(repo.Issues.Single().Comments, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void CommentWithoutTextFailsWhenNotInteractive()
+    {
+        repo.Add("A");
+
+        var result = repo.Run("comment", "1");
+
+        Assert.That(result.ExitCode, Is.EqualTo(ExitCodes.Usage));
+        Assert.That(result.Errors, Does.Contain("[text]"));
+        Assert.That(repo.Issues.Single().Comments, Is.Empty);
+    }
+
+    [Test]
+    public void CommentPromptsForTextWhenInteractive()
+    {
+        repo.Add("A");
+        var console = new TestConsole().Width(250).Interactive();
+        console.Input.PushTextWithEnter("Prompted comment");
+
+        var result = repo.Run(console, "comment", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single().Comments.Single().Text, Is.EqualTo("Prompted comment"));
+    }
+
+    [Test]
+    public void ShowRendersComments()
+    {
+        repo.Add("A");
+        repo.Run("comment", "1", "Looks reproducible", "--author", "Grace");
+
+        var output = repo.Run("show", "1").Output;
+
+        Assert.That(output, Does.Contain("Comments").And.Contain("Grace").And.Contain("Looks reproducible"));
+    }
+
+    [Test]
     public void DeleteRequiresForceWhenNotInteractive()
     {
         repo.Add("A");
