@@ -9,11 +9,11 @@ public sealed record Issue
     public required string Name { get; init; }
     public string? Description { get; init; }
     public string? Author { get; init; }
-    public IssueStatus Status { get; init; } = IssueStatus.Open;
-    public IssuePriority Priority { get; init; } = IssuePriority.Medium;
-    public IReadOnlyList<int> BlockedBy { get; init; } = [];
-    public IReadOnlyList<SourceLocation> Locations { get; init; } = [];
-    public IReadOnlyList<string> Tags { get; init; } = [];
+    public IssueStatus Status { get; set; } = IssueStatus.Open;
+    public IssuePriority Priority { get; set; } = IssuePriority.Medium;
+    public IReadOnlyList<int> BlockedBy { get; set; } = [];
+    public IReadOnlyList<SourceLocation> Locations { get; set; } = [];
+    public IReadOnlyList<string> Tags { get; set; } = [];
     public required DateTimeOffset Created { get; init; }
     public required DateTimeOffset Updated { get; init; }
 

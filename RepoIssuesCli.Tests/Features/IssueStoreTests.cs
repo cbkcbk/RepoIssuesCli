@@ -35,6 +35,19 @@ public class IssueStoreTests
         Assert.That(IssueJson.Serialize(loaded), Is.EqualTo(IssueJson.Serialize(issue)));
     }
 
+    [Test]
+    public void MissingOptionalFieldsLoadWithDefaults()
+    {
+        var issue = IssueJson.Deserialize<Issue>(
+            """{ "id": "01a14ac3-6d44-74e6-b11f-852a3f553cb2", "number": 1, "name": "A", "created": "2026-10-17T16:48:03+00:00", "updated": "2026-10-17T16:48:03+00:00" }""")!;
+
+        Assert.That(issue.Status, Is.EqualTo(IssueStatus.Open));
+        Assert.That(issue.Priority, Is.EqualTo(IssuePriority.Medium));
+        Assert.That(issue.BlockedBy, Is.Empty);
+        Assert.That(issue.Locations, Is.Empty);
+        Assert.That(issue.Tags, Is.Empty);
+    }
+
     [TestCase(15, "Find .repo-issues from the git root", "00015-find_repo_issues_from_the_git_root.json")]
     [TestCase(3, "  Fix: æøå -- Ölrückgabe!  ", "00003-fix_æøå_ölrückgabe.json")]
     [TestCase(7, "?!", "00007.json")]

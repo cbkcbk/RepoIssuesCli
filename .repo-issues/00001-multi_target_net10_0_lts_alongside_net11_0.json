@@ -2,8 +2,8 @@
   "id": "01a14ac3-6d44-74e6-b11f-852a3f553cb2",
   "number": 1,
   "name": "Multi-target net10.0 (LTS) alongside net11.0",
-  "description": "The tool targets only net11.0, so anyone without the .NET 11 runtime can\u0027t install it. .NET 10 is the current LTS; multi-target net10.0;net11.0 (or drop to net10.0) to widen the install base.",
-  "status": "Open",
+  "description": "The tool targeted only net11.0, so anyone without the .NET 11 runtime couldn\u0027t install it. Retargeted to net10.0 (LTS); RollForward=Major keeps it running on .NET 11\u002B. Also fixed a .NET 10 System.Text.Json source-gen bug where missing optional fields deserialized as null/default.",
+  "status": "Done",
   "priority": "High",
   "locations": [
     {
@@ -17,5 +17,5 @@
     "packaging"
   ],
   "created": "2026-10-17T16:48:03+00:00",
-  "updated": "2026-10-17T16:48:03+00:00"
+  "updated": "2026-10-17T17:45:27+00:00"
 }

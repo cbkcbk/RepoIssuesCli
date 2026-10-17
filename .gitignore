@@ -5,3 +5,5 @@ nupkg/
 .idea/
 .claude/settings.local.json
 .mcp.json
+
+!.repo-issues/*.json

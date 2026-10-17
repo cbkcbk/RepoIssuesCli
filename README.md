@@ -9,7 +9,7 @@ dotnet tool install -g RepoIssuesCli     # global
 dotnet tool install RepoIssuesCli        # local (tool manifest)
 ```
 
-Requires the .NET 11 runtime or later.
+Requires the .NET 10 runtime or later.
 
 To build and install the current checkout as a global tool, run `./pack-install.sh` or `./pack-install.ps1`.
 
@@ -55,6 +55,16 @@ The marketplace and skill files (`.claude-plugin/`, `plugins/issues/`) are gener
 ```sh
 dotnet run --project RepoIssuesCli -- generate-plugin
 ```
+
+## Releasing
+
+CI (`.github/workflows/ci.yml`) tests and packs every push and pull request. Pushing a `vX.Y.Z` tag also publishes `RepoIssuesCli` version `X.Y.Z` to nuget.org:
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+Publishing uses nuget.org trusted publishing, so no API key is stored. One-time setup: on nuget.org, add a trusted publishing policy for this repository with workflow file `ci.yml` and environment `nuget`, then add your nuget.org username as the `NUGET_USER` repository secret.
 
 ## File format
 
