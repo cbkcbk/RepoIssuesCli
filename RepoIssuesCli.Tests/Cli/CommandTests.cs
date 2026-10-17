@@ -1,3 +1,4 @@
+using System.Text.Json;
 using RepoIssuesCli.Cli;
 using RepoIssuesCli.Features.Issues;
 using Spectre.Console.Testing;
@@ -307,6 +308,52 @@ public class CommandTests
         var output = repo.Run(new TestConsole().Width(20), "list", "--json").Output;
 
         Assert.That(IssueJson.Deserialize<List<Issue>>(output), Has.Count.EqualTo(1));
+    }
+
+    [TestCase("new", "B")]
+    [TestCase("show", "A")]
+    [TestCase("edit", "A", "-d", "Changed")]
+    [TestCase("status", "A", "done")]
+    [TestCase("delete", "A", "--force")]
+    public void JsonOutputAlwaysEmitsArrays(params string[] args)
+    {
+        repo.Add("A");
+
+        var result = repo.Run([.. args, "--json"]);
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        AssertEmptyArrays(JsonDocument.Parse(result.Output).RootElement);
+    }
+
+    [Test]
+    public void ListJsonAlwaysEmitsArrays()
+    {
+        repo.Add("A");
+
+        var result = repo.Run("list", "--json");
+
+        AssertEmptyArrays(JsonDocument.Parse(result.Output).RootElement.EnumerateArray().Single());
+    }
+
+    [Test]
+    public void JsonOutputKeepsFilesFreeOfEmptyArrays()
+    {
+        var issue = repo.Add("A");
+
+        Assert.That(repo.Run("status", "A", "done", "--json").ExitCode, Is.Zero);
+
+        var json = File.ReadAllText(repo.Store.PathFor(issue));
+        Assert.That(json, Does.Not.Contain("tags").And.Not.Contain("blockedBy").And.Not.Contain("locations"));
+    }
+
+    static void AssertEmptyArrays(JsonElement issue)
+    {
+        foreach (var name in new[] { "blockedBy", "locations", "tags" })
+        {
+            Assert.That(issue.TryGetProperty(name, out var value), Is.True, name);
+            Assert.That(value.ValueKind, Is.EqualTo(JsonValueKind.Array), name);
+            Assert.That(value.GetArrayLength(), Is.Zero, name);
+        }
     }
 
     List<string> ListNames(params string[] args)
