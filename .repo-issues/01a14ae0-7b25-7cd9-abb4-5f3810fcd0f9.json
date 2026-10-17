@@ -1,0 +1,14 @@
+{
+  "id": "01a14ae0-7b25-7cd9-abb4-5f3810fcd0f9",
+  "number": 16,
+  "name": "Git integration: auto-track issue files and use git mv on rename",
+  "description": "Run git add on new issue files so they are tracked automatically. When an issue file is renamed, use git mv so git keeps its history.",
+  "status": "Open",
+  "priority": "Medium",
+  "tags": [
+    "feature",
+    "git-integration"
+  ],
+  "created": "2026-10-17T17:19:48+00:00",
+  "updated": "2026-10-17T17:19:48+00:00"
+}

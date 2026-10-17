@@ -1,0 +1,17 @@
+{
+  "id": "01a14ae0-7b7a-72d0-8ccc-c77c3704f440",
+  "number": 17,
+  "name": "Name issue files {number:00000}-{name_in_snake_case}.json",
+  "description": "Name issue files after the number and name instead of the id, e.g. 00015-find_repo_issues_from_the_git_root.json. Changing an issue\u0027s name or number renames its file, which should go through git mv (see the git integration issue).",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    16
+  ],
+  "tags": [
+    "feature",
+    "git-integration"
+  ],
+  "created": "2026-10-17T17:19:48+00:00",
+  "updated": "2026-10-17T17:19:50+00:00"
+}
