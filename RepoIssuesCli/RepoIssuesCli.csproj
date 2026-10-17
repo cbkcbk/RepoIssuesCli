@@ -11,7 +11,7 @@
 
     <PropertyGroup>
         <PackAsTool>true</PackAsTool>
-        <ToolCommandName>ri</ToolCommandName>
+        <ToolCommandName>issues</ToolCommandName>
         <PackageId>RepoIssuesCli</PackageId>
         <Version>0.1.0</Version>
         <Description>Issue tracker that stores issues as JSON files inside your repository (.repo-issues). Works interactively and in scripts.</Description>

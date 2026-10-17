@@ -14,6 +14,6 @@ public class GlobalSettings : CommandSettings
     public bool Json { get; init; }
 
     [CommandOption("--no-interactive")]
-    [Description("Never prompt; fail when required input is missing. Also enabled by RI_NONINTERACTIVE=1.")]
+    [Description("Never prompt; fail when required input is missing. Also enabled by ISSUES_NONINTERACTIVE=1.")]
     public bool NoInteractive { get; init; }
 }

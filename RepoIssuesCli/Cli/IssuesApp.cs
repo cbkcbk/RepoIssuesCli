@@ -6,15 +6,15 @@ using Spectre.Console.Cli;
 
 namespace RepoIssuesCli.Cli;
 
-public static class RiApp
+public static class IssuesApp
 {
     public static CommandApp Create(IAnsiConsole output, IAnsiConsole errors)
     {
         var app = new CommandApp();
         app.Configure(config =>
         {
-            config.SetApplicationName("ri");
-            config.SetApplicationVersion(typeof(RiApp).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.0.0");
+            config.SetApplicationName("issues");
+            config.SetApplicationVersion(typeof(IssuesApp).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.0.0");
             config.ConfigureConsole(output);
             config.SetExceptionHandler((exception, _) => HandleException(exception, errors));
 

@@ -8,7 +8,7 @@ public sealed class Interaction(IAnsiConsole console, GlobalSettings settings)
     public bool IsInteractive =>
         !settings.NoInteractive
         && !settings.Json
-        && Environment.GetEnvironmentVariable("RI_NONINTERACTIVE") is not ("1" or "true")
+        && Environment.GetEnvironmentVariable("ISSUES_NONINTERACTIVE") is not ("1" or "true")
         && console.Profile.Capabilities.Interactive;
 
     public string RequireText(string? value, string option, string question)

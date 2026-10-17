@@ -8,7 +8,7 @@ public sealed record RunResult(int ExitCode, string Output, string Errors);
 
 public sealed class TempRepo : IDisposable
 {
-    public string Root { get; } = Directory.CreateTempSubdirectory("ri-tests-").FullName;
+    public string Root { get; } = Directory.CreateTempSubdirectory("issues-tests-").FullName;
 
     public IssueStore Store => new(Root);
 
@@ -19,7 +19,7 @@ public sealed class TempRepo : IDisposable
     public RunResult Run(TestConsole output, params string[] args)
     {
         var errors = new TestConsole().Width(250);
-        var exitCode = RiApp.Create(output, errors).Run([.. args, "--root", Root]);
+        var exitCode = IssuesApp.Create(output, errors).Run([.. args, "--root", Root]);
         return new RunResult(exitCode, output.Output, errors.Output);
     }
 
