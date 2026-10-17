@@ -71,7 +71,12 @@ public sealed class Interaction(IAnsiConsole console, GlobalSettings settings)
     public Issue ChooseIssue(IReadOnlyCollection<Issue> issues, string? reference, string title)
     {
         if (!string.IsNullOrWhiteSpace(reference))
-            return IssueResolver.Resolve(issues, reference);
+        {
+            var matches = IssueResolver.FindAll(issues, reference);
+            return matches.Count > 1 && IsInteractive
+                ? Choose(title, matches, issue => $"{issue.Title} ({issue.Id})", "<ref>")
+                : IssueResolver.Single(reference, matches);
+        }
 
         EnsureInteractive("<ref>");
         if (issues.Count == 0)

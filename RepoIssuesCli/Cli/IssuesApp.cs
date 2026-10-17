@@ -31,6 +31,8 @@ public static class IssuesApp
                 .WithExample("status", "3", "Done");
             config.AddCommand<DeleteCommand>("delete").WithAlias("rm")
                 .WithExample("delete", "3", "--force");
+            config.AddCommand<RenumberCommand>("renumber")
+                .WithExample("renumber", "\"Add password rules\"");
             config.AddCommand<ValidateCommand>("validate");
 #if DEBUG
             config.AddCommand<Plugin.GeneratePluginCommand>(Plugin.GeneratePluginCommand.Name);

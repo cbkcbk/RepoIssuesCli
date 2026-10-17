@@ -28,13 +28,16 @@ issues edit 1                                        # interactive field menu
 issues status 1 in-progress
 issues delete 1 --force                              # also removes it from other issues' blockers
 issues validate                                      # exit code 1 when problems are found
+issues renumber <id>                                 # give an issue the next free number (fixes duplicates)
 ```
+
+`renumber` rewrites `blockedBy` references when the old number was unique. When the number is duplicated, references can't tell the duplicates apart, so they stay with the issue that keeps the number; the output lists them so you can move any with `issues edit`. A bare duplicated number is ambiguous: pass the id or name, or pick from the prompt.
 
 Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name prefix, a full title (`0003 Fix login`), or the issue id.
 
 ## Automation
 
-- `--json` writes only JSON to stdout: one issue for `new`/`show`/`edit`/`status`/`delete`, an array for `list` and `validate`.
+- `--json` writes only JSON to stdout: one issue for `new`/`show`/`edit`/`status`/`delete`, an array for `list` and `validate`, and `{ issue, previousNumber, rewritten, keptReferences }` for `renumber`.
 - Prompts never appear when you pass `--json` or `--no-interactive`, set `ISSUES_NONINTERACTIVE=1`, or when stdin/stdout aren't a terminal. In those modes, missing input is an error.
 - Errors go to stderr.
 - Exit codes: `0` ok, `1` validation problems, `2` usage error / missing input, `3` issue not found, `4` unexpected error.
@@ -95,4 +98,4 @@ Publishing uses nuget.org trusted publishing, so no API key is stored. One-time 
 - `blockedBy` holds issue numbers, so renaming an issue never breaks references.
 - Empty lists and missing values are omitted.
 - Location paths are repo-relative with `/` separators.
-- Numbers are assigned as highest + 1. If two branches create the same number, `issues validate` reports the duplicate after the merge.
+- Numbers are assigned as highest + 1. If two branches create the same number, `issues validate` reports the duplicate after the merge and `issues renumber` fixes it.

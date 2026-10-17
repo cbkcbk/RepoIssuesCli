@@ -285,6 +285,98 @@ public class CommandTests
     }
 
     [Test]
+    public void RenumberGivesADuplicateTheNextNumberAndKeepsReferencesOnTheOther()
+    {
+        repo.InitGit();
+        var duplicate = AddDuplicateOfFirstWithReference();
+
+        var result = repo.Run("renumber", "B", "--json");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        var renumbered = IssueJson.Deserialize<RenumberResult>(result.Output)!;
+        Assert.That(renumbered.Issue.Id, Is.EqualTo(duplicate.Id));
+        Assert.That(renumbered.Issue.Number, Is.EqualTo(4));
+        Assert.That(renumbered.PreviousNumber, Is.EqualTo(1));
+        Assert.That(renumbered.Rewritten, Is.Empty);
+        Assert.That(renumbered.KeptReferences.Select(issue => issue.Name), Is.EqualTo(new[] { "C" }));
+        Assert.That(IssueFiles(), Is.EqualTo(new[] { "00001-a.json", "00003-c.json", "00004-b.json" }));
+        Assert.That(repo.Issues.Single(issue => issue.Name == "C").BlockedBy, Is.EqualTo(new[] { 1 }));
+        Assert.That(repo.Git("ls-files"), Does.Contain(".repo-issues/00004-b.json").And.Not.Contain("00001-b.json"));
+        Assert.That(repo.Run("validate").ExitCode, Is.Zero);
+    }
+
+    [Test]
+    public void RenumberExplainsWhichIssueKeepsTheReferences()
+    {
+        var duplicate = AddDuplicateOfFirstWithReference();
+
+        var result = repo.Run("renumber", duplicate.Id.ToString());
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(result.Output, Does.Contain("0001 B").And.Contain("0004 B").And.Contain("0001 A").And.Contain("0003 C"));
+    }
+
+    Issue AddDuplicateOfFirstWithReference()
+    {
+        repo.Add("A");
+        var duplicate = repo.Add("B");
+        repo.Add("C", "-b", "1");
+        var store = repo.Store;
+        store.Load();
+        store.Save(duplicate with { Number = 1 });
+        return duplicate;
+    }
+
+    [Test]
+    public void RenumberRewritesReferencesWhenTheNumberIsNotShared()
+    {
+        repo.Add("A");
+        repo.Add("B", "-b", "1");
+
+        var result = repo.Run("renumber", "A", "--json");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        var renumbered = IssueJson.Deserialize<RenumberResult>(result.Output)!;
+        Assert.That(renumbered.Issue.Number, Is.EqualTo(3));
+        Assert.That(renumbered.Rewritten.Select(issue => issue.Name), Is.EqualTo(new[] { "B" }));
+        Assert.That(repo.Issues.Single(issue => issue.Name == "B").BlockedBy, Is.EqualTo(new[] { 3 }));
+    }
+
+    [Test]
+    public void RenumberByDuplicatedNumberIsAUsageErrorListingIdsWhenNotInteractive()
+    {
+        var first = repo.Add("A");
+        var duplicate = repo.Add("B");
+        var store = repo.Store;
+        store.Load();
+        store.Save(duplicate with { Number = 1 });
+
+        var result = repo.Run("renumber", "1");
+
+        Assert.That(result.ExitCode, Is.EqualTo(ExitCodes.Usage));
+        Assert.That(result.Errors, Does.Contain(first.Id.ToString()).And.Contain(duplicate.Id.ToString()));
+        Assert.That(repo.Issues.Select(issue => issue.Number), Is.EqualTo(new[] { 1, 1 }));
+    }
+
+    [Test]
+    public void RenumberByDuplicatedNumberPromptsWhenInteractive()
+    {
+        repo.Add("A");
+        var duplicate = repo.Add("B");
+        var store = repo.Store;
+        store.Load();
+        store.Save(duplicate with { Number = 1 });
+        var console = new TestConsole().Width(250).Interactive();
+        PushDown(console, 2);
+
+        var result = repo.Run(console, "renumber", "1");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        Assert.That(repo.Issues.Single(issue => issue.Name == "B").Number, Is.EqualTo(2), result.Output);
+        Assert.That(repo.Issues.Single(issue => issue.Name == "A").Number, Is.EqualTo(1));
+    }
+
+    [Test]
     public void ValidateReportsProblemsWithExitCode()
     {
         repo.Add("A");
