@@ -34,7 +34,7 @@ Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name 
 
 ## Automation
 
-- `--json` writes only JSON to stdout: one issue for `new`/`show`/`edit`/`status`/`delete`, an array for `list` and `validate`.
+- `--json` writes only JSON to stdout: one issue for `new`/`show`/`edit`/`status`/`delete`, an array for `list` and `validate`. Issues always include `blockedBy`, `locations` and `tags`, as `[]` when empty, though issue files leave empty lists out.
 - Prompts never appear when you pass `--json` or `--no-interactive`, set `ISSUES_NONINTERACTIVE=1`, or when stdin/stdout aren't a terminal. In those modes, missing input is an error.
 - Errors go to stderr.
 - Exit codes: `0` ok, `1` validation problems, `2` usage error / missing input, `3` issue not found, `4` unexpected error.

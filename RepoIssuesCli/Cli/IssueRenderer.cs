@@ -6,7 +6,7 @@ namespace RepoIssuesCli.Cli;
 
 public static class IssueRenderer
 {
-    public static void WriteJson<T>(IAnsiConsole console, T value) => console.Profile.Out.Writer.Write(IssueJson.Serialize(value));
+    public static void WriteJson<T>(IAnsiConsole console, T value) => console.Profile.Out.Writer.Write(IssueJson.SerializeOutput(value));
 
     public static void WriteList(IAnsiConsole console, IReadOnlyList<Issue> shown, IReadOnlyCollection<Issue> all)
     {
