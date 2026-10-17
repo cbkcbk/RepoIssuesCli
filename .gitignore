@@ -1,0 +1,7 @@
+bin/
+obj/
+nupkg/
+*.binlog
+.idea/
+.claude/settings.local.json
+.mcp.json
