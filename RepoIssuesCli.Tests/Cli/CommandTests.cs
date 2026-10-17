@@ -24,6 +24,27 @@ public class CommandTests
     }
 
     [Test]
+    public void InitJsonReportsCreatedAsBoolean()
+    {
+        var first = JsonDocument.Parse(repo.Run("init", "--json").Output).RootElement;
+        var second = JsonDocument.Parse(repo.Run("init", "--json").Output).RootElement;
+
+        Assert.That(first.GetProperty("folder").GetString(), Is.EqualTo(repo.Store.Folder));
+        Assert.That(first.GetProperty("created").ValueKind, Is.EqualTo(JsonValueKind.True));
+        Assert.That(second.GetProperty("created").ValueKind, Is.EqualTo(JsonValueKind.False));
+    }
+
+    [Test]
+    public void InitKeepsLongFolderPathOnOneLine()
+    {
+        var created = repo.Run(new TestConsole().Width(30), "init").Output;
+        var existing = repo.Run(new TestConsole().Width(30), "init").Output;
+
+        Assert.That(created, Is.EqualTo($"Initialized {repo.Store.Folder}\n"));
+        Assert.That(existing, Is.EqualTo($"Already initialized: {repo.Store.Folder}\n"));
+    }
+
+    [Test]
     public void NewWithFlagsWritesAllFields()
     {
         var blocker = repo.Add("Blocker");

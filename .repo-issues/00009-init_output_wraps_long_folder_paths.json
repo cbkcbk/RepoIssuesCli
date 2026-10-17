@@ -3,7 +3,7 @@
   "number": 9,
   "name": "Init output wraps long folder paths",
   "description": "MarkupLine wraps at console width, splitting the path across lines, which breaks copy/paste. Write the path without wrapping.",
-  "status": "Open",
+  "status": "Done",
   "priority": "Low",
   "locations": [
     {
@@ -16,5 +16,5 @@
     "ux"
   ],
   "created": "2026-10-17T16:48:04+00:00",
-  "updated": "2026-10-17T16:48:04+00:00"
+  "updated": "2026-10-17T18:37:40+00:00"
 }

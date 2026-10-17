@@ -156,6 +156,12 @@ public static class IssueRenderer
     public static void WriteSaved(IAnsiConsole console, string verb, Issue issue) =>
         console.MarkupLine($"{verb} [bold]{Markup.Escape(issue.Title)}[/]");
 
+    public static void WriteUnwrappedLine(IAnsiConsole console, string markup)
+    {
+        console.Write(new Unwrapped(new Markup(markup)));
+        console.WriteLine();
+    }
+
     static Tree BlockerTree(Issue issue, IReadOnlyCollection<Issue> all)
     {
         var tree = new Tree("[bold]Blocked by[/]");

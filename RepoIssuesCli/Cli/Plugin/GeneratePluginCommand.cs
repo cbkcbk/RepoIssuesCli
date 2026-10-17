@@ -17,7 +17,7 @@ public sealed class GeneratePluginCommand(IAnsiConsole console) : Command<Global
         PluginGenerator.Write(root, files);
 
         foreach (var file in files)
-            console.MarkupLine($"Wrote [bold]{Markup.Escape(file.Path)}[/]");
+            IssueRenderer.WriteUnwrappedLine(console, $"Wrote [bold]{Markup.Escape(file.Path)}[/]");
 
         return ExitCodes.Success;
     }
