@@ -6,6 +6,10 @@ namespace RepoIssuesCli.Cli;
 
 public static class IssueRenderer
 {
+    const int PreferredNameWidth = 50;
+    const int MinOptionalWidth = 10;
+    const int ColumnChrome = 3;
+
     public static void WriteJson<T>(IAnsiConsole console, T value) => console.Profile.Out.Writer.Write(IssueJson.Serialize(value));
 
     public static void WriteList(IAnsiConsole console, IReadOnlyList<Issue> shown, IReadOnlyCollection<Issue> all)
@@ -16,27 +20,70 @@ public static class IssueRenderer
             return;
         }
 
-        var table = new Table().Border(TableBorder.Rounded)
-            .AddColumn("#")
-            .AddColumn("Name")
-            .AddColumn("Status")
-            .AddColumn("Priority")
-            .AddColumn("Tags")
-            .AddColumn("Blocked by");
+        var numbers = shown.Select(issue => $"[bold]{issue.Number:D4}[/]").ToList();
+        var tags = shown.Select(issue => issue.Tags.Select(Markup.Escape).ToList()).ToList();
+        var blockers = shown.Select(issue => BlockerItems(issue, all)).ToList();
 
-        foreach (var issue in shown)
+        var spare = console.Profile.Width - 1
+            - ColumnWidth("#", numbers)
+            - ColumnWidth("Name", shown.Select(issue => Markup.Escape(issue.Name)).ToList(), PreferredNameWidth)
+            - ColumnWidth("Status", shown.Select(issue => StatusMarkup(issue.Status)).ToList())
+            - ColumnWidth("Priority", shown.Select(issue => PriorityMarkup(issue.Priority)).ToList());
+        var blockerWidth = Allot("Blocked by", blockers, ref spare);
+        var tagWidth = Allot("Tags", tags, ref spare);
+
+        var table = new Table().Border(TableBorder.Rounded)
+            .AddColumn(new TableColumn("#").NoWrap())
+            .AddColumn(new TableColumn("Name"))
+            .AddColumn(new TableColumn("Status").NoWrap())
+            .AddColumn(new TableColumn("Priority").NoWrap());
+        if (tagWidth is { } tagColumnWidth)
+            table.AddColumn(new TableColumn("Tags").Width(tagColumnWidth).NoWrap());
+        if (blockerWidth is { } blockerColumnWidth)
+            table.AddColumn(new TableColumn("Blocked by").Width(blockerColumnWidth).NoWrap());
+
+        foreach (var (index, issue) in shown.Index())
         {
-            table.AddRow(
-                new Markup($"[bold]{issue.Number:D4}[/]"),
-                new Text(issue.Name),
-                Status(issue.Status),
-                Priority(issue.Priority),
-                new Text(string.Join(", ", issue.Tags)),
-                BlockerSummary(issue, all));
+            List<IRenderable> cells = [new Markup(numbers[index]), new Text(issue.Name), Status(issue.Status), Priority(issue.Priority)];
+            if (tagWidth is { } tagFit)
+                cells.Add(FitItems(tags[index], tagFit));
+            if (blockerWidth is { } blockerFit)
+                cells.Add(FitItems(blockers[index], blockerFit));
+            table.AddRow(cells);
         }
 
         console.Write(table);
     }
+
+    static int ColumnWidth(string header, IReadOnlyList<string> cells, int limit = int.MaxValue) =>
+        Math.Max(header.Length, Math.Min(limit, cells.Max(PlainWidth))) + ColumnChrome;
+
+    static int? Allot(string header, IReadOnlyList<List<string>> items, ref int spare)
+    {
+        var natural = items.Max(list => PlainWidth(string.Join(", ", list)));
+        var full = Math.Max(natural, header.Length);
+        var width = Math.Min(full, spare - ColumnChrome);
+        if (natural == 0 || width < Math.Min(full, Math.Max(header.Length, MinOptionalWidth)))
+            return null;
+
+        spare -= width + ColumnChrome;
+        return width;
+    }
+
+    static Markup FitItems(List<string> items, int width)
+    {
+        for (var count = items.Count; count > 0; count--)
+        {
+            var joined = string.Join(", ", items.Take(count));
+            var text = count == items.Count ? joined : $"{joined}, …";
+            if (PlainWidth(text) <= width)
+                return new Markup(text);
+        }
+
+        return new Markup(items.Count == 0 ? "" : "…");
+    }
+
+    static int PlainWidth(string markup) => Markup.Remove(markup).GetCellWidth();
 
     public static void WriteDetails(IAnsiConsole console, Issue issue, IReadOnlyCollection<Issue> all)
     {
@@ -127,12 +174,8 @@ public static class IssueRenderer
     static Markup IssueLabel(Issue issue) =>
         new($"{Markup.Escape(issue.Title)} {StatusMarkup(issue.Status)}");
 
-    static IRenderable BlockerSummary(Issue issue, IReadOnlyCollection<Issue> all)
-    {
-        if (issue.BlockedBy.Count == 0)
-            return Text.Empty;
-
-        var parts = issue.BlockedBy.Select(number =>
+    static List<string> BlockerItems(Issue issue, IReadOnlyCollection<Issue> all) =>
+        issue.BlockedBy.Select(number =>
         {
             var blocker = all.FirstOrDefault(candidate => candidate.Number == number);
             return blocker switch
@@ -141,9 +184,7 @@ public static class IssueRenderer
                 { Status: var status } when status.IsClosed() => $"[grey strikethrough]{number:D4}[/]",
                 _ => $"[yellow]{number:D4}[/]",
             };
-        });
-        return new Markup(string.Join(", ", parts));
-    }
+        }).ToList();
 
     static Markup Status(IssueStatus status) => new(StatusMarkup(status));
 
@@ -156,12 +197,14 @@ public static class IssueRenderer
         _ => status.ToString(),
     };
 
-    static Markup Priority(IssuePriority priority) => new(priority switch
+    static Markup Priority(IssuePriority priority) => new(PriorityMarkup(priority));
+
+    static string PriorityMarkup(IssuePriority priority) => priority switch
     {
         IssuePriority.Critical => "[bold red]Critical[/]",
         IssuePriority.High => "[red]High[/]",
         IssuePriority.Medium => "Medium",
         IssuePriority.Low => "[grey]Low[/]",
         _ => priority.ToString(),
-    });
+    };
 }

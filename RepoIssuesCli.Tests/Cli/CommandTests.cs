@@ -128,6 +128,57 @@ public class CommandTests
     }
 
     [Test]
+    public void NarrowListKeepsFittingNamesOnOneLine()
+    {
+        repo.Add("Multi-target net10.0 (LTS) alongside net11.0", "-p", "high", "-t", "build,packaging");
+        repo.Add("Publish to nuget.org from CI", "-t", "ci,packaging", "-b", "1");
+
+        var lines = ListLines(80);
+
+        Assert.That(lines, Has.Exactly(1).Contains("│ 0001 │ Multi-target net10.0 (LTS) alongside net11.0 "));
+        Assert.That(lines, Has.Exactly(1).Contains("│ 0002 │ Publish to nuget.org from CI "));
+        Assert.That(lines, Has.Count.EqualTo(6));
+    }
+
+    [Test]
+    public void NarrowListNeverWrapsNumberStatusOrPriority()
+    {
+        repo.Add(string.Join(' ', Enumerable.Repeat("verylongword", 12)), "-s", "in-progress", "-p", "critical");
+
+        var lines = ListLines(80);
+
+        var first = lines.Single(line => line.Contains("0001"));
+        Assert.That(first, Does.Contain("InProgress").And.Contain("Critical"));
+        Assert.That(lines, Has.All.Length.LessThanOrEqualTo(80));
+    }
+
+    [Test]
+    public void ListTruncatesTagsAndBlockersThatDoNotFit()
+    {
+        repo.Add("A");
+        repo.Add("B");
+        repo.Add("Short name", "-t", "feature,git-integration,automation,json", "-b", "1", "-b", "2");
+
+        var lines = ListLines(70);
+
+        var row = lines.Single(line => line.Contains("0003"));
+        Assert.That(row, Does.Contain("Short name").And.Contain("…"));
+        Assert.That(lines, Has.All.Length.LessThanOrEqualTo(70));
+        Assert.That(lines, Has.Count.EqualTo(7));
+    }
+
+    [Test]
+    public void WideListShowsTagsAndBlockersInFull()
+    {
+        repo.Add("A");
+        repo.Add("Short name", "-t", "feature,git-integration,automation,json", "-b", "1");
+
+        var output = repo.Run("list").Output;
+
+        Assert.That(output, Does.Contain("feature, git-integration, automation, json").And.Contain("0001").And.Not.Contain("…"));
+    }
+
+    [Test]
     public void ShowResolvesBlockerNamesAfterRename()
     {
         repo.Add("First");
@@ -307,6 +358,13 @@ public class CommandTests
         var output = repo.Run(new TestConsole().Width(20), "list", "--json").Output;
 
         Assert.That(IssueJson.Deserialize<List<Issue>>(output), Has.Count.EqualTo(1));
+    }
+
+    List<string> ListLines(int width)
+    {
+        var result = repo.Run(new TestConsole().Width(width), "list");
+        Assert.That(result.ExitCode, Is.Zero, result.Errors);
+        return result.Output.TrimEnd('\n').Split('\n').ToList();
     }
 
     List<string> ListNames(params string[] args)
