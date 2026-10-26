@@ -39,6 +39,19 @@ public static class FeatureFolders
         }
     }
 
+    public static IEnumerable<string> Directories(string root)
+    {
+        var pending = new Stack<DirectoryInfo>([new DirectoryInfo(root)]);
+        while (pending.TryPop(out var directory))
+        {
+            foreach (var child in Children(directory))
+            {
+                yield return child.FullName;
+                pending.Push(child);
+            }
+        }
+    }
+
     static IEnumerable<DirectoryInfo> Children(DirectoryInfo directory)
     {
         try

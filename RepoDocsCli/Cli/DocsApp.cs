@@ -18,6 +18,9 @@ public static class DocsApp
                 .WithExample("init", "--json");
             config.AddCommand<RenderCommand>("render")
                 .WithExample("render", "--check");
+            config.AddCommand<ImportCommand>("import")
+                .WithExample("import", "--dry-run")
+                .WithExample("import", "Web/CLAUDE.md", "--json");
         });
         return app;
     }
