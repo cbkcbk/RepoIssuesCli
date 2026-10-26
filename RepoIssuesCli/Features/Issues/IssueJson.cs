@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using RepoCli.Core.Features.IssueLinks;
 using RepoCli.Core.Features.Json;
 
 namespace RepoIssuesCli.Features.Issues;
@@ -13,6 +14,7 @@ namespace RepoIssuesCli.Features.Issues;
 [JsonSerializable(typeof(List<Issue>))]
 [JsonSerializable(typeof(List<ValidationProblem>))]
 [JsonSerializable(typeof(RenumberResult))]
+[JsonSerializable(typeof(List<DocsReference>))]
 [JsonSerializable(typeof(InitResult))]
 public partial class IssueJsonContext : JsonSerializerContext;
 
@@ -25,6 +27,13 @@ public static class IssueJson
     public static string Serialize<T>(T value) => RepoJson.Serialize(value, FileOptions);
 
     public static string SerializeOutput<T>(T value) => RepoJson.Serialize(value, OutputOptions);
+
+    public static string SerializeOutput(Issue issue, IReadOnlyList<DocsReference> docs)
+    {
+        var output = JsonSerializer.SerializeToNode(issue, IssueJsonContext.Default.Issue)!.AsObject();
+        output["docs"] = JsonSerializer.SerializeToNode(docs.ToList(), IssueJsonContext.Default.ListDocsReference);
+        return output.ToJsonString(OutputOptions) + "\n";
+    }
 
     public static T? Deserialize<T>(string json) => RepoJson.Deserialize<T>(json, FileOptions);
 }

@@ -133,7 +133,7 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
 
         while (true)
         {
-            IssueRenderer.WriteDetails(Console, issue, session.Issues);
+            IssueRenderer.WriteDetails(Console, issue, session.Issues, []);
             var field = interaction.Choose("Edit:", Enum.GetValues<EditField>(), FieldLabel, "<field>");
             switch (field)
             {

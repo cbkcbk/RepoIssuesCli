@@ -1,3 +1,4 @@
+using RepoCli.Core.Features.IssueLinks;
 using RepoIssuesCli.Features.Issues;
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -11,6 +12,9 @@ public static class IssueRenderer
     const int ColumnChrome = 3;
 
     public static void WriteJson<T>(IAnsiConsole console, T value) => CliOutput.WriteJson(console, IssueJson.SerializeOutput(value));
+
+    public static void WriteJson(IAnsiConsole console, Issue issue, IReadOnlyList<DocsReference> docs) =>
+        CliOutput.WriteJson(console, IssueJson.SerializeOutput(issue, docs));
 
     public static void WriteList(IAnsiConsole console, IReadOnlyList<Issue> shown, IReadOnlyCollection<Issue> all)
     {
@@ -85,7 +89,7 @@ public static class IssueRenderer
 
     static int PlainWidth(string markup) => Markup.Remove(markup).GetCellWidth();
 
-    public static void WriteDetails(IAnsiConsole console, Issue issue, IReadOnlyCollection<Issue> all)
+    public static void WriteDetails(IAnsiConsole console, Issue issue, IReadOnlyCollection<Issue> all, IReadOnlyList<DocsReference> docs)
     {
         var grid = new Grid().AddColumn(new GridColumn().NoWrap()).AddColumn();
         grid.AddRow(new Markup("[grey]Status[/]"), Status(issue.Status));
@@ -119,6 +123,14 @@ public static class IssueRenderer
             var tree = new Tree("[bold]Blocks[/]");
             foreach (var blocked in blocks)
                 tree.AddNode(IssueLabel(blocked));
+            sections.Add(tree);
+        }
+
+        if (docs.Count > 0)
+        {
+            var tree = new Tree("[bold]Docs[/]");
+            foreach (var reference in docs)
+                tree.AddNode(new Text(reference.Describe()));
             sections.Add(tree);
         }
 

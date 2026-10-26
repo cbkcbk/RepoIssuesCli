@@ -32,12 +32,12 @@ Issues are JSON files in `.repo-issues/`, committed alongside the code.
 | `issues init` | Create the .repo-issues folder at the repository root. |
 | `issues new [name]` | Create an issue. Prompts for anything missing when run interactively without a name. |
 | `issues list` | List issues. Hides Done and Cancelled unless --all or --status is given. |
-| `issues show [ref]` | Show an issue with its blockers and locations. |
+| `issues show [ref]` | Show an issue with its blockers, locations and the .repo-docs plan steps that link it. |
 | `issues edit [ref]` | Edit an issue with flags, or interactively when no change flags are given. |
 | `issues status [ref] [status]` | Change an issue's status. |
 | `issues comment [ref] [text]` | Add a comment to an issue. Prompts for the text when run interactively without it. |
-| `issues delete [ref]` | Delete an issue and remove it from other issues' blockers. |
-| `issues renumber [ref]` | Give an issue the next free number, e.g. to fix a duplicate number after a merge. Blockers on an unshared number follow the issue; blockers on a duplicated number keep pointing at the issue that keeps it. |
+| `issues delete [ref]` | Delete an issue and remove it from other issues' blockers. Warns about .repo-docs plan steps that still link it; 'docs check' reports them. |
+| `issues renumber [ref]` | Give an issue the next free number, e.g. to fix a duplicate number after a merge. Blockers and .repo-docs plan steps on an unshared number follow the issue; on a duplicated number they keep pointing at the issue that keeps it. |
 | `issues validate` | Check for invalid files, duplicate numbers, missing blockers and blocker cycles, and warn about locations that moved, changed or can't be found. Exits with 1 on errors. |
 
 `<ref>` accepts a number (`3` or `0003`), a unique name prefix, a full title (`0003 Fix login`) or the id. Prefer the number.
@@ -64,3 +64,7 @@ Author: when the user asks for the issue, keep the default (their git identity).
 4. Blockers: `issues edit <n> --add-blocker <m> --json` means n waits on m. A blocker that would create a cycle is rejected with exit code 2.
 5. Finish: `issues status <n> Done --json`, then commit the changed `.repo-issues/*.json` files with the code change.
 6. After merging branches or resolving a merge conflict, run `issues validate --json`. Exit code 1 means it found problems, such as duplicate numbers or missing blockers, listed in its output. Location warnings (`LocationMoved`, `LocationChanged`, `LocationBroken`) don't fail the run; `issues validate --fix --json` rewrites moved hints. Items with `needsConfirmation` or `LocationChanged` need a look at the code: re-add the location with `edit --remove-location` and `--add-location` if the issue still applies.
+
+## Docs references
+
+Plan steps in `.repo-docs/` (the `docs` tool) link issues by number. `issues show` lists them under `docs`. `issues renumber` rewrites them along with blockers and reports them under `docsReferences` (`keptDocsReferences` when the number was duplicated). `issues delete` warns about them and lists them under `docs` but leaves them in place: update or remove those steps afterwards.
