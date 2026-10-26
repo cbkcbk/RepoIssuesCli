@@ -1,0 +1,8 @@
+{
+  "name": "docs",
+  "version": "0.1.0",
+  "description": "Find, maintain and prune agent docs stored in the repository with the docs CLI, with hooks that push matching docs and flag stale ones.",
+  "author": {
+    "name": "ChristofferBK"
+  }
+}

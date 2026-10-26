@@ -15,7 +15,7 @@ dotnet tool install RepoIssuesCli        # local (tool manifest)
 
 Requires the .NET 10 runtime or later.
 
-To build and install the current checkout as a global tool, run `./pack-install.sh` or `./pack-install.ps1`.
+To build and install the current checkout as global tools (`issues` and `docs`), run `./pack-install.sh` or `./pack-install.ps1`.
 
 ## Usage
 
@@ -81,15 +81,18 @@ This repository is also a Claude Code plugin marketplace (`repo-issues`). Its `i
 
 On older Claude Code versions, run `/plugin marketplace add <owner>/RepoIssuesCli` and then `/plugin install issues@repo-issues`.
 
-The marketplace and skill files (`.claude-plugin/`, `plugins/issues/`) are generated from the CLI's own command model. After changing commands, regenerate them with the debug-only command, which is never packed into the NuGet tool:
+The `docs` plugin (`/plugin install docs --marketplace <owner>/RepoIssuesCli`) ships a skill for looking up, writing, condensing and pruning `.repo-docs` entries, plus hooks that push matching docs after Claude reads or edits a file and flag docs affected by the session's changes when it stops. The hooks run `docs hook <event>`, so they need the `docs` tool on `PATH` (`dotnet tool install -g RepoDocsCli`); see [RepoDocsCli/README.md](RepoDocsCli/README.md#claude-code-hooks).
+
+The marketplace, skill and hook files (`.claude-plugin/`, `plugins/issues/`, `plugins/docs/`) are generated from each CLI's own command model. After changing commands, regenerate them with the debug-only command, which is never packed into the NuGet tools:
 
 ```sh
 dotnet run --project RepoIssuesCli -- generate-plugin
+dotnet run --project RepoDocsCli -- generate-plugin
 ```
 
 ## Releasing
 
-CI (`.github/workflows/ci.yml`) tests and packs every push and pull request. Pushing a `vX.Y.Z` tag also publishes `RepoIssuesCli` version `X.Y.Z` to nuget.org:
+CI (`.github/workflows/ci.yml`) tests and packs every push and pull request. Pushing a `vX.Y.Z` tag also publishes `RepoIssuesCli` and `RepoDocsCli`, both as version `X.Y.Z`, to nuget.org:
 
 ```sh
 git tag v0.2.0 && git push origin v0.2.0

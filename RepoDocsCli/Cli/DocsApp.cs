@@ -6,13 +6,14 @@ namespace RepoDocsCli.Cli;
 
 public static class DocsApp
 {
-    public static CommandApp Create(IAnsiConsole output, IAnsiConsole errors)
+    public static CommandApp Create(IAnsiConsole output, IAnsiConsole errors, TextReader? input = null)
     {
         var app = new CommandApp();
         app.Configure(config =>
         {
             RepoCliApp.Configure(config, "docs", typeof(DocsApp).Assembly, output, errors);
             config.Settings.Registrar.RegisterInstance(new ErrorConsole(errors));
+            config.Settings.Registrar.RegisterInstance(new HookStdin(input));
 
             config.AddCommand<InitCommand>("init")
                 .WithExample("init", "--json");
@@ -58,6 +59,11 @@ public static class DocsApp
             config.AddCommand<BudgetCommand>("budget")
                 .WithExample("budget", "--by", "kind", "--top", "5")
                 .WithExample("budget", "--json");
+            config.AddCommand<HookCommand>("hook")
+                .WithExample("hook", "read");
+#if DEBUG
+            config.AddCommand<RepoCli.Core.Cli.Plugin.GeneratePluginCommand<Plugin.DocsPlugin>>(RepoCli.Core.Cli.Plugin.PluginGenerator.CommandName);
+#endif
         });
         return app;
     }

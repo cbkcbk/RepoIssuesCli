@@ -327,6 +327,23 @@ JSON shape. Arrays are always present, as `[]` when empty; missing values are om
 - `byFeature`, `byKind` and `largest` are sorted by tokens, largest first. `render` and `push` are omitted for an undeclared kind. `byPolicy` always lists `on-edit`, `on-read` and `when-feature-active`; `full` and `summaryOnly` count the entries pushed with and without their body.
 - A `CLAUDE.md` with malformed markers is counted as text outside the block, with a note.
 
+## Claude Code hooks
+
+The `docs` Claude Code plugin (see the [root README](../README.md#claude-code-plugin)) ships a skill and these hooks in `plugins/docs/hooks/hooks.json`. Each one runs `docs hook <event>`, which reads the hook's JSON on stdin and writes its answer on stdout:
+
+| Hook | Command | What it does |
+|---|---|---|
+| `SessionStart` | `docs hook session-start` | Records the session's starting `HEAD`, so Stop also sees work committed during the session. |
+| `PostToolUse` on `Read` | `docs hook read` | Pushes the entries that apply to the file read. |
+| `PostToolUse` on `Edit\|Write\|MultiEdit` | `docs hook edit` | Pushes the entries that apply to the file changed. |
+| `Stop` | `docs hook stop` | Stops the agent once when docs are affected by the session's changes. |
+
+- Push: the entries are those `docs for <path>` finds (with every kind, and `repo.yaml` entries only through their own paths or anchors), filtered by their kind's `push` policy. `on-read` pushes on read and edit, `on-edit` on edit only, `when-feature-active` on either while the feature is `in-progress`, `never` never. An entry whose body is up to 600 characters (about 150 tokens) is pushed whole, and that records the read as `docs show` does; a longer one is pushed as its summary plus `docs show <address>`. At most 10 entries are pushed at once; the rest are named by a `docs for` hint. The answer is `{ "hookSpecificOutput": { "hookEventName": "PostToolUse", "additionalContext": "..." } }`.
+- Each entry is pushed at most once per session, until its `updated` changes. Reading or editing a `.repo-docs/` file instead gets a one-time reminder to use the docs CLI.
+- Stop: runs the `docs affected` logic since the recorded `HEAD` (or `HEAD` when none was recorded). When it finds docs not yet reported in this session, it answers `{ "decision": "block", "reason": "..." }`, listing up to 10 addresses with the `docs edit` / `docs touch` instructions. It never blocks while `stop_hook_active` is set, and reports each address once per session.
+- Session state lives in `.repo-docs/.session/<session_id>.json` (`{ head, pushed, reported }`). The folder has its own `.gitignore` (`*`), so git ignores it without touching `.repo-docs/.gitignore`. Files older than 7 days are deleted on session start.
+- The hooks never get in the way: without `.repo-docs/`, for a file outside the repository or outside every feature, on malformed input, or when anything fails, `docs hook` prints nothing and exits `0`. It loads the docs once per call.
+
 ## Automation
 
 - `--json` writes only JSON to stdout. For `init` that is `{ folder, created, files, features }`: `files` lists the repo-relative files it created, and `features` the prefilled features in the same shape as their YAML files. Arrays are always present, as `[]` when empty.
@@ -340,6 +357,7 @@ JSON shape. Arrays are always present, as `[]` when empty; missing values are om
 ```
 .repo-docs/
   .gitignore       # ignores the .lock file
+  .session/        # git-ignored hook state per Claude Code session
   repo.yaml        # repo-wide entries
   config.yaml      # settings, including the entry kinds
   billing.yaml     # one file per feature, named after its id
