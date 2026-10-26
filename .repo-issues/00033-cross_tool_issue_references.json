@@ -4,7 +4,7 @@
   "name": "Cross-tool issue references",
   "description": "issues renumber rewrites issue numbers in .repo-docs steps; issues delete warns when docs reference the issue; issues show lists referencing docs entries. Logic lives in RepoCli.Core.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "Medium",
   "blockedBy": [
     26
@@ -15,5 +15,12 @@
     "docs"
   ],
   "created": "2026-10-26T14:33:12+00:00",
-  "updated": "2026-10-26T14:33:26+00:00"
+  "updated": "2026-10-26T15:38:49+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:38:49+00:00",
+      "text": "Merged 3ed64d2. RepoCli.Core/Features/IssueLinks: DocsSteps(root).Find/Find(n)/Renumber(from, to) under Lock() (the docs folder lock), plus the DocsReference record. Core now depends on YamlDotNet 18.1.0. The rewrite replaces only the number scalars at their YAML marks, so every other byte stays identical (CRLF, BOM, comments); odd scalars are reported, not rewritten. Lock order: issues, then docs. renumber JSON gains docsReferences/keptDocsReferences; delete warns on stderr and adds docs[]; show gets a Docs tree and docs[] (always emitted). After merging, the hints point to \u0027docs edit --step-issues/--remove-step\u0027 instead of hand-editing YAML. Follow-ups: RepoDocsCli could drop its own YamlDotNet reference; delete takes no issues lock (as before)."
+    }
+  ]
 }
