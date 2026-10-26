@@ -25,31 +25,31 @@ public class PlanStepTests
         new(new RepoDocs(), DocsConfig.Default(), [new Feature { Id = "billing", Entries = [.. entries] }], []);
 
     const string PlanYaml = """
-        feature: billing
-        status: in-progress
-        when: {}
-        entries:
-          - id: rollout
-            kind: plan
-            summary: Roll out invoices
-            steps:
-              - title: Schema and store
-                issues: [23, 24]
-              - title: Write the migration guide
-            body: |
-              Ship behind a flag.
+                            feature: billing
+                            status: in-progress
+                            when: {}
+                            entries:
+                              - id: rollout
+                                kind: plan
+                                summary: Roll out invoices
+                                steps:
+                                  - title: Schema and store
+                                    issues: [23, 24]
+                                  - title: Write the migration guide
+                                body: |
+                                  Ship behind a flag.
 
-        """;
+                            """;
 
     [Test]
     public void StepsRoundTripThroughYaml()
     {
-        repo.Store.Save(new Feature
+        repo.WriteDocsFile("billing.yaml", DocsYaml.Serialize(new Feature
         {
             Id = "billing",
             Status = FeatureStatus.InProgress,
             Entries = [Plan(new PlanStep { Title = "Schema and store", Issues = [23, 24] }, new PlanStep { Title = "Write the migration guide" })],
-        });
+        }));
 
         var yaml = repo.ReadDocsFile("billing.yaml");
         var loaded = repo.Store.LoadFeature("billing");
