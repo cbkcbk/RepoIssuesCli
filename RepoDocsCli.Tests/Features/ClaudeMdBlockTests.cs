@@ -71,7 +71,7 @@ public class ClaudeMdBlockTests
 
             ## Features
 
-            Each feature lives in `.repo-docs/<id>.yaml`.
+            Read a feature with `docs show <id>` (or one entry with `docs show <id>/<entry>`) and search with `docs find <query>`. Never read or edit `.repo-docs/` files directly.
 
             - billing [in-progress]: Invoices and payments
               - billing/rounding: Round half to even
@@ -84,6 +84,15 @@ public class ClaudeMdBlockTests
             Clear it with `vat reset`.
             <!-- docs:end -->
             """.ReplaceLineEndings("\n")));
+    }
+
+    [Test]
+    public void FeatureIndexPointsAgentsToTheCliInsteadOfTheYaml()
+    {
+        var block = ClaudeMdBlock.Render(Snapshot(null, new Feature { Id = "search" }));
+
+        Assert.That(block, Does.Contain("## Features\n\n" + ClaudeMdBlock.IndexHint + "\n\n- search"));
+        Assert.That(ClaudeMdBlock.IndexHint, Does.Contain("docs show <id>").And.Contain("docs find <query>").And.Not.Contain(".yaml"));
     }
 
     [TestCase("rule", true)]

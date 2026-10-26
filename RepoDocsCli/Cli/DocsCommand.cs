@@ -1,4 +1,5 @@
 using RepoDocsCli.Features.Docs;
+using RepoDocsCli.Features.Queries;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -34,5 +35,21 @@ public abstract class DocsCommand<TSettings>(IAnsiConsole console, ErrorConsole 
         foreach (var error in snapshot.Errors)
             Errors.MarkupLine($"[yellow]Warning:[/] {Markup.Escape(error.FileName)}: {Markup.Escape(error.Message)} [grey](file skipped)[/]");
         return snapshot;
+    }
+
+    protected static void RequireInitialized(DocsStore store)
+    {
+        if (!store.IsInitialized)
+            throw new UsageException($"No {RepoLocator.DocsFolderName} folder in {store.Root}; run 'docs init' first.");
+    }
+
+    protected void ReportPlanIssues(PlanLookup plans)
+    {
+        if (plans.Loaded is not { } issues)
+            return;
+        if (!issues.IsInitialized)
+            Errors.MarkupLine($"[yellow]Warning:[/] No {RepoLocator.IssuesFolderName} folder; plan progress is unavailable.");
+        foreach (var error in issues.Errors)
+            Errors.MarkupLine($"[yellow]Warning:[/] {Markup.Escape(error.FileName)}: {Markup.Escape(error.Message)} [grey](issue skipped)[/]");
     }
 }

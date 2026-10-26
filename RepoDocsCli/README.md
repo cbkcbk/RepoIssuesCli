@@ -45,7 +45,7 @@ No `_` prefix on fields.
 
 ## Features
 
-Each feature lives in `.repo-docs/<id>.yaml`.
+Read a feature with `docs show <id>` (or one entry with `docs show <id>/<entry>`) and search with `docs find <query>`. Never read or edit `.repo-docs/` files directly.
 
 - billing [in-progress]: Invoices and payments
   - billing/rounding: Round half to even
@@ -130,6 +130,44 @@ docs validate          # alias of check
 - A stale block is only reported when every docs file loads, since a skipped file would make the comparison meaningless.
 - `--fix` holds the docs lock and, in order: merges files with conflict markers per entry (as the merge driver does), stamps hand edits since `HEAD` (as `docs touch`), rewrites the hints of `MovedAnchor` anchors, and re-renders a stale CLAUDE.md block. It never applies changed or fuzzy anchors. Anchor rewrites keep `created` and `updated` as they are, even when the path or context hash changes, since the code itself did not change. Fixed items are printed first, then what still needs a human or agent.
 - JSON: without `--fix` an array of problems, like `issues validate --json`; with `--fix` an object whose `fixed` holds what was repaired and `problems` what is left, in the same shape. `kind` and `severity` (`Error` or `Warning`) are strings, `file` is the file name in `.repo-docs/` (or `CLAUDE.md`), `address` is the feature or `feature/entry` the problem belongs to, and `fixable` says whether `--fix` repairs it. Missing values are omitted. The exit code reflects only the remaining problems.
+
+### Reading docs
+
+Agents read docs through these commands, never through the YAML files.
+
+```sh
+docs show billing                 # a feature: status, summary, when hints and entry summaries
+docs show billing --full          # ... with every entry's body
+docs show billing/rounding        # one entry in full
+docs show repo                    # the repo.yaml entries; repo/style is one of them
+docs for src/Billing/Invoice.cs   # the docs that apply to a file or folder
+docs for src/Billing --plans      # ... also plans of features that are not in-progress
+docs for src/Billing --all-kinds  # ... every kind, including decisions
+docs find "vat rounding"          # ranked search; --limit 5 (default 10)
+docs list                         # features with status and entry count
+docs list --status in-progress    # repeatable
+```
+
+- An address is `feature`, `feature/entry`, `repo` or `repo/entry`. An invalid address exits `2`, and a missing feature or entry exits `3`.
+- `show` is a real read: it records today's date in `read` for the entry it shows, or for every entry with `show <feature> --full`. A feature shown without `--full` lists only summaries and records nothing. `for`, `find` and `list` never record reads.
+- Plan entries show their progress, derived from `.repo-issues` (see [plan steps](#file-format)). Without a `.repo-issues` folder, `show` and `for` say so on stderr, list the steps without states and leave `progress` out of the JSON.
+- `for` takes a path absolute or relative to the current directory (or to the repository root when the current directory is outside it) and makes it repo-relative; a path outside the repository exits `2`. It returns:
+  - every `repo.yaml` entry;
+  - feature entries whose `when.paths` cover the path or whose `when.anchors` name that file. A hint covers a path when it is the path itself or a folder above it, compared per path segment and ignoring case (`App/Billing` covers `App/Billing/Invoice.cs`, not `App/BillingOld/x.cs`). Hints may use simple globs: `*` and `?` within a segment, `**` across segments, and a glob without `/` (`*.cs`) matches the file name in any folder;
+  - an entry without location hints (no `when.paths` or `when.anchors`) applies wherever its feature does. An entry with its own location hints applies only where they match.
+- `for` returns current-state kinds only: it leaves out `decision` entries (history, not current state) and `plan` entries unless their feature is `in-progress`. `--plans` adds all plans, `--all-kinds` adds every kind. The same rule applies to `repo.yaml` entries, whose plans need `--plans`.
+- `for` includes bodies of up to 600 characters (about 150 tokens); `--full` includes all of them. `hasBody` tells you an omitted body exists; read it with `docs show <address>`.
+- `find` scores every feature and entry case-insensitively: `1000` when the query, or one of its words, is the id or address, plus `100` per word found in the summary, `10` per word found in a keyword, and `1` per word found in the body. Results with a score of `0` are dropped; ties sort by address.
+- Query commands need `.repo-docs/`. Files that fail to load are reported on stderr as warnings and left out.
+
+JSON shapes. Arrays are always present, as `[]` when empty; missing values are omitted.
+
+- `show <feature>` and `show repo`: `{ feature, status, summary, when: { paths, anchors, keywords }, created, updated, entries: [entry] }`. `repo` has no `status`, `when` or timestamps.
+- `show <feature>/<entry>`: one entry.
+- An entry is `{ address, feature, id, kind, summary, when, steps: [{ title, issues }], created, updated, read, hasBody, body, progress, match }`. `feature` is `repo` for `repo.yaml` entries. `when` is omitted when the entry has no hints. `body` is present when it is shown (always for a single entry). `progress` is only on plan entries, as `{ done, total, cancelled, missing, steps: [{ title, state, done, total, issues: [{ number, name, state, blockedBy, blocked }] }], complete }`. `match` is only in `for` output: `repo`, `feature` (inherited from the feature's hints) or `entry` (the entry's own hints).
+- `for`: `{ path, features: [{ feature, status, summary }], entries: [entry] }`. `path` is repo-relative with `/`; `features` lists the features that matched or contributed an entry, sorted by id; `entries` holds the `repo.yaml` entries first, then each feature's in file order.
+- `find`: `[{ address, feature, kind, summary, score }]`, best first. A feature hit has `kind` `feature` and its id as `address`.
+- `list`: `[{ feature, status, summary, entryCount }]`, sorted by id.
 
 ## Automation
 
