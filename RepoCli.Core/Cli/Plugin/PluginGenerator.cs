@@ -11,7 +11,8 @@ namespace RepoCli.Core.Cli.Plugin;
 
 public sealed record GeneratedFile(string Path, string Content);
 
-public sealed record PluginDefinition(string Name, string Summary, string Version, string Skill);
+/// <param name="Files">Extra plugin files, such as <c>hooks/hooks.json</c>, with paths relative to the plugin folder.</param>
+public sealed record PluginDefinition(string Name, string Summary, string Version, string Skill, IReadOnlyList<GeneratedFile>? Files = null);
 
 public sealed record CommandUsage(string Usage, string Description);
 
@@ -59,9 +60,14 @@ public static class PluginGenerator
         [
             new(".claude-plugin/marketplace.json", marketplace.ToJsonString(JsonOptions) + "\n"),
             new($"plugins/{plugin.Name}/.claude-plugin/plugin.json", manifest.ToJsonString(JsonOptions) + "\n"),
-            new($"plugins/{plugin.Name}/skills/{plugin.Name}/SKILL.md", plugin.Skill.ReplaceLineEndings("\n").TrimEnd('\n') + "\n"),
+            new($"plugins/{plugin.Name}/skills/{plugin.Name}/SKILL.md", OneTrailingNewline(plugin.Skill)),
+            .. (plugin.Files ?? []).Select(file => new GeneratedFile($"plugins/{plugin.Name}/{file.Path}", OneTrailingNewline(file.Content))),
         ];
     }
+
+    public static string Json(JsonNode node) => node.ToJsonString(JsonOptions) + "\n";
+
+    static string OneTrailingNewline(string text) => text.ReplaceLineEndings("\n").TrimEnd('\n') + "\n";
 
     public static void Write(string repoRoot, IEnumerable<GeneratedFile> files)
     {

@@ -35,6 +35,18 @@ public class PluginGeneratorTests
     }
 
     [Test]
+    public void ExtraFilesAreWrittenUnderThePluginFolder()
+    {
+        using var folder = new TempFolder();
+        var plugin = Plugin("docs") with { Files = [new GeneratedFile("hooks/hooks.json", "{ \"hooks\": {} }\r\n\r\n")] };
+
+        var files = PluginGenerator.Generate(folder.Root, plugin);
+
+        Assert.That(files.Select(file => file.Path), Does.Contain("plugins/docs/hooks/hooks.json"));
+        Assert.That(files.Single(file => file.Path == "plugins/docs/hooks/hooks.json").Content, Is.EqualTo("{ \"hooks\": {} }\n"));
+    }
+
+    [Test]
     public void SkillEndsWithASingleNewline()
     {
         using var folder = new TempFolder();

@@ -1,0 +1,49 @@
+{
+  "description": "docs plugin: push matching docs after Read/Edit/Write, record the starting HEAD, and flag docs affected by changes made in the session on Stop.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docs hook session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docs hook read",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docs hook edit",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docs hook stop",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

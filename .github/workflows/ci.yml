@@ -19,18 +19,16 @@ jobs:
       - name: Test
         run: dotnet test RepoIssuesCli.slnx
 
-      - name: Pick version
-        id: version
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-          else
-            base=$(dotnet msbuild RepoIssuesCli/RepoIssuesCli.csproj -getProperty:Version)
-            echo "value=$base-ci.$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Pack
-        run: dotnet pack RepoIssuesCli/RepoIssuesCli.csproj -c Release -p:Version=${{ steps.version.outputs.value }}
+        run: |
+          for project in RepoIssuesCli/RepoIssuesCli.csproj RepoDocsCli/RepoDocsCli.csproj; do
+            if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+              version="${GITHUB_REF_NAME#v}"
+            else
+              version="$(dotnet msbuild "$project" -getProperty:Version)-ci.$GITHUB_RUN_NUMBER"
+            fi
+            dotnet pack "$project" -c Release -p:Version="$version"
+          done
 
       - uses: actions/upload-artifact@v7
         with:

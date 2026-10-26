@@ -10,6 +10,12 @@
       "source": "./plugins/issues",
       "description": "Track work as issues stored in the repository with the issues CLI.",
       "version": "0.1.0"
+    },
+    {
+      "name": "docs",
+      "source": "./plugins/docs",
+      "description": "Find, maintain and prune agent docs stored in the repository with the docs CLI, with hooks that push matching docs and flag stale ones.",
+      "version": "0.1.0"
     }
   ]
 }
