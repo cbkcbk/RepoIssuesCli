@@ -34,6 +34,7 @@ issues comment 1 "Reproduced on main"                # prompts for the text when
 issues delete 1 --force                              # also removes it from other issues' blockers
 issues validate                                      # exit code 1 on errors; stale locations are warnings
 issues validate --strict                             # exit code 1 on warnings too
+issues validate --fix                                # rewrite the line hints of locations whose code moved
 issues renumber <id>                                 # give an issue the next free number (fixes duplicates)
 ```
 
@@ -45,9 +46,24 @@ Interactive description and comment prompts take multiple lines; a blank line fi
 
 Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name prefix, a full title (`0003 Fix login`), or the issue id.
 
+### Locations
+
+`-l` and `edit --add-location` take `path`, `path:line`, `path:line:col` or `path:line-end`. When the file and line exist, the location is anchored to the code there: it stores the line as a hint plus fingerprints of the surrounding lines and of the covered lines, and the enclosing class or method for C#, Java, Kotlin, TypeScript/JavaScript, Python, Go and Rust. Anchored locations survive edits elsewhere in the file. A path alone, or a file or line that doesn't exist, is kept as typed and reported by `validate`. `--remove-location` removes the locations matching the path, line and column given; omitted parts match any.
+
+`issues validate` resolves every anchor in one pass and warns when it:
+
+| Kind | Meaning |
+|---|---|
+| `LocationMoved` | The same code is found at another line or in a renamed file. `--fix` rewrites the hint. |
+| `LocationChanged` | The code was found, but it was edited. Check that the issue still applies, then re-add the location. |
+| `LocationBroken` | The code was not found. |
+| `MissingLocationFile`, `LocationLineOutOfRange` | An unanchored location points at a missing file or line. |
+
+A match found only by similar text is marked as needing confirmation and is never fixed automatically. `--fix` takes the issue lock, rewrites only confident moves and doesn't bump `updated`, since the issue itself didn't change. Location warnings fail the run only with `--strict`; moves fixed in the same run don't count.
+
 ## Automation
 
-- `--json` writes only JSON to stdout: one issue for `new`/`show`/`edit`/`status`/`comment`/`delete`, an array for `list`, an array of `{ kind, message, file?, severity }` for `validate` (`severity` is `Error` or `Warning`), and `{ issue, previousNumber, rewritten, keptReferences }` for `renumber`. Issues always include `blockedBy`, `locations`, `tags` and `comments`, as `[]` when empty, though issue files leave empty lists out.
+- `--json` writes only JSON to stdout: one issue for `new`/`show`/`edit`/`status`/`comment`/`delete`, an array for `list`, an array of `{ kind, message, file?, severity }` for `validate` (`severity` is `Error` or `Warning`; location items add `location`, `resolvedTo?` and `needsConfirmation?`, and with `--fix` each fixed hint is listed first with `"fixed": true`), and `{ issue, previousNumber, rewritten, keptReferences }` for `renumber`. Issues always include `blockedBy`, `locations`, `tags` and `comments`, as `[]` when empty, though issue files leave empty lists out.
 - Prompts never appear when you pass `--json` or `--no-interactive`, set `ISSUES_NONINTERACTIVE=1` (or `DOCS_NONINTERACTIVE=1`), or when stdin/stdout aren't a terminal. In those modes, missing input is an error.
 - Errors go to stderr.
 - Exit codes: `0` ok, `1` validation errors (or warnings with `validate --strict`), `2` usage error / missing input, `3` issue not found, `4` unexpected error.
@@ -93,7 +109,10 @@ Publishing uses nuget.org trusted publishing, so no API key is stored. One-time 
   "status": "Open",
   "priority": "High",
   "blockedBy": [3, 7],
-  "locations": [{ "path": "src/Auth/Login.cs", "line": 42, "column": 9 }],
+  "locations": [
+    { "path": "src/Auth/Login.cs", "line": 42, "span": 1, "symbol": "LoginService.Check", "context": "4f1c0a9be27d", "body": "9a03d5e1c7b2", "column": 9 },
+    { "path": "docs/auth.md" }
+  ],
   "tags": ["bug"],
   "created": "2026-10-17T16:25:54+00:00",
   "updated": "2026-10-17T16:31:02+00:00",
@@ -110,4 +129,5 @@ Publishing uses nuget.org trusted publishing, so no API key is stored. One-time 
 - `blockedBy` holds issue numbers, so renaming an issue never breaks references.
 - Empty lists and missing values are omitted.
 - Location paths are repo-relative with `/` separators.
+- An anchored location has `path`, `line` (1-based hint), `span` (number of non-blank lines covered), `symbol` (enclosing declaration, when known), `context` (hash of the first line and the two non-blank lines before it) and `body` (hash of the covered lines). Hashes ignore whitespace and blank lines, so reformatting isn't a change. `column` is an optional extra from `path:line:col`. A location with only `path` (and optionally `line` and `column`) is unanchored: a whole file or folder, or a line that couldn't be read. Older files store every location that way; saving such an issue for any reason anchors the locations whose file and line still exist and keeps the others as they are.
 - Numbers are assigned as highest + 1 while holding `.repo-issues/.lock`, so concurrent `issues new` and `issues renumber` runs in one checkout (e.g. several agents) never pick the same number. The lock file is listed in `.repo-issues/.gitignore`. If two branches create the same number, `issues validate` reports the duplicate after the merge and `issues renumber` fixes it.

@@ -34,8 +34,7 @@ public sealed class CommentCommand(IAnsiConsole console) : IssueCommand<CommentC
             string.IsNullOrWhiteSpace(settings.Author) ? GitIdentity.Author(session.Store.Root) : settings.Author.Trim(),
             now,
             text);
-        var saved = issue with { Comments = [.. issue.Comments, comment], Updated = now };
-        session.Store.Save(saved);
+        var saved = session.Store.Save(issue with { Comments = [.. issue.Comments, comment], Updated = now });
 
         if (settings.Json)
             IssueRenderer.WriteJson(Console, saved);

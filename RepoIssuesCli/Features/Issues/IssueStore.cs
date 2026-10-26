@@ -80,8 +80,10 @@ public sealed class IssueStore(string root)
         return new IssueSnapshot(issues.OrderBy(issue => issue.Number).ToList(), errors);
     }
 
-    public void Save(Issue issue)
+    /// <returns>The issue as written, with legacy locations upgraded to anchors where the line still exists.</returns>
+    public Issue Save(Issue issue)
     {
+        issue = new IssueLocations(root).Upgrade(issue);
         Directory.CreateDirectory(Folder);
         var current = files.GetValueOrDefault(issue.Id);
         var target = FileNameFor(issue);
@@ -99,6 +101,8 @@ public sealed class IssueStore(string root)
 
         if (current is null)
             Git.Add(root, path);
+
+        return issue;
     }
 
     public void Delete(Issue issue)

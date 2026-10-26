@@ -27,12 +27,7 @@ public sealed class StatusCommand(IAnsiConsole console) : IssueCommand<StatusCom
         var status = settings.Status
             ?? interaction.Choose("Status:", Enum.GetValues<IssueStatus>(), value => value.ToString(), "[status]");
 
-        var saved = issue;
-        if (status != issue.Status)
-        {
-            saved = issue with { Status = status, Updated = Issue.Timestamp() };
-            session.Store.Save(saved);
-        }
+        var saved = status == issue.Status ? issue : session.Store.Save(issue with { Status = status, Updated = Issue.Timestamp() });
 
         if (settings.Json)
             IssueRenderer.WriteJson(Console, saved);

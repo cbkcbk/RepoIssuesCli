@@ -38,7 +38,7 @@ Issues are JSON files in `.repo-issues/`, committed alongside the code.
 | `issues comment [ref] [text]` | Add a comment to an issue. Prompts for the text when run interactively without it. |
 | `issues delete [ref]` | Delete an issue and remove it from other issues' blockers. |
 | `issues renumber [ref]` | Give an issue the next free number, e.g. to fix a duplicate number after a merge. Blockers on an unshared number follow the issue; blockers on a duplicated number keep pointing at the issue that keeps it. |
-| `issues validate` | Check for invalid files, duplicate numbers, missing blockers and blocker cycles, and warn about locations pointing at missing files or lines. Exits with 1 on errors. |
+| `issues validate` | Check for invalid files, duplicate numbers, missing blockers and blocker cycles, and warn about locations that moved, changed or can't be found. Exits with 1 on errors. |
 
 `<ref>` accepts a number (`3` or `0003`), a unique name prefix, a full title (`0003 Fix login`) or the id. Prefer the number.
 
@@ -60,7 +60,7 @@ Author: when the user asks for the issue, keep the default (their git identity).
 
 1. Pick: `issues list --ready --json` returns unblocked Open and InProgress issues, highest priority first.
 2. Start: `issues status <n> InProgress --json`.
-3. Point at code with repo-relative `-l path:line:col`, on `new` or via `edit --add-location`.
+3. Point at code with repo-relative `-l path:line:col` (or `path:line-end` for a range), on `new` or via `edit --add-location`. Locations are anchored to the code there, so they follow it when lines move.
 4. Blockers: `issues edit <n> --add-blocker <m> --json` means n waits on m. A blocker that would create a cycle is rejected with exit code 2.
 5. Finish: `issues status <n> Done --json`, then commit the changed `.repo-issues/*.json` files with the code change.
-6. After merging branches or resolving a merge conflict, run `issues validate --json`. Exit code 1 means it found problems, such as duplicate numbers or missing blockers, listed in its output.
+6. After merging branches or resolving a merge conflict, run `issues validate --json`. Exit code 1 means it found problems, such as duplicate numbers or missing blockers, listed in its output. Location warnings (`LocationMoved`, `LocationChanged`, `LocationBroken`) don't fail the run; `issues validate --fix --json` rewrites moved hints. Items with `needsConfirmation` or `LocationChanged` need a look at the code: re-add the location with `edit --remove-location` and `--add-location` if the issue still applies.

@@ -40,7 +40,7 @@ public sealed class NewCommand(IAnsiConsole console) : IssueCommand<NewCommand.S
         public string[] BlockedBy { get; init; } = [];
 
         [CommandOption("-l|--location <PATH:LINE:COL>")]
-        [Description("Source location; repeatable.")]
+        [Description("Source location, anchored to the code there; path:line-end covers a range. Repeatable.")]
         public string[] Locations { get; init; } = [];
     }
 
@@ -74,7 +74,7 @@ public sealed class NewCommand(IAnsiConsole console) : IssueCommand<NewCommand.S
 
         using var lease = session.Store.Lock();
         var now = Issue.Timestamp();
-        var created = new Issue
+        var created = session.Store.Save(new Issue
         {
             Id = Guid.CreateVersion7(),
             Number = session.Store.Load().NextNumber(),
@@ -88,8 +88,7 @@ public sealed class NewCommand(IAnsiConsole console) : IssueCommand<NewCommand.S
             Tags = tags,
             Created = now,
             Updated = now,
-        };
-        session.Store.Save(created);
+        });
 
         if (settings.Json)
             IssueRenderer.WriteJson(Console, created);
