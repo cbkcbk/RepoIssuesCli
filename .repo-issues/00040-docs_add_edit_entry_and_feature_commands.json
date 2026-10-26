@@ -1,0 +1,18 @@
+{
+  "id": "01a178bc-825f-7851-abb1-25e78a9fc343",
+  "number": 40,
+  "name": "docs add / edit: entry and feature commands",
+  "description": "Commands to create and change docs without hand-editing YAML: docs add \u003Cfeature\u003E[/\u003Centry\u003E] (new feature, or new entry with --kind, --summary, --body, --path/--anchor/--keyword hints), docs edit \u003Cfeature\u003E[/\u003Centry\u003E] (change summary, body, kind, when hints, feature status), docs rm \u003Cfeature\u003E[/\u003Centry\u003E]. Validates kinds against config.yaml and entry ids; anchors created from path:line via the anchor model; stamps created/updated through the #25 rules. Same conventions as issues: --json, exit codes, --root, interactive prompts when input is missing, non-interactive mode, git add/mv, lock.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "High",
+  "blockedBy": [
+    24,
+    25
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T15:03:02+00:00",
+  "updated": "2026-10-26T15:03:02+00:00"
+}
