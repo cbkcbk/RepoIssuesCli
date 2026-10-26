@@ -23,8 +23,11 @@ public sealed record Anchor(string Path, int Line, int Span, string Context, str
         return anchor with { Symbol = SymbolIndex.Scan(text).SymbolAt(anchor.Line) };
     }
 
-    public static Anchor Load(string repoRoot, string path, int line, int? endLine = null, string? symbol = null) =>
-        Create(path, SourceText.Load(System.IO.Path.Combine(repoRoot, path)), line, endLine, symbol);
+    public static Anchor Load(string repoRoot, string path, int line, int? endLine = null, string? symbol = null)
+    {
+        var relative = path.Replace('\\', '/');
+        return Create(relative, SourceText.Load(System.IO.Path.Combine(repoRoot, relative)), line, endLine, symbol);
+    }
 
     public bool ContextMatches(SourceText text, int line) => text.ContextHash(line) == Context;
 

@@ -8,3 +8,4 @@ nupkg/
 
 !.repo-issues/*.json
 .claude/worktrees/
+*.DotSettings.user
