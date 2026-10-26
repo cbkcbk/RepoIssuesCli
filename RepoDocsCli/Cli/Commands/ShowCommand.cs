@@ -28,10 +28,10 @@ public sealed class ShowCommand(IAnsiConsole console, ErrorConsole errors) : Doc
 
         if (address.Entry is { } entryId)
         {
-            MarkRead(store, address.Owner, [entryId]);
-            var entry = EntriesOf(store, address.Owner).FirstOrDefault(candidate => candidate.Id == entryId)
+            MarkRead(store, address.Feature, [entryId]);
+            var entry = EntriesOf(store, address.Feature).FirstOrDefault(candidate => candidate.Id == entryId)
                         ?? throw new EntryNotFoundException(address.ToString());
-            var view = EntryView.Create(address.Owner, entry, withBody: true, plans);
+            var view = EntryView.Create(address.Feature, entry, withBody: true, plans);
             ReportPlanIssues(plans);
             if (settings.Json)
                 CliOutput.WriteJson(Console, DocsJson.SerializeOutput(view));
@@ -41,11 +41,11 @@ public sealed class ShowCommand(IAnsiConsole console, ErrorConsole errors) : Doc
         }
 
         if (settings.Full)
-            MarkRead(store, address.Owner, EntriesOf(store, address.Owner).Select(entry => entry.Id).ToList());
+            MarkRead(store, address.Feature, EntriesOf(store, address.Feature).Select(entry => entry.Id).ToList());
 
         var feature = address.IsRepo
             ? FeatureView.Create(LoadRepo(store), settings.Full, plans)
-            : FeatureView.Create(store.LoadFeature(address.Owner), settings.Full, plans);
+            : FeatureView.Create(store.LoadFeature(address.Feature), settings.Full, plans);
         ReportPlanIssues(plans);
         if (settings.Json)
             CliOutput.WriteJson(Console, DocsJson.SerializeOutput(feature));

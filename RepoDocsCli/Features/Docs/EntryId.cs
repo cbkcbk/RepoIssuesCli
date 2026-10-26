@@ -5,12 +5,15 @@ namespace RepoDocsCli.Features.Docs;
 public static class EntryId
 {
     public const char Separator = '/';
-    const int MaxSlugLength = 40;
+    public const int MaxDerivedLength = 40;
     const string FallbackId = "entry";
 
     public static bool IsValid(string? id) => FeatureId.IsKebabCase(id);
 
     public static string Address(string feature, string entry) => $"{feature}{Separator}{entry}";
+
+    public static string FromSummary(string summary, IEnumerable<string> taken) =>
+        Unique(FromSummary(summary), taken.ToHashSet(StringComparer.Ordinal));
 
     public static string FromSummary(string summary)
     {
@@ -18,11 +21,11 @@ public static class EntryId
         var slug = new StringBuilder();
         foreach (var word in words)
         {
-            if (slug.Length > 0 && slug.Length + 1 + word.Length > MaxSlugLength)
+            if (slug.Length > 0 && slug.Length + 1 + word.Length > MaxDerivedLength)
                 break;
             if (slug.Length > 0)
                 slug.Append('-');
-            slug.Append(word.Length > MaxSlugLength ? word[..MaxSlugLength] : word);
+            slug.Append(word.Length > MaxDerivedLength ? word[..MaxDerivedLength] : word);
         }
 
         return slug.Length > 0 ? slug.ToString() : FallbackId;
