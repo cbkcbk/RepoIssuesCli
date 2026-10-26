@@ -17,6 +17,12 @@ public sealed record Anchor(string Path, int Line, int Span, string Context, str
         return new Anchor(path.Replace('\\', '/'), start, span, text.ContextHash(start), text.BodyHash(start, span), symbol);
     }
 
+    public static Anchor CreateWithSymbol(string path, SourceText text, int line, int? endLine = null)
+    {
+        var anchor = Create(path, text, line, endLine);
+        return anchor with { Symbol = SymbolIndex.Scan(text).SymbolAt(anchor.Line) };
+    }
+
     public static Anchor Load(string repoRoot, string path, int line, int? endLine = null, string? symbol = null) =>
         Create(path, SourceText.Load(System.IO.Path.Combine(repoRoot, path)), line, endLine, symbol);
 
