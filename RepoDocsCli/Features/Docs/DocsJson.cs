@@ -12,6 +12,7 @@ namespace RepoDocsCli.Features.Docs;
 [JsonSerializable(typeof(Feature))]
 [JsonSerializable(typeof(List<Feature>))]
 [JsonSerializable(typeof(InitResult))]
+[JsonSerializable(typeof(TouchResult))]
 public partial class DocsJsonContext : JsonSerializerContext;
 
 public static class DocsJson

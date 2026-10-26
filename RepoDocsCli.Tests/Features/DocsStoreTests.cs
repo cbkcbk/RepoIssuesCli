@@ -58,7 +58,7 @@ public class DocsStoreTests
     [Test]
     public void FullSchemaRoundTripsThroughYaml()
     {
-        repo.Store.Save(FullFeature());
+        repo.WriteDocsFile("billing.yaml", DocsYaml.Serialize(FullFeature()));
 
         var yaml = repo.ReadDocsFile("billing.yaml");
         var loaded = repo.Store.LoadFeature("billing");

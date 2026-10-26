@@ -15,6 +15,13 @@ public static class DocsApp
 
             config.AddCommand<InitCommand>("init")
                 .WithExample("init", "--json");
+
+            config.AddCommand<TouchCommand>("touch")
+                .WithExample("touch", "billing/rounding")
+                .WithExample("touch", "--json");
+
+            config.AddCommand<MergeDriverCommand>("merge-driver")
+                .WithExample("merge-driver", "%O", "%A", "%B", "%P");
         });
         return app;
     }
