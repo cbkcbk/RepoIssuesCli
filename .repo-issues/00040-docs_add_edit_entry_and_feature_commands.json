@@ -4,7 +4,7 @@
   "name": "docs add / edit: entry and feature commands",
   "description": "Commands to create and change docs without hand-editing YAML: docs add \u003Cfeature\u003E[/\u003Centry\u003E] (new feature, or new entry with --kind, --summary, --body, --path/--anchor/--keyword hints), docs edit \u003Cfeature\u003E[/\u003Centry\u003E] (change summary, body, kind, when hints, feature status), docs rm \u003Cfeature\u003E[/\u003Centry\u003E]. Validates kinds against config.yaml and entry ids; anchors created from path:line via the anchor model; stamps created/updated through the #25 rules. Same conventions as issues: --json, exit codes, --root, interactive prompts when input is missing, non-interactive mode, git add/mv, lock.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "High",
   "blockedBy": [
     24,
@@ -14,5 +14,12 @@
     "docs"
   ],
   "created": "2026-10-26T15:03:02+00:00",
-  "updated": "2026-10-26T15:03:02+00:00"
+  "updated": "2026-10-26T15:30:10+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:30:10+00:00",
+      "text": "Merged 18bf43d. docs add \u003Cfeature | feature/entry | repo/entry\u003E (-k, -s, -b/--body-file/--body-stdin, -p/-a/-w hints, --step \u0027title #n\u0027, -e derives the id), docs edit (summary, kind, status, body, add/remove path/anchor/keyword, step edits addressed by their 1-based number from before the edit, --id rename via git mv), docs rm [-f]. Every change is validated, and only problems it introduces are rejected (exit 2). Re-anchor with --add-anchor on the same path:line. JSON: { address, file, feature|entry|repo }. After merging, there is a single strict DocsAddress (Features/Docs) shared with #27. Gaps that would still need YAML hand edits: config.yaml kinds, entry ordering, moving an entry between features."
+    }
+  ]
 }
