@@ -1,0 +1,8 @@
+feature: issue-links
+status: shipped
+when:
+  paths:
+    - RepoCli.Core.Tests/Features/IssueLinks/
+    - RepoCli.Core/Features/IssueLinks/
+created: 2026-10-26T16:40:25Z
+entries: []

@@ -1,0 +1,7 @@
+feature: issues
+status: shipped
+when:
+  paths:
+    - RepoIssuesCli/Features/Issues/
+created: 2026-10-26T16:40:25Z
+entries: []

@@ -1,0 +1,26 @@
+version: 1
+kinds:
+  rule:
+    render: index
+    push: on-edit
+  fact:
+    render: never
+    push: on-read
+    prune:
+      unreadDays: 180
+  gotcha:
+    render: never
+    push: on-edit
+    prune:
+      unreadDays: 365
+  howto:
+    render: index
+    push: never
+    prune:
+      unreadDays: 180
+  decision:
+    render: never
+    push: never
+  plan:
+    render: never
+    push: when-feature-active

@@ -1,0 +1,8 @@
+feature: anchors
+status: shipped
+when:
+  paths:
+    - RepoCli.Core.Tests/Features/Anchors/
+    - RepoCli.Core/Features/Anchors/
+created: 2026-10-26T16:40:25Z
+entries: []

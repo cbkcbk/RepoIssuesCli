@@ -1,0 +1,8 @@
+feature: text
+status: shipped
+when:
+  paths:
+    - RepoCli.Core.Tests/Features/Text/
+    - RepoCli.Core/Features/Text/
+created: 2026-10-26T16:40:25Z
+entries: []

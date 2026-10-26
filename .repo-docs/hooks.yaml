@@ -1,0 +1,7 @@
+feature: hooks
+status: shipped
+when:
+  paths:
+    - RepoDocsCli/Features/Hooks/
+created: 2026-10-26T16:40:25Z
+entries: []

@@ -1,0 +1,7 @@
+feature: budget
+status: shipped
+when:
+  paths:
+    - RepoDocsCli/Features/Budget/
+created: 2026-10-26T16:40:25Z
+entries: []

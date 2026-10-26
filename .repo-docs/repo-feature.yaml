@@ -1,0 +1,7 @@
+feature: repo-feature
+status: shipped
+when:
+  paths:
+    - RepoCli.Core/Features/Repo/
+created: 2026-10-26T16:40:25Z
+entries: []

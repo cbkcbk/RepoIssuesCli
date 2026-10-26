@@ -1,0 +1,7 @@
+feature: check
+status: shipped
+when:
+  paths:
+    - RepoDocsCli/Features/Check/
+created: 2026-10-26T16:40:25Z
+entries: []

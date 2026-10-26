@@ -1,0 +1,7 @@
+feature: queries
+status: shipped
+when:
+  paths:
+    - RepoDocsCli/Features/Queries/
+created: 2026-10-26T16:40:25Z
+entries: []

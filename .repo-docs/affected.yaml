@@ -1,0 +1,7 @@
+feature: affected
+status: shipped
+when:
+  paths:
+    - RepoDocsCli/Features/Affected/
+created: 2026-10-26T16:40:25Z
+entries: []
