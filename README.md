@@ -42,6 +42,8 @@ A `blockedBy` number with no matching issue counts as blocking: the issue shows 
 
 `renumber` rewrites `blockedBy` references when the old number was unique. When the number is duplicated, references can't tell the duplicates apart, so they stay with the issue that keeps the number; the output lists them so you can move any with `issues edit`. A bare duplicated number is ambiguous: pass the id or name, or pick from the prompt.
 
+Plan steps in [`.repo-docs`](RepoDocsCli/README.md) link issues by number (`issues: [23, 24]`), so the issues tool keeps them in step. `renumber` rewrites those numbers the same way it rewrites `blockedBy` (in place: only the numbers change, comments and layout stay), and lists them under `docsReferences` (or `keptDocsReferences` for a duplicated number) in its JSON. `show` lists the steps that link the issue (`docs` in JSON). `delete` warns about them on stderr and lists them under `docs`, but leaves the steps alone; `docs check` reports them as `MissingIssue`. Without a `.repo-docs` folder none of this applies. `renumber` takes `.repo-issues/.lock` before `.repo-docs/.lock`.
+
 Interactive description and comment prompts take multiple lines; a blank line finishes. When editing, a blank first line keeps the current description and `-` clears it.
 
 Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name prefix, a full title (`0003 Fix login`), or the issue id.

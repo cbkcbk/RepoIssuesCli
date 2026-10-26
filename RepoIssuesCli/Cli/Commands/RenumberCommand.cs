@@ -1,12 +1,13 @@
 using System.ComponentModel;
+using RepoCli.Core.Features.IssueLinks;
 using RepoIssuesCli.Features.Issues;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace RepoIssuesCli.Cli.Commands;
 
-[Description("Give an issue the next free number, e.g. to fix a duplicate number after a merge. Blockers on an unshared number follow the issue; blockers on a duplicated number keep pointing at the issue that keeps it.")]
-public sealed class RenumberCommand(IAnsiConsole console) : IssueCommand<RenumberCommand.Settings>(console)
+[Description("Give an issue the next free number, e.g. to fix a duplicate number after a merge. Blockers and .repo-docs plan steps on an unshared number follow the issue; on a duplicated number they keep pointing at the issue that keeps it.")]
+public sealed class RenumberCommand(IAnsiConsole console, ErrorConsole errors) : IssueCommand<RenumberCommand.Settings>(console)
 {
     public sealed class Settings : GlobalSettings
     {
@@ -25,9 +26,15 @@ public sealed class RenumberCommand(IAnsiConsole console) : IssueCommand<Renumbe
             ?? throw new IssueNotFoundException(chosen.Id.ToString());
         var result = IssueRenumbering.Renumber(snapshot, issue);
 
+        var docs = new DocsSteps(session.Store.Root) { LockTimeout = session.Store.LockTimeout };
+        using var docsLease = docs.Lock();
+
         session.Store.Save(result.Issue);
         foreach (var rewritten in result.Rewritten)
             session.Store.Save(rewritten);
+
+        (result, var scan) = IssueRenumbering.UpdateDocs(result, docs);
+        errors.Report(scan);
 
         if (settings.Json)
             IssueRenderer.WriteJson(Console, result);
@@ -43,14 +50,25 @@ public sealed class RenumberCommand(IAnsiConsole console) : IssueCommand<Renumbe
 
         if (result.Rewritten.Count > 0)
             Console.MarkupLine($"[grey]Updated blockers of:[/] {Titles(result.Rewritten)}");
-
-        if (result.KeptReferences.Count == 0)
-            return;
+        if (result.DocsReferences.Count > 0)
+            Console.MarkupLine($"[grey]Updated docs steps:[/] {Steps(result.DocsReferences)}");
 
         var holders = issues.Where(other => other.Id != original.Id && other.Number == result.PreviousNumber).ToList();
-        Console.MarkupLine($"[yellow]Blockers on {result.PreviousNumber:D4} still mean {Titles(holders)}:[/] {Titles(result.KeptReferences)}");
-        Console.MarkupLine($"[grey]If one meant {Markup.Escape(result.Issue.Title)}, run 'issues edit <ref> --remove-blocker {result.PreviousNumber} --add-blocker {result.Issue.Number}'.[/]");
+        if (result.KeptReferences.Count > 0)
+        {
+            Console.MarkupLine($"[yellow]Blockers on {result.PreviousNumber:D4} still mean {Titles(holders)}:[/] {Titles(result.KeptReferences)}");
+            Console.MarkupLine($"[grey]If one meant {Markup.Escape(result.Issue.Title)}, run 'issues edit <ref> --remove-blocker {result.PreviousNumber} --add-blocker {result.Issue.Number}'.[/]");
+        }
+
+        if (result.KeptDocsReferences.Count > 0)
+        {
+            var files = Markup.Escape(string.Join(", ", result.KeptDocsReferences.Select(reference => reference.File).Distinct()));
+            Console.MarkupLine($"[yellow]Docs steps on {result.PreviousNumber:D4} still mean {Titles(holders)}:[/] {Steps(result.KeptDocsReferences)}");
+            Console.MarkupLine($"[grey]If one meant {Markup.Escape(result.Issue.Title)}, change {result.PreviousNumber} to {result.Issue.Number} in its step in {files}.[/]");
+        }
     }
 
     static string Titles(IEnumerable<Issue> issues) => Markup.Escape(string.Join(", ", issues.Select(issue => issue.Title)));
+
+    static string Steps(IEnumerable<DocsReference> references) => Markup.Escape(string.Join(", ", references.Select(reference => reference.Describe())));
 }

@@ -66,5 +66,9 @@ public sealed class IssuesPlugin : IPluginSource
           4. Blockers: `issues edit <n> --add-blocker <m> --json` means n waits on m. A blocker that would create a cycle is rejected with exit code 2.
           5. Finish: `issues status <n> Done --json`, then commit the changed `.repo-issues/*.json` files with the code change.
           6. After merging branches or resolving a merge conflict, run `issues validate --json`. Exit code 1 means it found problems, such as duplicate numbers or missing blockers, listed in its output. Location warnings (`LocationMoved`, `LocationChanged`, `LocationBroken`) don't fail the run; `issues validate --fix --json` rewrites moved hints. Items with `needsConfirmation` or `LocationChanged` need a look at the code: re-add the location with `edit --remove-location` and `--add-location` if the issue still applies.
+
+          ## Docs references
+
+          Plan steps in `.repo-docs/` (the `docs` tool) link issues by number. `issues show` lists them under `docs`. `issues renumber` rewrites them along with blockers and reports them under `docsReferences` (`keptDocsReferences` when the number was duplicated). `issues delete` warns about them and lists them under `docs` but leaves them in place: update or remove those steps afterwards.
           """;
 }

@@ -1,8 +1,19 @@
+using RepoCli.Core.Features.IssueLinks;
 using RepoIssuesCli.Features.Issues;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace RepoIssuesCli.Cli;
+
+public sealed record ErrorConsole(IAnsiConsole Console)
+{
+    public DocsReferenceScan Report(DocsReferenceScan scan)
+    {
+        foreach (var error in scan.Errors)
+            Console.MarkupLine($"[yellow]Warning:[/] {Markup.Escape(error.File)}: {Markup.Escape(error.Message)} [grey](docs file skipped)[/]");
+        return scan;
+    }
+}
 
 public sealed record IssueSession(IssueStore Store, IssueSnapshot Snapshot, Interaction Interaction)
 {

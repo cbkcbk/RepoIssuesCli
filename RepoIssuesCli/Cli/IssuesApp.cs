@@ -12,6 +12,7 @@ public static class IssuesApp
         app.Configure(config =>
         {
             RepoCliApp.Configure(config, "issues", typeof(IssuesApp).Assembly, output, errors);
+            config.Settings.Registrar.RegisterInstance(new ErrorConsole(errors));
 
             config.AddCommand<InitCommand>("init");
             config.AddCommand<NewCommand>("new").WithAlias("add")
