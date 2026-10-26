@@ -14,5 +14,12 @@
     "docs"
   ],
   "created": "2026-10-26T14:33:11+00:00",
-  "updated": "2026-10-26T14:33:11+00:00"
+  "updated": "2026-10-26T15:07:13+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:07:13+00:00",
+      "text": "When adding show/find, change the hint line in ClaudeMdBlock.FeatureIndex: it currently says each feature lives in .repo-docs/\u003Cid\u003E.yaml. Point agents to \u0027docs show \u003Cid\u003E\u0027 / \u0027docs find \u003Cquery\u003E\u0027 instead; the user wants agents never to read or edit the YAML directly."
+    }
+  ]
 }

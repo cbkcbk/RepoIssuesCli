@@ -4,7 +4,7 @@
   "name": "docs render: generated CLAUDE.md block",
   "description": "Write a generated block into CLAUDE.md: repo.yaml rules plus one line per feature (id, summary) and kinds with render: index. check fails when it is stale. Root CLAUDE.md shrinks to global rules \u002B index.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "High",
   "blockedBy": [
     24
@@ -13,5 +13,12 @@
     "docs"
   ],
   "created": "2026-10-26T14:33:12+00:00",
-  "updated": "2026-10-26T14:33:12+00:00"
+  "updated": "2026-10-26T15:07:13+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:07:13+00:00",
+      "text": "Merged 5837ca8. docs render [--check] [--json] -\u003E { path, created, changed, stale }. Pure API: ClaudeMdBlock.Render(snapshot), ClaudeMdFile.Apply/IsStale/Check/Write. Markers \u003C!-- docs:begin ... --\u003E / \u003C!-- docs:end --\u003E; text outside them is kept byte for byte. repo.yaml entries render in full unless their kind is never; feature entries with index render one line; deprecated features are skipped. Added the DocsCommand\u003CTSettings\u003E base and the ErrorConsole registration; DocsFileException now exits 1. Malformed markers throw DocsFileException, which #28 should report as InvalidFile. A missing CLAUDE.md counts as stale."
+    }
+  ]
 }
