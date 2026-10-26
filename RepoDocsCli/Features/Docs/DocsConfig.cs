@@ -8,10 +8,18 @@ public sealed record DocsConfig
 
     public Dictionary<string, KindConfig> Kinds { get; init; } = [];
 
+    public bool Declares(string? kind) => kind is not null && Kinds.ContainsKey(kind);
+
     public static DocsConfig Default() => new()
     {
-        Kinds = new[] { "rule", "fact", "gotcha", "howto", "decision", "plan" }.ToDictionary(kind => kind, _ => new KindConfig()),
+        Kinds = new Dictionary<string, KindConfig>
+        {
+            ["rule"] = new() { Render = RenderMode.Index, Push = PushPolicy.OnEdit },
+            ["fact"] = new() { Push = PushPolicy.OnRead, Prune = new PrunePolicy { UnreadDays = 180 } },
+            ["gotcha"] = new() { Push = PushPolicy.OnEdit, Prune = new PrunePolicy { UnreadDays = 365 } },
+            ["howto"] = new() { Render = RenderMode.Index, Prune = new PrunePolicy { UnreadDays = 180 } },
+            ["decision"] = new(),
+            ["plan"] = new() { Push = PushPolicy.WhenFeatureActive },
+        },
     };
 }
-
-public sealed record KindConfig;
