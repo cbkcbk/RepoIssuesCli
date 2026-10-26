@@ -4,7 +4,7 @@
   "name": "docs init and YAML feature store",
   "description": "RepoDocsCli scaffold on RepoCli.Core: .repo-docs/ with repo.yaml, one {feature}.yaml per feature, config.yaml, .gitignore for the lock.\nYamlDotNet; tool owns formatting (comments not preserved). git add / git mv like issues; lock for concurrent writes. init prefills a feature per Features/{X}/ with when.paths.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "High",
   "blockedBy": [
     18
@@ -13,5 +13,12 @@
     "docs"
   ],
   "created": "2026-10-26T14:33:10+00:00",
-  "updated": "2026-10-26T14:33:10+00:00"
+  "updated": "2026-10-26T14:52:01+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T14:52:01+00:00",
+      "text": "Merged 4aa4d1d. YAML: camelCase keys, kebab-case enums, strict deserialization (unknown keys are errors, so new fields need a model property first). Ids are kebab-case and match file names; \u0027repo\u0027/\u0027config\u0027 reserved. Prefilled features are \u0027shipped\u0027. Store mutations don\u0027t take the lock themselves: callers wrap load/modify/save in Lock(). JSON status is kebab-case to match files. No shared docs command base yet (add with #27/#28; map DocsFileException to an exit code). CI does not pack/publish RepoDocsCli yet. Also fixed Git.Remove throwing when git rm removed the folder."
+    }
+  ]
 }
