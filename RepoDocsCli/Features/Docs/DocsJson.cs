@@ -4,6 +4,7 @@ using RepoCli.Core.Features.Json;
 using RepoDocsCli.Features.Check;
 using RepoDocsCli.Features.ClaudeMd;
 using RepoDocsCli.Features.Import;
+using RepoDocsCli.Features.Prune;
 using RepoDocsCli.Features.Queries;
 
 namespace RepoDocsCli.Features.Docs;
@@ -28,6 +29,7 @@ namespace RepoDocsCli.Features.Docs;
 [JsonSerializable(typeof(List<SearchHit>))]
 [JsonSerializable(typeof(List<FeatureListItem>))]
 [JsonSerializable(typeof(DocsItemResult))]
+[JsonSerializable(typeof(List<PruneCandidate>))]
 public partial class DocsJsonContext : JsonSerializerContext;
 
 public static class DocsJson

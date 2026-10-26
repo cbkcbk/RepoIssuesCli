@@ -152,6 +152,17 @@ public class CheckCommandTests
     }
 
     [Test]
+    public void GlobPathsAreDeadOnlyWhenTheyMatchNoFile()
+    {
+        Prepare(Billing(new WhenHints { Paths = ["src/**/*.cs", "*.md", "src/*.py", "lib/**"] }));
+
+        var problems = Problems();
+
+        Assert.That(Kinds(problems), Is.EqualTo(new[] { "DeadPath", "DeadPath" }));
+        Assert.That(problems.Select(problem => problem.GetProperty("message").GetString()), Has.Some.Contains("'src/*.py'").And.Some.Contains("'lib/**'"));
+    }
+
+    [Test]
     public void MovedAnchorIsAFixableWarning()
     {
         var anchor = AddAnchor();

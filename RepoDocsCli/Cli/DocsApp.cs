@@ -22,6 +22,9 @@ public static class DocsApp
                 .WithAlias("validate")
                 .WithExample("check", "--strict")
                 .WithExample("check", "--fix");
+            config.AddCommand<PruneCommand>("prune")
+                .WithExample("prune", "--json")
+                .WithExample("prune", "--reason", "unread", "--feature", "billing");
             config.AddCommand<ShowCommand>("show")
                 .WithExample("show", "billing")
                 .WithExample("show", "billing/rounding", "--json");

@@ -13,12 +13,14 @@ public static class PathMatch
         hints is not null
         && (hints.Paths.Any(hint => Covers(hint, path)) || hints.Anchors.Any(anchor => Normalize(anchor.Path).Equals(path, Comparison)));
 
+    public static bool IsGlob(string hint) => hint.AsSpan().IndexOfAny('*', '?') >= 0;
+
     public static bool Covers(string hint, string path)
     {
         var pattern = Normalize(hint);
         if (pattern.Length == 0)
             return false;
-        if (pattern.AsSpan().IndexOfAny('*', '?') >= 0)
+        if (IsGlob(pattern))
             return Glob(pattern, path);
         if (pattern.EndsWith('/'))
             return path.StartsWith(pattern, Comparison) || path.Equals(pattern.TrimEnd('/'), Comparison);
