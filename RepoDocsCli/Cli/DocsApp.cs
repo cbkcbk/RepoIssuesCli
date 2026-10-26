@@ -49,6 +49,9 @@ public static class DocsApp
             config.AddCommand<ImportCommand>("import")
                 .WithExample("import", "--dry-run")
                 .WithExample("import", "Web/CLAUDE.md", "--json");
+            config.AddCommand<BudgetCommand>("budget")
+                .WithExample("budget", "--by", "kind", "--top", "5")
+                .WithExample("budget", "--json");
         });
         return app;
     }

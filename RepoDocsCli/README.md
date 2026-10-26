@@ -221,6 +221,56 @@ JSON shapes. Arrays are always present, as `[]` when empty; missing values are o
 - `find`: `[{ address, feature, kind, summary, score }]`, best first. A feature hit has `kind` `feature` and its id as `address`.
 - `list`: `[{ feature, status, summary, entryCount }]`, sorted by id.
 
+### Token budget
+
+```sh
+docs budget                 # always-loaded vs on-demand token cost, with totals
+docs budget --by kind       # on-demand costs per kind only (or --by feature); both by default
+docs budget --top 5         # list the 5 largest entries as condensing targets (default 10, 0 for none)
+docs budget --json
+```
+
+`budget` is the headline metric for condensing: what every session pays up front, against what agents fetch only when they need it. It is read-only, takes no lock and exits `0`.
+
+- Tokens are estimated, without a tokenizer, as `max(ceil(chars / 4), ceil(words * 4 / 3))`, where a line ending counts as one character and a word is a run of non-whitespace. The estimate is deterministic, and the output states the method.
+- Always loaded:
+  - the root `CLAUDE.md` as it is on disk, split into your text outside the generated block and the block itself;
+  - the files it imports with `@path`, followed recursively. Paths are relative to the importing file. Each file is counted once, so cycles end. Imports more than 5 hops deep and missing files are listed as skipped; `~/` paths are listed as external and not counted. `@` references inside code fences or inline code spans don't count, and neither do e-mail addresses.
+  - Also shown: what the block would cost if `docs render` ran now, so a stale block shows its delta.
+- Contextual: nested `CLAUDE.md` files (skipping hidden folders, `bin`, `obj` and `node_modules`). Claude Code loads them only when working in their folder, so they are listed with their own and their imports' cost and not added to the always-loaded total.
+- On demand: every entry's summary plus body, including `repo.yaml` entries and kinds that never render, per feature (every feature, `repo` included) and per kind.
+- Push: what hooks would inject per the kind's `push` policy: bodies of up to 600 characters in full, longer ones as the summary only. `when-feature-active` counts only entries of `in-progress` features. It is the worst case, as if every entry were pushed once.
+- Without `.repo-docs/`, `CLAUDE.md` and its imports are still measured, with a note; the on-demand and push parts are empty.
+
+JSON shape. Arrays are always present, as `[]` when empty; missing values are omitted. `--by` only changes the text output.
+
+```
+{
+  method,
+  alwaysLoaded: {
+    total,
+    claudeMd: { path, exists, outsideBlock, block, blockIfRendered, stale },
+    imports: [{ path, tokens, depth, from }],
+    external: [{ path, from }],
+    skipped: [{ path, from, reason }],
+  },
+  contextual: [{ path, tokens, importTokens }],
+  onDemand: {
+    total, entries,
+    byFeature: [{ feature, entries, summaryTokens, bodyTokens, tokens }],
+    byKind: [{ kind, render, push, entries, summaryTokens, bodyTokens, tokens }],
+  },
+  push: { total, byPolicy: [{ policy, entries, full, summaryOnly, tokens }] },
+  largest: [{ address, kind, tokens }],
+  notes: [],
+}
+```
+
+- `total` under `alwaysLoaded` is `outsideBlock + block + ` the imports. `blockIfRendered` and `stale` are omitted without `.repo-docs/`; a missing `CLAUDE.md` counts as stale.
+- Paths are repo-relative with `/` (absolute when outside the repository); `from` is the importing file and `depth` its hop count from `CLAUDE.md` (1 for a direct import). `reason` is `missing` or `too-deep`.
+- `byFeature`, `byKind` and `largest` are sorted by tokens, largest first. `render` and `push` are omitted for an undeclared kind. `byPolicy` always lists `on-edit`, `on-read` and `when-feature-active`; `full` and `summaryOnly` count the entries pushed with and without their body.
+- A `CLAUDE.md` with malformed markers is counted as text outside the block, with a note.
+
 ## Automation
 
 - `--json` writes only JSON to stdout. For `init` that is `{ folder, created, files, features }`: `files` lists the repo-relative files it created, and `features` the prefilled features in the same shape as their YAML files. Arrays are always present, as `[]` when empty.

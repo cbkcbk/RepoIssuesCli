@@ -71,7 +71,7 @@ public static partial class MarkdownReader
         return new MarkdownDocument(built, imports);
     }
 
-    static string? NextFence(string? open, string line)
+    internal static string? NextFence(string? open, string line)
     {
         if (FencePattern().Match(line) is not { Success: true } match)
             return open;
