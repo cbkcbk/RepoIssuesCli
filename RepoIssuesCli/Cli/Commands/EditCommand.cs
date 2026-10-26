@@ -47,10 +47,11 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
         public string[] RemoveBlockers { get; init; } = [];
 
         [CommandOption("--add-location <PATH:LINE:COL>")]
+        [Description("Adds an anchored location; path:line-end covers a range.")]
         public string[] AddLocations { get; init; } = [];
 
         [CommandOption("--remove-location <PATH[:LINE[:COL]]>")]
-        [Description("Removes an exact location, or every location in a file when only a path is given.")]
+        [Description("Removes the locations matching the path, line and column given; omitted parts match any.")]
         public string[] RemoveLocations { get; init; } = [];
 
         public bool HasChanges =>
@@ -85,9 +86,7 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
 
         IssueInput.EnsureNoCycle(issues, original, edited.BlockedBy);
         var changed = IssueJson.Serialize(edited) != IssueJson.Serialize(original);
-        var saved = changed ? edited with { Updated = Issue.Timestamp() } : original;
-        if (changed)
-            session.Store.Save(saved);
+        var saved = changed ? session.Store.Save(edited with { Updated = Issue.Timestamp() }) : original;
 
         if (settings.Json)
             IssueRenderer.WriteJson(Console, saved);
@@ -111,7 +110,7 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
 
         var removedLocations = settings.RemoveLocations.Select(value => IssueInput.ParseLocation(value, repoRoot)).ToList();
         var locations = issue.Locations
-            .Where(location => !removedLocations.Any(removed => Covers(removed, location)))
+            .Where(location => !removedLocations.Any(location.Covers))
             .Concat(IssueInput.ParseLocations(settings.AddLocations, repoRoot));
 
         return issue with
@@ -134,7 +133,7 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
 
         while (true)
         {
-            IssueRenderer.WriteDetails(Console, issue, session.Issues);
+            IssueRenderer.WriteDetails(Console, issue, session.Issues, []);
             var field = interaction.Choose("Edit:", Enum.GetValues<EditField>(), FieldLabel, "<field>");
             switch (field)
             {
@@ -184,12 +183,12 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
 
     IReadOnlyList<SourceLocation> EditLocations(Issue issue, Interaction interaction, string repoRoot)
     {
-        var kept = interaction.ChooseMany("Keep locations:", issue.Locations, issue.Locations, location => location.ToString()).ToList();
+        var kept = interaction.ChooseMany("Keep locations:", issue.Locations, issue.Locations, location => location.Describe()).ToList();
         while (interaction.AskOptionalText("Add location [grey](path:line:col, empty to finish)[/]:") is { } text)
         {
             try
             {
-                kept.Add(IssueInput.ParseLocation(text, repoRoot));
+                kept.AddRange(IssueInput.ParseLocations([text], repoRoot));
             }
             catch (UsageException exception)
             {
@@ -201,9 +200,6 @@ public sealed class EditCommand(IAnsiConsole console) : IssueCommand<EditCommand
     }
 
     static IReadOnlyList<T> Distinct<T>(IEnumerable<T> values, IEqualityComparer<T>? comparer = null) => values.Distinct(comparer).ToList();
-
-    static bool Covers(SourceLocation removed, SourceLocation location) =>
-        removed.Line is null ? removed.Path == location.Path : removed == location;
 
     static string FieldLabel(EditField field) => field switch
     {

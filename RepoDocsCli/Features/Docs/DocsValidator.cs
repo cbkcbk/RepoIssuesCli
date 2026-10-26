@@ -1,0 +1,105 @@
+namespace RepoDocsCli.Features.Docs;
+
+public enum ProblemKind
+{
+    InvalidFile,
+    UndeclaredKind,
+    MissingSummary,
+    MultiLineSummary,
+    DuplicateEntryId,
+    InvalidEntryId,
+    StepsOnNonPlan,
+    InvalidStep,
+    MergeConflict,
+    UnstampedEdit,
+    DeadPath,
+    MovedAnchor,
+    ChangedAnchor,
+    FuzzyAnchor,
+    BrokenAnchor,
+    StatusMismatch,
+    MissingIssue,
+    StaleClaudeMd,
+}
+
+public sealed record ValidationProblem(ProblemKind Kind, string Message, string? File = null, string? Address = null)
+{
+    public Severity Severity => Kind is ProblemKind.UnstampedEdit or ProblemKind.DeadPath or ProblemKind.MovedAnchor or ProblemKind.ChangedAnchor
+        or ProblemKind.FuzzyAnchor or ProblemKind.StatusMismatch or ProblemKind.MissingIssue or ProblemKind.StaleClaudeMd
+        ? Severity.Warning
+        : Severity.Error;
+
+    public bool Fixable { get; init; }
+}
+
+public static class DocsValidator
+{
+    public static IReadOnlyList<ValidationProblem> Validate(DocsSnapshot snapshot)
+    {
+        var problems = new List<ValidationProblem>();
+
+        problems.AddRange(snapshot.Errors.Select(error =>
+            new ValidationProblem(ProblemKind.InvalidFile, error.Message, error.FileName)));
+
+        problems.AddRange(ValidateEntries(FeatureId.RepoFileStem, snapshot.Repo.Entries, snapshot.Config));
+
+        foreach (var feature in snapshot.Features)
+        {
+            if (IsMultiLine(feature.Summary))
+                problems.Add(new ValidationProblem(ProblemKind.MultiLineSummary, $"Feature '{feature.Id}' has a summary over several lines.", DocsStore.FileNameFor(feature.Id)));
+
+            problems.AddRange(ValidateEntries(feature.Id, feature.Entries, snapshot.Config));
+        }
+
+        return problems;
+    }
+
+    static IEnumerable<ValidationProblem> ValidateEntries(string owner, IReadOnlyList<FeatureEntry> entries, DocsConfig config)
+    {
+        var file = DocsStore.FileNameFor(owner);
+
+        foreach (var entry in entries)
+        {
+            var name = EntryId.Address(owner, entry.Id ?? "?");
+
+            if (!EntryId.IsValid(entry.Id))
+                yield return new ValidationProblem(ProblemKind.InvalidEntryId,
+                    entry.Id is null ? $"An entry in '{owner}' has no id." : $"Entry '{name}' has an invalid id; use lowercase letters, digits and single hyphens.", file);
+
+            if (!config.Declares(entry.Kind))
+                yield return new ValidationProblem(ProblemKind.UndeclaredKind,
+                    entry.Kind is null ? $"Entry '{name}' has no kind." : $"Entry '{name}' has kind '{entry.Kind}', which config.yaml does not declare.", file);
+
+            if (string.IsNullOrWhiteSpace(entry.Summary))
+                yield return new ValidationProblem(ProblemKind.MissingSummary, $"Entry '{name}' has no summary.", file);
+            else if (IsMultiLine(entry.Summary))
+                yield return new ValidationProblem(ProblemKind.MultiLineSummary, $"Entry '{name}' has a summary over several lines; keep it to one line and move the rest to body.", file);
+
+            foreach (var problem in ValidateSteps(name, entry, file))
+                yield return problem;
+        }
+
+        foreach (var duplicate in entries.Where(entry => entry.Id is not null).GroupBy(entry => entry.Id).Where(group => group.Count() > 1))
+            yield return new ValidationProblem(ProblemKind.DuplicateEntryId, $"Entry id '{EntryId.Address(owner, duplicate.Key)}' is used {duplicate.Count()} times.", file);
+    }
+
+    static IEnumerable<ValidationProblem> ValidateSteps(string name, FeatureEntry entry, string file)
+    {
+        if (entry.Steps.Count > 0 && entry.Kind != PlanStep.EntryKind)
+            yield return new ValidationProblem(ProblemKind.StepsOnNonPlan, $"Entry '{name}' has steps, but only '{PlanStep.EntryKind}' entries may have steps.", file);
+
+        foreach (var (index, step) in entry.Steps.Index())
+        {
+            var label = $"Step {index + 1} of '{name}'";
+            if (string.IsNullOrWhiteSpace(step.Title))
+                yield return new ValidationProblem(ProblemKind.InvalidStep, $"{label} has no title.", file);
+            else if (IsMultiLine(step.Title))
+                yield return new ValidationProblem(ProblemKind.InvalidStep, $"{label} has a title over several lines.", file);
+
+            if (step.Issues.Any(number => number < 1))
+                yield return new ValidationProblem(ProblemKind.InvalidStep, $"{label} links an issue number below 1.", file);
+        }
+    }
+
+    static bool IsMultiLine(string? text) => text is not null && text.Trim().AsSpan().ContainsAny('\n', '\r');
+}

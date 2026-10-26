@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using RepoCli.Core.Features.IssueLinks;
+
 namespace RepoIssuesCli.Features.Issues;
 
 public sealed record RenumberResult
@@ -6,6 +9,11 @@ public sealed record RenumberResult
     public required int PreviousNumber { get; init; }
     public IReadOnlyList<Issue> Rewritten { get; set; } = [];
     public IReadOnlyList<Issue> KeptReferences { get; set; } = [];
+    public IReadOnlyList<DocsReference> DocsReferences { get; set; } = [];
+    public IReadOnlyList<DocsReference> KeptDocsReferences { get; set; } = [];
+
+    [JsonIgnore]
+    public bool NumberStillUsed { get; init; }
 }
 
 public static class IssueRenumbering
@@ -24,6 +32,7 @@ public static class IssueRenumbering
                 Issue = renumbered,
                 PreviousNumber = previous,
                 KeptReferences = others.Append(renumbered).Where(candidate => candidate.BlockedBy.Contains(previous)).ToList(),
+                NumberStillUsed = true,
             };
         }
 
@@ -36,5 +45,18 @@ public static class IssueRenumbering
             PreviousNumber = previous,
             Rewritten = others.Where(other => other.BlockedBy.Contains(previous)).Select(Retarget).ToList(),
         };
+    }
+
+    /// <remarks>The caller holds both the issues lock and <see cref="DocsSteps.Lock"/>.</remarks>
+    public static (RenumberResult Result, DocsReferenceScan Scan) UpdateDocs(RenumberResult result, DocsSteps docs)
+    {
+        if (result.NumberStillUsed)
+        {
+            var kept = docs.Find(result.PreviousNumber);
+            return (result with { KeptDocsReferences = kept.References }, kept);
+        }
+
+        var rewritten = docs.Renumber(result.PreviousNumber, result.Issue.Number);
+        return (result with { DocsReferences = rewritten.References }, rewritten);
     }
 }

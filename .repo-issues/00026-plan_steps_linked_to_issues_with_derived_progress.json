@@ -1,0 +1,25 @@
+{
+  "id": "01a178a1-2df7-7b76-bb34-a64acbffdb5e",
+  "number": 26,
+  "name": "Plan steps linked to issues with derived progress",
+  "description": "plan entries carry steps[] with title \u002B issue numbers. Feature is recorded only in docs; issues get no feature field.\ndocs show renders progress from .repo-issues via core (done/total, per-step state, blocked markers). Progress is derived, never stored.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "Medium",
+  "blockedBy": [
+    24
+  ],
+  "tags": [
+    "docs",
+    "issues"
+  ],
+  "created": "2026-10-26T14:33:11+00:00",
+  "updated": "2026-10-26T15:09:03+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:09:03+00:00",
+      "text": "Merged 478beda. YAML: plan entries take steps: [{ title, issues: [n, ...] }]; only plan entries may have steps (StepsOnNonPlan, InvalidStep validator rules). Core: RepoCli.Core/Features/IssueLinks/IssueIndex.Load(root) is a tolerant read-only issue reader (number, name, state, blockedBy). Progress: PlanProgress.For(entry, index); Done counts Done plus Cancelled; a missing issue counts toward the total but is never done; step states are done/in-progress/blocked/open; PlanRenderer.Write draws a Spectre tree. For #33: the docs YAML model lives in RepoDocsCli and Core has no YamlDotNet, so rewriting steps on renumber needs either a small steps reader/writer in Core or moving part of the model."
+    }
+  ]
+}

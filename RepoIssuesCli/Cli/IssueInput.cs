@@ -4,13 +4,16 @@ namespace RepoIssuesCli.Cli;
 
 public static class IssueInput
 {
-    public static IReadOnlyList<SourceLocation> ParseLocations(IEnumerable<string> values, string repoRoot) =>
-        values.Select(value => ParseLocation(value, repoRoot)).Distinct().ToList();
+    public static IReadOnlyList<SourceLocation> ParseLocations(IEnumerable<string> values, string repoRoot)
+    {
+        var locations = new IssueLocations(repoRoot);
+        return values.Select(value => locations.Create(ParseLocation(value, repoRoot))).Distinct().ToList();
+    }
 
-    public static SourceLocation ParseLocation(string value, string repoRoot) =>
-        SourceLocation.TryParse(value, out var location)
+    public static LocationInput ParseLocation(string value, string repoRoot) =>
+        LocationInput.TryParse(value, out var location)
             ? location.RelativeTo(repoRoot, LocationBase(repoRoot))
-            : throw new UsageException($"Invalid location '{value}'. Use path, path:line or path:line:col.");
+            : throw new UsageException($"Invalid location '{value}'. Use path, path:line, path:line:col or path:line-end.");
 
     static string LocationBase(string repoRoot)
     {

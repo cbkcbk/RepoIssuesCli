@@ -1,3 +1,4 @@
+using RepoCli.Core.Features.IssueLinks;
 using RepoIssuesCli.Features.Issues;
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -10,7 +11,10 @@ public static class IssueRenderer
     const int MinOptionalWidth = 10;
     const int ColumnChrome = 3;
 
-    public static void WriteJson<T>(IAnsiConsole console, T value) => console.Profile.Out.Writer.Write(IssueJson.SerializeOutput(value));
+    public static void WriteJson<T>(IAnsiConsole console, T value) => CliOutput.WriteJson(console, IssueJson.SerializeOutput(value));
+
+    public static void WriteJson(IAnsiConsole console, Issue issue, IReadOnlyList<DocsReference> docs) =>
+        CliOutput.WriteJson(console, IssueJson.SerializeOutput(issue, docs));
 
     public static void WriteList(IAnsiConsole console, IReadOnlyList<Issue> shown, IReadOnlyCollection<Issue> all)
     {
@@ -25,10 +29,10 @@ public static class IssueRenderer
         var blockers = shown.Select(issue => BlockerItems(issue, all)).ToList();
 
         var spare = console.Profile.Width - 1
-            - ColumnWidth("#", numbers)
-            - ColumnWidth("Name", shown.Select(issue => Markup.Escape(issue.Name)).ToList(), PreferredNameWidth)
-            - ColumnWidth("Status", shown.Select(issue => StatusMarkup(issue.Status)).ToList())
-            - ColumnWidth("Priority", shown.Select(issue => PriorityMarkup(issue.Priority)).ToList());
+                                          - ColumnWidth("#", numbers)
+                                          - ColumnWidth("Name", shown.Select(issue => Markup.Escape(issue.Name)).ToList(), PreferredNameWidth)
+                                          - ColumnWidth("Status", shown.Select(issue => StatusMarkup(issue.Status)).ToList())
+                                          - ColumnWidth("Priority", shown.Select(issue => PriorityMarkup(issue.Priority)).ToList());
         var blockerWidth = Allot("Blocked by", blockers, ref spare);
         var tagWidth = Allot("Tags", tags, ref spare);
 
@@ -85,7 +89,7 @@ public static class IssueRenderer
 
     static int PlainWidth(string markup) => Markup.Remove(markup).GetCellWidth();
 
-    public static void WriteDetails(IAnsiConsole console, Issue issue, IReadOnlyCollection<Issue> all)
+    public static void WriteDetails(IAnsiConsole console, Issue issue, IReadOnlyCollection<Issue> all, IReadOnlyList<DocsReference> docs)
     {
         var grid = new Grid().AddColumn(new GridColumn().NoWrap()).AddColumn();
         grid.AddRow(new Markup("[grey]Status[/]"), Status(issue.Status));
@@ -106,7 +110,7 @@ public static class IssueRenderer
         {
             var locations = new Tree("[bold]Locations[/]");
             foreach (var location in issue.Locations)
-                locations.AddNode(new Text(location.ToString()));
+                locations.AddNode(new Text(location.Describe()));
             sections.Add(locations);
         }
 
@@ -119,6 +123,14 @@ public static class IssueRenderer
             var tree = new Tree("[bold]Blocks[/]");
             foreach (var blocked in blocks)
                 tree.AddNode(IssueLabel(blocked));
+            sections.Add(tree);
+        }
+
+        if (docs.Count > 0)
+        {
+            var tree = new Tree("[bold]Docs[/]");
+            foreach (var reference in docs)
+                tree.AddNode(new Text(reference.Describe()));
             sections.Add(tree);
         }
 
@@ -138,37 +150,22 @@ public static class IssueRenderer
             .Expand());
     }
 
-    public static void WriteProblems(IAnsiConsole console, IReadOnlyList<ValidationProblem> problems)
+    public static void WriteProblems(IAnsiConsole console, IReadOnlyList<ValidationProblem> problems, IReadOnlyList<LocationFix> fixes)
     {
-        if (problems.Count == 0)
+        if (fixes.Count > 0)
         {
-            console.MarkupLine("[green]No problems found.[/]");
-            return;
+            var fixedTable = new Table().Border(TableBorder.Rounded).AddColumn("Fixed").AddColumn("From").AddColumn("To").AddColumn("File");
+            foreach (var fix in fixes)
+                fixedTable.AddRow(new Text(fix.Issue), new Text(fix.From), new Text(fix.To), new Text(fix.File));
+            console.Write(fixedTable);
+            console.MarkupLine($"[green]{fixes.Count} location hint(s) fixed.[/]");
         }
 
-        var table = new Table().Border(TableBorder.Rounded).AddColumn("Problem").AddColumn("Details").AddColumn("File");
-        foreach (var problem in problems)
-            table.AddRow(new Markup($"[{SeverityColor(problem.Severity)}]{problem.Kind}[/]"), new Text(problem.Message), new Text(problem.File ?? ""));
-        console.Write(table);
-
-        var errors = problems.Count(problem => problem.Severity == Severity.Error);
-        var warnings = problems.Count - errors;
-        if (errors > 0)
-            console.MarkupLine($"[red]{errors} error(s) found.[/]");
-        if (warnings > 0)
-            console.MarkupLine($"[yellow]{warnings} warning(s) found.[/]");
+        ProblemTable.Write(console, [.. problems.Select(problem => new ProblemRow(problem.Kind.ToString(), problem.Severity, problem.Message, problem.File))]);
     }
-
-    static string SeverityColor(Severity severity) => severity == Severity.Warning ? "yellow" : "red";
 
     public static void WriteSaved(IAnsiConsole console, string verb, Issue issue) =>
         console.MarkupLine($"{verb} [bold]{Markup.Escape(issue.Title)}[/]");
-
-    public static void WriteUnwrappedLine(IAnsiConsole console, string markup)
-    {
-        console.Write(new Unwrapped(new Markup(markup)));
-        console.WriteLine();
-    }
 
     static Tree BlockerTree(Issue issue, IReadOnlyCollection<Issue> all)
     {

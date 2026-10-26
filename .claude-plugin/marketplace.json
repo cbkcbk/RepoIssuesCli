@@ -1,6 +1,6 @@
 {
   "name": "repo-issues",
-  "description": "Claude Code plugin for the issues CLI (RepoIssuesCli).",
+  "description": "Claude Code plugins for the issues and docs CLIs (RepoIssuesCli, RepoDocsCli).",
   "owner": {
     "name": "ChristofferBK"
   },
@@ -9,6 +9,12 @@
       "name": "issues",
       "source": "./plugins/issues",
       "description": "Track work as issues stored in the repository with the issues CLI.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "docs",
+      "source": "./plugins/docs",
+      "description": "Find, maintain and prune agent docs stored in the repository with the docs CLI, with hooks that push matching docs and flag stale ones.",
       "version": "0.1.0"
     }
   ]

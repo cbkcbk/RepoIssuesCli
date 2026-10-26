@@ -1,0 +1,26 @@
+{
+  "id": "01a178a1-2f85-7618-babb-547748e2b4d0",
+  "number": 28,
+  "name": "docs check / validate",
+  "description": "Schema, undeclared kinds, dead paths, anchor resolution (moved/changed/broken), manual status vs linked issue states (planned with InProgress issues, shipped with open issues), rendered CLAUDE.md block out of date.\nSame exit codes and --strict semantics as issues validate; --fix for moved anchors and timestamp conflicts.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "High",
+  "blockedBy": [
+    24,
+    21,
+    26
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:11+00:00",
+  "updated": "2026-10-26T15:20:58+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:20:58+00:00",
+      "text": "Merged b8b933d. docs check (alias validate) [--strict] [--fix] [--json]. Errors: InvalidFile, schema kinds, MergeConflict, BrokenAnchor. Warnings: MovedAnchor (fixable), ChangedAnchor, FuzzyAnchor, DeadPath, StatusMismatch, MissingIssue, StaleClaudeMd (fixable). --fix runs, under the lock: ResolveConflicts, StampHandEdits, a fix of moved anchors only, then a re-render. JSON: a problem array, or { fixed, problems } with --fix. The problem table moved to RepoCli.Core/Cli/ProblemTable. After merging: anchor content for timestamps is now body hash \u002B span only, so hint fixes go through the normal Save and SaveHintFix is removed. For #31/#32: DocsChecker returns only a CheckReport, so expose the anchor resolutions per address; DeadPath matches paths literally (share one matcher with #32); plain check can\u0027t report unstamped edits without a read-only query."
+    }
+  ]
+}

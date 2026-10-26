@@ -1,0 +1,24 @@
+{
+  "id": "01a178a1-34cd-7f94-a42d-32f86a6338ec",
+  "number": 35,
+  "name": "docs import from existing CLAUDE.md",
+  "description": "Convert headings of existing CLAUDE.md / AGENTS.md / nested CLAUDE.md files into entries, guessing feature by path and kind by wording; agent reviews the result. Migration path for existing repos.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "Medium",
+  "blockedBy": [
+    24
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:13+00:00",
+  "updated": "2026-10-26T15:17:13+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:17:13+00:00",
+      "text": "Merged cafce68. docs import [files...] [--dry-run] [--json]: each heading with its own text becomes one entry; a section made only of top-level bullets is split into one entry per bullet. Root files go to repo.yaml unless a heading names a feature; nested files match when.paths by longest prefix, otherwise a shipped feature named after the folder is created. Kind is guessed by keywords (gotcha \u003E howto \u003E decision \u003E rule \u003E \u0027because\u0027 \u003E fact). Re-import skips entries with the same summary and body. The generated render block is skipped and @import lines are reported. Exits 1 without writing if any docs file fails to load. Not handled: setext headings, CLAUDE.local.md, two-space hard breaks. EntryId.FromSummary/Unique are available for #40."
+    }
+  ]
+}

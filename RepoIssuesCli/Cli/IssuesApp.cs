@@ -1,6 +1,4 @@
-using System.Reflection;
 using RepoIssuesCli.Cli.Commands;
-using RepoIssuesCli.Features.Issues;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -13,10 +11,8 @@ public static class IssuesApp
         var app = new CommandApp();
         app.Configure(config =>
         {
-            config.SetApplicationName("issues");
-            config.SetApplicationVersion(typeof(IssuesApp).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.0.0");
-            config.ConfigureConsole(output);
-            config.SetExceptionHandler((exception, _) => HandleException(exception, errors));
+            RepoCliApp.Configure(config, "issues", typeof(IssuesApp).Assembly, output, errors);
+            config.Settings.Registrar.RegisterInstance(new ErrorConsole(errors));
 
             config.AddCommand<InitCommand>("init");
             config.AddCommand<NewCommand>("new").WithAlias("add")
@@ -37,29 +33,9 @@ public static class IssuesApp
                 .WithExample("renumber", "\"Add password rules\"");
             config.AddCommand<ValidateCommand>("validate");
 #if DEBUG
-            config.AddCommand<Plugin.GeneratePluginCommand>(Plugin.GeneratePluginCommand.Name);
+            config.AddCommand<RepoCli.Core.Cli.Plugin.GeneratePluginCommand<Plugin.IssuesPlugin>>(RepoCli.Core.Cli.Plugin.PluginGenerator.CommandName);
 #endif
         });
         return app;
-    }
-
-    static int HandleException(Exception exception, IAnsiConsole errors)
-    {
-        if (exception.InnerException is UsageException usage)
-            exception = usage;
-
-        if (exception is CommandAppException { Pretty: { } pretty })
-        {
-            errors.Write(pretty);
-            return ExitCodes.Usage;
-        }
-
-        errors.MarkupLine($"[red]Error:[/] {Markup.Escape(exception.Message)}");
-        return exception switch
-        {
-            UsageException or AmbiguousIssueReferenceException or IssueFileConflictException or CommandAppException => ExitCodes.Usage,
-            IssueNotFoundException => ExitCodes.NotFound,
-            _ => ExitCodes.Error,
-        };
     }
 }

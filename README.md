@@ -2,6 +2,10 @@
 
 An issue tracker that lives in your repository. Each issue is a JSON file in `.repo-issues/`, so issues are versioned, branched and reviewed with the code. Humans get interactive prompts. Scripts and agents get flags and `--json`.
 
+## docs
+
+This repository also holds `docs` (RepoDocsCli), a companion tool for agent docs (the CLAUDE.md kind). It keeps them as YAML in `.repo-docs/`, one file per feature, and behaves like `issues` for `--json`, exit codes and `--root`. Both tools share `RepoCli.Core`. See [RepoDocsCli/README.md](RepoDocsCli/README.md).
+
 ## Install
 
 ```sh
@@ -11,7 +15,7 @@ dotnet tool install RepoIssuesCli        # local (tool manifest)
 
 Requires the .NET 10 runtime or later.
 
-To build and install the current checkout as a global tool, run `./pack-install.sh` or `./pack-install.ps1`.
+To build and install the current checkout as global tools (`issues` and `docs`), run `./pack-install.sh` or `./pack-install.ps1`.
 
 ## Usage
 
@@ -30,6 +34,7 @@ issues comment 1 "Reproduced on main"                # prompts for the text when
 issues delete 1 --force                              # also removes it from other issues' blockers
 issues validate                                      # exit code 1 on errors; stale locations are warnings
 issues validate --strict                             # exit code 1 on warnings too
+issues validate --fix                                # rewrite the line hints of locations whose code moved
 issues renumber <id>                                 # give an issue the next free number (fixes duplicates)
 ```
 
@@ -37,17 +42,34 @@ A `blockedBy` number with no matching issue counts as blocking: the issue shows 
 
 `renumber` rewrites `blockedBy` references when the old number was unique. When the number is duplicated, references can't tell the duplicates apart, so they stay with the issue that keeps the number; the output lists them so you can move any with `issues edit`. A bare duplicated number is ambiguous: pass the id or name, or pick from the prompt.
 
+Plan steps in [`.repo-docs`](RepoDocsCli/README.md) link issues by number (`issues: [23, 24]`), so the issues tool keeps them in step. `renumber` rewrites those numbers the same way it rewrites `blockedBy` (in place: only the numbers change, comments and layout stay), and lists them under `docsReferences` (or `keptDocsReferences` for a duplicated number) in its JSON. `show` lists the steps that link the issue (`docs` in JSON). `delete` warns about them on stderr and lists them under `docs`, but leaves the steps alone; `docs check` reports them as `MissingIssue`. Without a `.repo-docs` folder none of this applies. `renumber` takes `.repo-issues/.lock` before `.repo-docs/.lock`.
+
 Interactive description and comment prompts take multiple lines; a blank line finishes. When editing, a blank first line keeps the current description and `-` clears it.
 
 Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name prefix, a full title (`0003 Fix login`), or the issue id.
 
+### Locations
+
+`-l` and `edit --add-location` take `path`, `path:line`, `path:line:col` or `path:line-end`. When the file and line exist, the location is anchored to the code there: it stores the line as a hint plus fingerprints of the surrounding lines and of the covered lines, and the enclosing class or method for C#, Java, Kotlin, TypeScript/JavaScript, Python, Go and Rust. Anchored locations survive edits elsewhere in the file. A path alone, or a file or line that doesn't exist, is kept as typed and reported by `validate`. `--remove-location` removes the locations matching the path, line and column given; omitted parts match any.
+
+`issues validate` resolves every anchor in one pass and warns when it:
+
+| Kind | Meaning |
+|---|---|
+| `LocationMoved` | The same code is found at another line or in a renamed file. `--fix` rewrites the hint. |
+| `LocationChanged` | The code was found, but it was edited. Check that the issue still applies, then re-add the location. |
+| `LocationBroken` | The code was not found. |
+| `MissingLocationFile`, `LocationLineOutOfRange` | An unanchored location points at a missing file or line. |
+
+A match found only by similar text is marked as needing confirmation and is never fixed automatically. `--fix` takes the issue lock, rewrites only confident moves and doesn't bump `updated`, since the issue itself didn't change. Location warnings fail the run only with `--strict`; moves fixed in the same run don't count.
+
 ## Automation
 
-- `--json` writes only JSON to stdout: one issue for `new`/`show`/`edit`/`status`/`comment`/`delete`, an array for `list`, an array of `{ kind, message, file?, severity }` for `validate` (`severity` is `Error` or `Warning`), and `{ issue, previousNumber, rewritten, keptReferences }` for `renumber`. Issues always include `blockedBy`, `locations`, `tags` and `comments`, as `[]` when empty, though issue files leave empty lists out.
-- Prompts never appear when you pass `--json` or `--no-interactive`, set `ISSUES_NONINTERACTIVE=1`, or when stdin/stdout aren't a terminal. In those modes, missing input is an error.
+- `--json` writes only JSON to stdout: one issue for `new`/`show`/`edit`/`status`/`comment`/`delete`, an array for `list`, an array of `{ kind, message, file?, severity }` for `validate` (`severity` is `Error` or `Warning`; location items add `location`, `resolvedTo?` and `needsConfirmation?`, and with `--fix` each fixed hint is listed first with `"fixed": true`), and `{ issue, previousNumber, rewritten, keptReferences }` for `renumber`. Issues always include `blockedBy`, `locations`, `tags` and `comments`, as `[]` when empty, though issue files leave empty lists out.
+- Prompts never appear when you pass `--json` or `--no-interactive`, set `ISSUES_NONINTERACTIVE=1` (or `DOCS_NONINTERACTIVE=1`), or when stdin/stdout aren't a terminal. In those modes, missing input is an error.
 - Errors go to stderr.
 - Exit codes: `0` ok, `1` validation errors (or warnings with `validate --strict`), `2` usage error / missing input, `3` issue not found, `4` unexpected error.
-- `--root <path>` overrides repository discovery. By default `issues` walks up from the current directory to the nearest folder containing `.repo-issues` or `.git` (a folder, or the file used by worktrees and submodules), so running it from a subfolder uses the repository root. Outside any repository it uses the current directory.
+- `--root <path>` overrides repository discovery. By default `issues` walks up from the current directory to the nearest folder containing `.repo-issues`, `.repo-docs` or `.git` (a folder, or the file used by worktrees and submodules), so running it from a subfolder uses the repository root. Outside any repository it uses the current directory.
 
 ## Claude Code plugin
 
@@ -59,15 +81,18 @@ This repository is also a Claude Code plugin marketplace (`repo-issues`). Its `i
 
 On older Claude Code versions, run `/plugin marketplace add <owner>/RepoIssuesCli` and then `/plugin install issues@repo-issues`.
 
-The marketplace and skill files (`.claude-plugin/`, `plugins/issues/`) are generated from the CLI's own command model. After changing commands, regenerate them with the debug-only command, which is never packed into the NuGet tool:
+The `docs` plugin (`/plugin install docs --marketplace <owner>/RepoIssuesCli`) ships a skill for looking up, writing, condensing and pruning `.repo-docs` entries, plus hooks that push matching docs after Claude reads or edits a file and flag docs affected by the session's changes when it stops. The hooks run `docs hook <event>`, so they need the `docs` tool on `PATH` (`dotnet tool install -g RepoDocsCli`); see [RepoDocsCli/README.md](RepoDocsCli/README.md#claude-code-hooks).
+
+The marketplace, skill and hook files (`.claude-plugin/`, `plugins/issues/`, `plugins/docs/`) are generated from each CLI's own command model. After changing commands, regenerate them with the debug-only command, which is never packed into the NuGet tools:
 
 ```sh
 dotnet run --project RepoIssuesCli -- generate-plugin
+dotnet run --project RepoDocsCli -- generate-plugin
 ```
 
 ## Releasing
 
-CI (`.github/workflows/ci.yml`) tests and packs every push and pull request. Pushing a `vX.Y.Z` tag also publishes `RepoIssuesCli` version `X.Y.Z` to nuget.org:
+CI (`.github/workflows/ci.yml`) tests and packs every push and pull request. Pushing a `vX.Y.Z` tag also publishes `RepoIssuesCli` and `RepoDocsCli`, both as version `X.Y.Z`, to nuget.org:
 
 ```sh
 git tag v0.2.0 && git push origin v0.2.0
@@ -89,7 +114,10 @@ Publishing uses nuget.org trusted publishing, so no API key is stored. One-time 
   "status": "Open",
   "priority": "High",
   "blockedBy": [3, 7],
-  "locations": [{ "path": "src/Auth/Login.cs", "line": 42, "column": 9 }],
+  "locations": [
+    { "path": "src/Auth/Login.cs", "line": 42, "span": 1, "symbol": "LoginService.Check", "context": "4f1c0a9be27d", "body": "9a03d5e1c7b2", "column": 9 },
+    { "path": "docs/auth.md" }
+  ],
   "tags": ["bug"],
   "created": "2026-10-17T16:25:54+00:00",
   "updated": "2026-10-17T16:31:02+00:00",
@@ -106,4 +134,5 @@ Publishing uses nuget.org trusted publishing, so no API key is stored. One-time 
 - `blockedBy` holds issue numbers, so renaming an issue never breaks references.
 - Empty lists and missing values are omitted.
 - Location paths are repo-relative with `/` separators.
+- An anchored location has `path`, `line` (1-based hint), `span` (number of non-blank lines covered), `symbol` (enclosing declaration, when known), `context` (hash of the first line and the two non-blank lines before it) and `body` (hash of the covered lines). Hashes ignore whitespace and blank lines, so reformatting isn't a change. `column` is an optional extra from `path:line:col`. A location with only `path` (and optionally `line` and `column`) is unanchored: a whole file or folder, or a line that couldn't be read. Older files store every location that way; saving such an issue for any reason anchors the locations whose file and line still exist and keeps the others as they are.
 - Numbers are assigned as highest + 1 while holding `.repo-issues/.lock`, so concurrent `issues new` and `issues renumber` runs in one checkout (e.g. several agents) never pick the same number. The lock file is listed in `.repo-issues/.gitignore`. If two branches create the same number, `issues validate` reports the duplicate after the merge and `issues renumber` fixes it.

@@ -1,10 +1,10 @@
 namespace RepoIssuesCli.Features.Issues;
 
 public sealed class IssueNotFoundException(string reference)
-    : Exception($"No issue matches '{reference}'.");
+    : NotFoundException($"No issue matches '{reference}'.");
 
 public sealed class AmbiguousIssueReferenceException(string reference, IEnumerable<Issue> candidates)
-    : Exception($"'{reference}' matches several issues: {string.Join(", ", candidates.Select(issue => $"{issue.Title} ({issue.Id})"))}. Use the id to pick one.");
+    : UsageException($"'{reference}' matches several issues: {string.Join(", ", candidates.Select(issue => $"{issue.Title} ({issue.Id})"))}. Use the id to pick one.");
 
 public static class IssueResolver
 {

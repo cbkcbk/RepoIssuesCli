@@ -1,0 +1,24 @@
+{
+  "id": "01a178a1-2d37-769f-b248-e8caa72ae446",
+  "number": 25,
+  "name": "Timestamp semantics: created, updated, read",
+  "description": "updated bumps only on summary/body/when/claims edits, not on anchor-hint fixes or read.\nread is day-granular, written only when the date changes, and only by real reads (show, hook full-body injection), not list/find/index.\nMerge rule: later timestamp wins; validate repairs leftover conflicts (optional git merge driver).",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "Medium",
+  "blockedBy": [
+    24
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:11+00:00",
+  "updated": "2026-10-26T15:13:28+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:13:28+00:00",
+      "text": "Merged c45e882. Timestamps.Stamp(previous, current, now): created on new items; updated bumps on kind/summary/body/when changes (for anchors, a change to the line alone is ignored); returns the same instance when nothing changed. DocsStore.Save/SaveRepo stamp against the file on disk and return the stamped value. MarkRead is day-granular and never touches updated. StampHandEdits(rev=HEAD) compares against git show; ResolveConflicts() merges per entry (the later updated wins; read and created are merged separately; deletions are only detected with diff3 markers; config.yaml is never merged). Commands: docs touch [target] (bump updated, or stamp hand edits when no target is given) and docs merge-driver. #28 --fix: ResolveConflicts before Load, then StampHandEdits. #31: fall back to created when read is null. When claims (#36) land, add them to SameContent."
+    }
+  ]
+}

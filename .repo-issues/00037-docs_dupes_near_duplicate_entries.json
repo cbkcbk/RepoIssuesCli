@@ -1,0 +1,18 @@
+{
+  "id": "01a178a1-3650-75ca-92a1-516fbae4d786",
+  "number": 37,
+  "name": "docs dupes: near-duplicate entries",
+  "description": "Shingling/MinHash across entries and features to find duplicated rules; suggest merges.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Low",
+  "blockedBy": [
+    24
+  ],
+  "tags": [
+    "docs",
+    "later"
+  ],
+  "created": "2026-10-26T14:33:13+00:00",
+  "updated": "2026-10-26T14:33:13+00:00"
+}

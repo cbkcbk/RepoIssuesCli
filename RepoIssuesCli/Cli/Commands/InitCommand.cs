@@ -16,9 +16,9 @@ public sealed class InitCommand(IAnsiConsole console) : Command<GlobalSettings>
         if (settings.Json)
             IssueRenderer.WriteJson(console, new InitResult(store.Folder, created));
         else if (created)
-            IssueRenderer.WriteUnwrappedLine(console, $"Initialized [bold]{Markup.Escape(store.Folder)}[/]");
+            CliOutput.WriteUnwrappedLine(console, $"Initialized [bold]{Markup.Escape(store.Folder)}[/]");
         else
-            IssueRenderer.WriteUnwrappedLine(console, $"[grey]Already initialized:[/] {Markup.Escape(store.Folder)}");
+            CliOutput.WriteUnwrappedLine(console, $"[grey]Already initialized:[/] {Markup.Escape(store.Folder)}");
 
         return ExitCodes.Success;
     }

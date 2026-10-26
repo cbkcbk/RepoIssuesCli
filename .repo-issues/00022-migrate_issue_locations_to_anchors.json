@@ -1,0 +1,25 @@
+{
+  "id": "01a178a1-2af5-7313-beb1-5ceb23b6d073",
+  "number": 22,
+  "name": "Migrate issue locations to anchors",
+  "description": "Issue locations become anchors. Still read legacy path:line:col and upgrade on write.\nissues validate reports moved/changed/broken instead of LocationLineOutOfRange; validate --fix rewrites hints for moved anchors.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "Medium",
+  "blockedBy": [
+    21
+  ],
+  "tags": [
+    "issues",
+    "anchors"
+  ],
+  "created": "2026-10-26T14:33:10+00:00",
+  "updated": "2026-10-26T15:27:53+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:27:53+00:00",
+      "text": "Merged b5c76a3. Locations are stored as flat anchor fields { path, line, span, symbol?, context, body, column? }; legacy { path, line?, column? } still loads and is upgraded on any save when the file and line exist (no invented hashes, updated not bumped). -l accepts path:line-end. validate reports LocationMoved/LocationChanged/LocationBroken (warnings) via one resolver batch; --fix rewrites only confident moves under the lock, doesn\u0027t bump updated, and emits fixed items with fixed:true in JSON. Core gained SymbolIndex.Supports(path). After merging, WriteProblems uses the shared ProblemTable. Note: the globally installed \u0027issues\u0027 tool is still the old version until it is repacked."
+    }
+  ]
+}

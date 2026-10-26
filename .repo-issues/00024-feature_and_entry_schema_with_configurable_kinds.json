@@ -1,0 +1,24 @@
+{
+  "id": "01a178a1-2c77-7b14-b4a2-85395cac5ea1",
+  "number": 24,
+  "name": "Feature and entry schema with configurable kinds",
+  "description": "Feature: feature, status (manual: proposed|planned|in-progress|shipped|deprecated), summary, when hints (paths, anchors, keywords), created/updated, entries.\nEntry: id, kind, one-line summary (required), body (markdown literal block), when, claims, created/updated/read.\nconfig.yaml declares kinds with behaviour (render: always|index|never, push: on-edit|on-read|when-feature-active|never, prune policy). Undeclared kinds are invalid. Default kinds: rule, fact, gotcha, howto, decision, plan.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "High",
+  "blockedBy": [
+    23
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:11+00:00",
+  "updated": "2026-10-26T15:00:06+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:00:06+00:00",
+      "text": "Merged 1f26358. Default kinds: rule(index,on-edit), fact(never,on-read,prune 180d), gotcha(never,on-edit,365d), howto(index,never,180d), decision(never,never), plan(never,when-feature-active). No kind renders \u0027always\u0027. Entry ids are kebab-case, unique per file, addressed feature/entry and repo/entry for repo.yaml. DocsValidator.Validate(snapshot) gives the #28 problem list. Timestamps: created/updated UTC to the second, read is date-only; init stamps created only. Open points: #29 must decide whether repo.yaml entries render in full regardless of kind; #31 should fall back to created when read is null; #34 assumes on-read also covers edits; all-digit hashes are written unquoted (other YAML tools may read them as numbers)."
+    }
+  ]
+}

@@ -1,7 +1,7 @@
-using System.Collections;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
+using RepoCli.Core.Features.IssueLinks;
+using RepoCli.Core.Features.Json;
 
 namespace RepoIssuesCli.Features.Issues;
 
@@ -14,36 +14,26 @@ namespace RepoIssuesCli.Features.Issues;
 [JsonSerializable(typeof(List<Issue>))]
 [JsonSerializable(typeof(List<ValidationProblem>))]
 [JsonSerializable(typeof(RenumberResult))]
+[JsonSerializable(typeof(List<DocsReference>))]
 [JsonSerializable(typeof(InitResult))]
 public partial class IssueJsonContext : JsonSerializerContext;
 
 public static class IssueJson
 {
-    public static JsonSerializerOptions FileOptions { get; } = new(IssueJsonContext.Default.Options)
-    {
-        TypeInfoResolver = IssueJsonContext.Default.WithAddedModifier(SkipEmptyCollections),
-    };
+    public static JsonSerializerOptions FileOptions { get; } = RepoJson.FileOptions(IssueJsonContext.Default);
 
     public static JsonSerializerOptions OutputOptions => IssueJsonContext.Default.Options;
 
-    public static string Serialize<T>(T value) => Write(value, FileOptions);
+    public static string Serialize<T>(T value) => RepoJson.Serialize(value, FileOptions);
 
-    public static string SerializeOutput<T>(T value) => Write(value, OutputOptions);
+    public static string SerializeOutput<T>(T value) => RepoJson.Serialize(value, OutputOptions);
 
-    public static T? Deserialize<T>(string json) =>
-        JsonSerializer.Deserialize(json, (JsonTypeInfo<T>)FileOptions.GetTypeInfo(typeof(T)));
-
-    static string Write<T>(T value, JsonSerializerOptions options) =>
-        JsonSerializer.Serialize(value, (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T))) + "\n";
-
-    static void SkipEmptyCollections(JsonTypeInfo typeInfo)
+    public static string SerializeOutput(Issue issue, IReadOnlyList<DocsReference> docs)
     {
-        foreach (var property in typeInfo.Properties)
-        {
-            if (property.PropertyType == typeof(string) || !typeof(IEnumerable).IsAssignableFrom(property.PropertyType))
-                continue;
-
-            property.ShouldSerialize = (_, value) => value is IEnumerable items && items.GetEnumerator().MoveNext();
-        }
+        var output = JsonSerializer.SerializeToNode(issue, IssueJsonContext.Default.Issue)!.AsObject();
+        output["docs"] = JsonSerializer.SerializeToNode(docs.ToList(), IssueJsonContext.Default.ListDocsReference);
+        return output.ToJsonString(OutputOptions) + "\n";
     }
+
+    public static T? Deserialize<T>(string json) => RepoJson.Deserialize<T>(json, FileOptions);
 }

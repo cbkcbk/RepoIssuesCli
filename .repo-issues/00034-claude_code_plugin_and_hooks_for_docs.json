@@ -1,0 +1,33 @@
+{
+  "id": "01a178a1-340c-7c33-b95b-d08d389d5528",
+  "number": 34,
+  "name": "Claude Code plugin and hooks for docs",
+  "description": "generate-plugin for docs: skill teaching lookup and the condense/prune workflow.\nHooks: on Read/Edit push matching entries per kind push policy (summary, full body under ~150 tokens, counts as read); on Stop run docs affected.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "High",
+  "blockedBy": [
+    27,
+    29,
+    32,
+    40
+  ],
+  "tags": [
+    "docs",
+    "plugin"
+  ],
+  "created": "2026-10-26T14:33:12+00:00",
+  "updated": "2026-10-26T15:49:26+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:04:22+00:00",
+      "text": "Requirement from the user: the docs skill must strongly discourage editing .repo-docs/*.yaml directly (Edit/Write or shell). Agents always go through the docs CLI (add/edit/rm from #40, check --fix, etc.); if the CLI can\u0027t make the change, tell the user instead. Only exception: resolving a git merge conflict, followed by docs check. Mirror the wording of the issues skill (RepoIssuesCli/Cli/Plugin/IssuesPlugin.cs). Note #34 should come after #40 so the skill can point at real edit commands."
+    },
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:49:26+00:00",
+      "text": "Merged 315a3cf. plugins/docs: a skill with the bold no-direct-edit rule, lookup/write/affected/condense workflows, a kinds table, and the command and exit-code tables. hooks/hooks.json: SessionStart (record HEAD), PostToolUse Read and Edit|Write|MultiEdit (push per kind policy; bodies \u003C= 600 chars in full, marked read; max 10 per push; no re-push within a session), Stop (block once with the affected addresses since the session\u0027s starting HEAD; silent when stop_hook_active). docs hook \u003Cevent\u003E always exits 0 and swallows errors. The session cache lives in .repo-docs/.session/ with its own .gitignore. PluginDefinition gained Files for extra plugin files. CI and pack-install now pack and publish both tools. Follow-ups: hooks need docs on PATH (otherwise Claude Code shows a non-blocking hook error); full-body pushes write read dates into the YAML mid-session; PreToolUse would push on-edit rules before the edit, once additionalContext is documented there."
+    }
+  ]
+}

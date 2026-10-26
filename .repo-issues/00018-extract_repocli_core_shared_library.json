@@ -1,0 +1,33 @@
+{
+  "id": "01a178a1-27c9-7dfc-8059-dfe40da584e3",
+  "number": 18,
+  "name": "Extract RepoCli.Core shared library",
+  "description": "Move RepoLocator, Git, GitIdentity, Interaction, ExitCodes, GlobalSettings, JSON output conventions and the generic part of PluginGenerator into a RepoCli.Core project referenced by both tools.\nPacked into each tool\u0027s package; no separate NuGet package. Exit codes, --json, --root and non-interactive rules stay identical across tools.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "High",
+  "locations": [
+    {
+      "path": "RepoIssuesCli/Features/Issues/RepoLocator.cs"
+    },
+    {
+      "path": "RepoIssuesCli/Features/Issues/Git.cs"
+    },
+    {
+      "path": "RepoIssuesCli/Cli/Plugin/PluginGenerator.cs"
+    }
+  ],
+  "tags": [
+    "core",
+    "refactor"
+  ],
+  "created": "2026-10-26T14:33:09+00:00",
+  "updated": "2026-10-26T14:43:47+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T14:43:47+00:00",
+      "text": "RepoCli.Core holds Cli/ (ExitCodes, UsageException/NotFoundException, GlobalSettings, Interaction, EnumOptionConverter, CliOutput, RepoCliApp.Configure, Plugin/ generic generator \u002B GeneratePluginCommand\u003CTPlugin : IPluginSource\u003E) and Features/ (Repo: RepoLocator incl. .repo-docs marker, Git, GitIdentity, FolderLock; Json: RepoJson; Validation: Severity). Tests in RepoCli.Core.Tests. Exit code 3 is now \u0027referenced item not found\u0027. ISSUES_NONINTERACTIVE or DOCS_NONINTERACTIVE disables prompts in both tools."
+    }
+  ]
+}

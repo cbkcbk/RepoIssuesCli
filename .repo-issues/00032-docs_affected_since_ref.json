@@ -1,0 +1,25 @@
+{
+  "id": "01a178a1-328a-71a6-a206-3d46bd8c317c",
+  "number": 32,
+  "name": "docs affected --since \u003Cref\u003E",
+  "description": "List entries whose anchors/paths changed in the diff but whose entry was not updated. Used by the Stop hook and CI.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "Medium",
+  "blockedBy": [
+    27,
+    28
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:12+00:00",
+  "updated": "2026-10-26T15:34:34+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:34:34+00:00",
+      "text": "Merged b5cefdd. docs affected [--since ref=HEAD] [--strict] [--json]: a hint is hit when the diff overlaps an anchor\u0027s span (located in the ref\u0027s version), the anchored file was deleted or renamed, or a when.paths entry covers a changed file. A hit is dropped when the entry\u0027s content changed in the diff, or when its updated/created is not earlier than the hit file\u0027s change time (uncommitted files use their last write time, so docs touch clears the hit; commits use author time). Exit 0, or 1 under --strict. For #34: Stop with --since HEAD only sees uncommitted work, so record the session\u0027s starting HEAD at SessionStart and pass it. Cap \u0027matched\u0027 in hook messages. For CI, pass the merge base."
+    }
+  ]
+}
