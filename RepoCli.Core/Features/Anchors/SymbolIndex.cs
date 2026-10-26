@@ -2,7 +2,15 @@ namespace RepoCli.Core.Features.Anchors;
 
 public sealed class SymbolIndex
 {
+    static readonly HashSet<string> SourceExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".cs", ".java", ".kt", ".kts", ".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".py", ".pyi", ".go", ".rs"
+    };
+
     SymbolIndex(IReadOnlyList<Declaration> declarations) => Declarations = declarations;
+
+    /// <summary>Whether the scanner understands files with this path's extension.</summary>
+    public static bool Supports(string path) => SourceExtensions.Contains(Path.GetExtension(path));
 
     /// <summary>All detected declarations, ordered by line; nested ones follow their container.</summary>
     public IReadOnlyList<Declaration> Declarations { get; }

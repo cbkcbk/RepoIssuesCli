@@ -30,6 +30,13 @@ public sealed class TempRepo : IDisposable
         return IssueJson.Deserialize<Issue>(result.Output)!;
     }
 
+    public void Write(string relativePath, string content)
+    {
+        var path = Path.Combine(Root, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, content);
+    }
+
     public void InitGit()
     {
         Git("init", "-q");

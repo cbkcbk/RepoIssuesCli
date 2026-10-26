@@ -106,7 +106,7 @@ public static class IssueRenderer
         {
             var locations = new Tree("[bold]Locations[/]");
             foreach (var location in issue.Locations)
-                locations.AddNode(new Text(location.ToString()));
+                locations.AddNode(new Text(location.Describe()));
             sections.Add(locations);
         }
 
@@ -138,8 +138,17 @@ public static class IssueRenderer
             .Expand());
     }
 
-    public static void WriteProblems(IAnsiConsole console, IReadOnlyList<ValidationProblem> problems)
+    public static void WriteProblems(IAnsiConsole console, IReadOnlyList<ValidationProblem> problems, IReadOnlyList<LocationFix> fixes)
     {
+        if (fixes.Count > 0)
+        {
+            var fixedTable = new Table().Border(TableBorder.Rounded).AddColumn("Fixed").AddColumn("From").AddColumn("To").AddColumn("File");
+            foreach (var fix in fixes)
+                fixedTable.AddRow(new Text(fix.Issue), new Text(fix.From), new Text(fix.To), new Text(fix.File));
+            console.Write(fixedTable);
+            console.MarkupLine($"[green]{fixes.Count} location hint(s) fixed.[/]");
+        }
+
         if (problems.Count == 0)
         {
             console.MarkupLine("[green]No problems found.[/]");

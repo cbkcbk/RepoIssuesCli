@@ -3,11 +3,6 @@ namespace RepoCli.Core.Features.Anchors;
 /// <summary>A file version with lazily computed per-line context hashes, tokens and symbols.</summary>
 sealed class AnchorFile
 {
-    static readonly HashSet<string> SourceExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".cs", ".java", ".kt", ".kts", ".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".py", ".pyi", ".go", ".rs"
-    };
-
     readonly int[] contentLines;
     string?[]? contextHashes;
     string[][]? tokens;
@@ -26,7 +21,7 @@ sealed class AnchorFile
 
     public IReadOnlyList<int> ContentLines => contentLines;
 
-    public bool IsSource => SourceExtensions.Contains(System.IO.Path.GetExtension(Path));
+    public bool IsSource => SymbolIndex.Supports(Path);
 
     public SymbolIndex Symbols => symbols ??= SymbolIndex.Scan(Text);
 
