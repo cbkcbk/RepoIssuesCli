@@ -9,14 +9,9 @@ public sealed record CheckReport(IReadOnlyList<ValidationProblem> Fixed, IReadOn
 
 public static class DocsChecker
 {
-    sealed record HintSite(string Owner, int? EntryIndex, string Address, WhenHints When)
-    {
-        public string File => DocsStore.FileNameFor(Owner);
-    }
-
     sealed record AnchorFix(HintSite Site, int Index, Anchor Anchor, ValidationProblem Problem, ValidationProblem Applied);
 
-    sealed record Inspection(IReadOnlyList<ValidationProblem> Problems, IReadOnlyList<AnchorFix> Moves);
+    sealed record CheckInspection(IReadOnlyList<ValidationProblem> Problems, IReadOnlyList<AnchorFix> Moves);
 
     public static CheckReport Check(DocsStore store) => new([], Inspect(store, store.Load()).Problems);
 
@@ -55,35 +50,32 @@ public static class DocsChecker
         var problems = new List<ValidationProblem>(conflicts);
         problems.AddRange(DocsValidator.Validate(snapshot).Where(problem => problem is not { Kind: ProblemKind.InvalidFile, File: { } file } || !conflicted.Contains(file)));
 
+        var inspection = DocsInspection.Run(store.Root, snapshot);
         var moves = new List<AnchorFix>();
-        var batch = new AnchorResolver(store.Root).Batch();
-        foreach (var site in HintSites(snapshot))
+        foreach (var (site, deadPaths, anchors) in inspection.Sites)
         {
-            problems.AddRange(site.When.Paths.Where(path => !PathExists(store.Root, path)).Select(path =>
+            problems.AddRange(deadPaths.Select(path =>
                 new ValidationProblem(ProblemKind.DeadPath, $"'{site.Address}' lists path '{path}', which matches no file or folder.", site.File, site.Address)));
 
-            foreach (var (index, anchor) in site.When.Anchors.Index())
+            foreach (var (index, resolution) in anchors.Index())
             {
-                var resolution = batch.Resolve(anchor);
                 if (AnchorProblem(site, resolution) is not { } problem)
                     continue;
 
                 problems.Add(problem);
                 if (AnchorResolver.Fix(resolution) is { } moved)
                     moves.Add(new AnchorFix(site, index, moved, problem,
-                        problem with { Message = $"Updated anchor {Location(anchor)} of '{site.Address}' to {Location(moved)}." }));
+                        problem with { Message = $"Updated anchor {Location(resolution.Anchor)} of '{site.Address}' to {Location(moved)}." }));
             }
         }
 
-        var issues = IssueIndex.Load(store.Root);
-        problems.AddRange(PlanProblems(FeatureId.RepoFileStem, null, snapshot.Repo.Entries, issues));
-        foreach (var feature in snapshot.Features)
-            problems.AddRange(PlanProblems(feature.Id, feature.Status, feature.Entries, issues));
+        foreach (var plans in inspection.Plans.GroupBy(plan => plan.Owner))
+            problems.AddRange(PlanProblems(plans.Key, plans.First().Status, [.. plans]));
 
         if (RenderProblem(store.Root, snapshot) is { } render && (render.Kind != ProblemKind.StaleClaudeMd || snapshot.Errors.Count == 0))
             problems.Add(render);
 
-        return new Inspection(problems, moves);
+        return new CheckInspection(problems, moves);
     }
 
     static IEnumerable<ValidationProblem> Conflicts(DocsStore store)
@@ -105,30 +97,6 @@ public static class DocsChecker
         }
     }
 
-    static IEnumerable<HintSite> HintSites(DocsSnapshot snapshot)
-    {
-        foreach (var site in EntrySites(FeatureId.RepoFileStem, snapshot.Repo.Entries))
-            yield return site;
-
-        foreach (var feature in snapshot.Features)
-        {
-            yield return new HintSite(feature.Id, null, feature.Id, feature.When);
-            foreach (var site in EntrySites(feature.Id, feature.Entries))
-                yield return site;
-        }
-    }
-
-    static IEnumerable<HintSite> EntrySites(string owner, IReadOnlyList<FeatureEntry> entries) =>
-        entries.Index()
-            .Where(item => item.Item.When is not null)
-            .Select(item => new HintSite(owner, item.Index, EntryId.Address(owner, item.Item.Id ?? "?"), item.Item.When!));
-
-    static bool PathExists(string root, string path)
-    {
-        var full = Path.Combine(root, path.Replace('\\', '/').TrimEnd('/'));
-        return Directory.Exists(full) || (!path.EndsWith('/') && File.Exists(full));
-    }
-
     static ValidationProblem? AnchorProblem(HintSite site, AnchorResolution resolution)
     {
         var from = $"Anchor {Location(resolution.Anchor)} of '{site.Address}'";
@@ -147,15 +115,13 @@ public static class DocsChecker
 
     static string Location(Anchor anchor) => $"{anchor.Path}:{anchor.Line}";
 
-    static IEnumerable<ValidationProblem> PlanProblems(string owner, FeatureStatus? status, IReadOnlyList<FeatureEntry> entries, IssueIndex issues)
+    static IEnumerable<ValidationProblem> PlanProblems(string owner, FeatureStatus? status, IReadOnlyList<PlanInspection> plans)
     {
         var file = DocsStore.FileNameFor(owner);
         var linked = new List<LinkedIssue>();
 
-        foreach (var entry in entries.Where(entry => entry.Kind == PlanStep.EntryKind && entry.Steps.Count > 0))
+        foreach (var (_, _, address, _, progress) in plans)
         {
-            var progress = PlanProgress.For(entry, issues);
-            var address = EntryId.Address(owner, entry.Id ?? "?");
             if (progress.Missing.Count > 0)
                 yield return new ValidationProblem(ProblemKind.MissingIssue, $"Plan '{address}' links issues that are not in {RepoLocator.IssuesFolderName}: {Numbers(progress.Missing)}.", file, address);
 
