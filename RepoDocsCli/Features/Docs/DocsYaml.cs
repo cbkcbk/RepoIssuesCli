@@ -12,6 +12,7 @@ public static class DocsYaml
         .WithTypeConverter(new DateYamlConverter())
         .WithTypeConverter(new AnchorYamlConverter())
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
+        .WithEventEmitter(next => new NumberListEmitter(next))
         .WithIndentedSequences()
         .DisableAliases()
         .Build();

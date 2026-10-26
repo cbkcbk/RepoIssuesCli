@@ -13,6 +13,9 @@ public sealed record FeatureEntry
 
     public WhenHints? When { get; init; }
 
+    [YamlMember(DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
+    public List<PlanStep> Steps { get; init; } = [];
+
     public DateTimeOffset? Created { get; init; }
 
     public DateTimeOffset? Updated { get; init; }

@@ -8,6 +8,8 @@ public enum ProblemKind
     MultiLineSummary,
     DuplicateEntryId,
     InvalidEntryId,
+    StepsOnNonPlan,
+    InvalidStep,
 }
 
 public sealed record ValidationProblem(ProblemKind Kind, string Message, string? File = null)
@@ -57,10 +59,31 @@ public static class DocsValidator
                 yield return new ValidationProblem(ProblemKind.MissingSummary, $"Entry '{name}' has no summary.", file);
             else if (IsMultiLine(entry.Summary))
                 yield return new ValidationProblem(ProblemKind.MultiLineSummary, $"Entry '{name}' has a summary over several lines; keep it to one line and move the rest to body.", file);
+
+            foreach (var problem in ValidateSteps(name, entry, file))
+                yield return problem;
         }
 
         foreach (var duplicate in entries.Where(entry => entry.Id is not null).GroupBy(entry => entry.Id).Where(group => group.Count() > 1))
             yield return new ValidationProblem(ProblemKind.DuplicateEntryId, $"Entry id '{EntryId.Address(owner, duplicate.Key)}' is used {duplicate.Count()} times.", file);
+    }
+
+    static IEnumerable<ValidationProblem> ValidateSteps(string name, FeatureEntry entry, string file)
+    {
+        if (entry.Steps.Count > 0 && entry.Kind != PlanStep.EntryKind)
+            yield return new ValidationProblem(ProblemKind.StepsOnNonPlan, $"Entry '{name}' has steps, but only '{PlanStep.EntryKind}' entries may have steps.", file);
+
+        foreach (var (index, step) in entry.Steps.Index())
+        {
+            var label = $"Step {index + 1} of '{name}'";
+            if (string.IsNullOrWhiteSpace(step.Title))
+                yield return new ValidationProblem(ProblemKind.InvalidStep, $"{label} has no title.", file);
+            else if (IsMultiLine(step.Title))
+                yield return new ValidationProblem(ProblemKind.InvalidStep, $"{label} has a title over several lines.", file);
+
+            if (step.Issues.Any(number => number < 1))
+                yield return new ValidationProblem(ProblemKind.InvalidStep, $"{label} links an issue number below 1.", file);
+        }
     }
 
     static bool IsMultiLine(string? text) => text is not null && text.Trim().AsSpan().ContainsAny('\n', '\r');
