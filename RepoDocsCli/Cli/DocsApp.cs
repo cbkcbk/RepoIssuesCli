@@ -18,6 +18,10 @@ public static class DocsApp
                 .WithExample("init", "--json");
             config.AddCommand<RenderCommand>("render")
                 .WithExample("render", "--check");
+            config.AddCommand<CheckCommand>("check")
+                .WithAlias("validate")
+                .WithExample("check", "--strict")
+                .WithExample("check", "--fix");
             config.AddCommand<TouchCommand>("touch")
                 .WithExample("touch", "billing/rounding")
                 .WithExample("touch", "--json");
