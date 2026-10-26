@@ -5,9 +5,12 @@ namespace RepoDocsCli.Cli;
 
 public static class PlanRenderer
 {
-    public static void Write(IAnsiConsole console, string feature, FeatureEntry entry, PlanProgress progress)
+    public static void Write(IAnsiConsole console, string feature, FeatureEntry entry, PlanProgress progress) =>
+        console.Write(BuildTree(EntryId.Address(feature, entry.Id), entry.Summary, progress));
+
+    public static Tree BuildTree(string address, string summary, PlanProgress progress)
     {
-        var heading = $"[bold]{Markup.Escape(EntryId.Address(feature, entry.Id))}[/] {Markup.Escape(entry.Summary)} {Count(progress.Done, progress.Total)}";
+        var heading = $"[bold]{Markup.Escape(address)}[/] {Markup.Escape(summary)} {Count(progress.Done, progress.Total)}";
         if (progress.Cancelled > 0)
             heading += $" [grey]({progress.Cancelled} cancelled)[/]";
         if (progress.Missing.Count > 0)
@@ -26,7 +29,7 @@ public static class PlanRenderer
                 node.AddNode(new Markup(IssueMarkup(issue)));
         }
 
-        console.Write(tree);
+        return tree;
     }
 
     static string Count(int done, int total) => $"[grey]{done}/{total}[/]";

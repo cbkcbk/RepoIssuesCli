@@ -22,6 +22,15 @@ public static class DocsApp
                 .WithAlias("validate")
                 .WithExample("check", "--strict")
                 .WithExample("check", "--fix");
+            config.AddCommand<ShowCommand>("show")
+                .WithExample("show", "billing")
+                .WithExample("show", "billing/rounding", "--json");
+            config.AddCommand<ForCommand>("for")
+                .WithExample("for", "src/Billing/Invoice.cs", "--json");
+            config.AddCommand<FindCommand>("find")
+                .WithExample("find", "\"vat rounding\"", "--limit", "5");
+            config.AddCommand<ListCommand>("list").WithAlias("ls")
+                .WithExample("list", "--status", "in-progress");
             config.AddCommand<TouchCommand>("touch")
                 .WithExample("touch", "billing/rounding")
                 .WithExample("touch", "--json");

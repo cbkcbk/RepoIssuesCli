@@ -42,7 +42,7 @@ public class RenderCommandTests
 
             ## Features
 
-            Each feature lives in `.repo-docs/<id>.yaml`.
+            Read a feature with `docs show <id>` (or one entry with `docs show <id>/<entry>`) and search with `docs find <query>`. Never read or edit `.repo-docs/` files directly.
 
             - billing [shipped]: Invoices
               - billing/rounding: Round half to even
