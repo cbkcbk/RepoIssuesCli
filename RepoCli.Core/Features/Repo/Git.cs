@@ -49,6 +49,7 @@ public static class Git
     public static void Remove(string root, string path)
     {
         Run(root, "rm", "-f", "-q", "--ignore-unmatch", "--", Path.GetRelativePath(root, path));
-        File.Delete(path);
+        if (File.Exists(path))
+            File.Delete(path);
     }
 }

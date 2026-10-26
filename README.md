@@ -2,6 +2,10 @@
 
 An issue tracker that lives in your repository. Each issue is a JSON file in `.repo-issues/`, so issues are versioned, branched and reviewed with the code. Humans get interactive prompts. Scripts and agents get flags and `--json`.
 
+## docs
+
+This repository also holds `docs` (RepoDocsCli), a companion tool for agent docs (the CLAUDE.md kind). It keeps them as YAML in `.repo-docs/`, one file per feature, and behaves like `issues` for `--json`, exit codes and `--root`. Both tools share `RepoCli.Core`. See [RepoDocsCli/README.md](RepoDocsCli/README.md).
+
 ## Install
 
 ```sh
