@@ -7,7 +7,9 @@ description: Track work as issues in the repo's `.repo-issues/` folder with the 
 
 # issues
 
-Issues are JSON files in `.repo-issues/`, committed alongside the code. Change them through the `issues` CLI so numbers, blockers and timestamps stay consistent.
+Issues are JSON files in `.repo-issues/`, committed alongside the code.
+
+**Never edit, create, rename or delete files in `.repo-issues/` directly** — not with Edit/Write, not with shell commands, not even for a small fix. Always go through the `issues` CLI. It assigns numbers under a lock, keeps file names in sync with names and numbers via `git mv`, rewrites blocker references, and stamps authors and timestamps; hand edits silently break all of that. If the CLI can't make the change you need, tell the user instead of editing the JSON. The only exception is resolving a git merge conflict in those files, followed by `issues validate`.
 
 ## Calling the CLI
 
@@ -61,4 +63,4 @@ Author: when the user asks for the issue, keep the default (their git identity).
 3. Point at code with repo-relative `-l path:line:col`, on `new` or via `edit --add-location`.
 4. Blockers: `issues edit <n> --add-blocker <m> --json` means n waits on m. A blocker that would create a cycle is rejected with exit code 2.
 5. Finish: `issues status <n> Done --json`, then commit the changed `.repo-issues/*.json` files with the code change.
-6. After merging branches or hand-editing files, run `issues validate --json`. Exit code 1 means it found problems, such as duplicate numbers or missing blockers, listed in its output.
+6. After merging branches or resolving a merge conflict, run `issues validate --json`. Exit code 1 means it found problems, such as duplicate numbers or missing blockers, listed in its output.
