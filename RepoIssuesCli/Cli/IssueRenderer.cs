@@ -138,28 +138,8 @@ public static class IssueRenderer
             .Expand());
     }
 
-    public static void WriteProblems(IAnsiConsole console, IReadOnlyList<ValidationProblem> problems)
-    {
-        if (problems.Count == 0)
-        {
-            console.MarkupLine("[green]No problems found.[/]");
-            return;
-        }
-
-        var table = new Table().Border(TableBorder.Rounded).AddColumn("Problem").AddColumn("Details").AddColumn("File");
-        foreach (var problem in problems)
-            table.AddRow(new Markup($"[{SeverityColor(problem.Severity)}]{problem.Kind}[/]"), new Text(problem.Message), new Text(problem.File ?? ""));
-        console.Write(table);
-
-        var errors = problems.Count(problem => problem.Severity == Severity.Error);
-        var warnings = problems.Count - errors;
-        if (errors > 0)
-            console.MarkupLine($"[red]{errors} error(s) found.[/]");
-        if (warnings > 0)
-            console.MarkupLine($"[yellow]{warnings} warning(s) found.[/]");
-    }
-
-    static string SeverityColor(Severity severity) => severity == Severity.Warning ? "yellow" : "red";
+    public static void WriteProblems(IAnsiConsole console, IReadOnlyList<ValidationProblem> problems) =>
+        ProblemTable.Write(console, [.. problems.Select(problem => new ProblemRow(problem.Kind.ToString(), problem.Severity, problem.Message, problem.File))]);
 
     public static void WriteSaved(IAnsiConsole console, string verb, Issue issue) =>
         console.MarkupLine($"{verb} [bold]{Markup.Escape(issue.Title)}[/]");

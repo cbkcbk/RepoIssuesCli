@@ -10,11 +10,26 @@ public enum ProblemKind
     InvalidEntryId,
     StepsOnNonPlan,
     InvalidStep,
+    MergeConflict,
+    UnstampedEdit,
+    DeadPath,
+    MovedAnchor,
+    ChangedAnchor,
+    FuzzyAnchor,
+    BrokenAnchor,
+    StatusMismatch,
+    MissingIssue,
+    StaleClaudeMd,
 }
 
-public sealed record ValidationProblem(ProblemKind Kind, string Message, string? File = null)
+public sealed record ValidationProblem(ProblemKind Kind, string Message, string? File = null, string? Address = null)
 {
-    public Severity Severity => Severity.Error;
+    public Severity Severity => Kind is ProblemKind.UnstampedEdit or ProblemKind.DeadPath or ProblemKind.MovedAnchor or ProblemKind.ChangedAnchor
+        or ProblemKind.FuzzyAnchor or ProblemKind.StatusMismatch or ProblemKind.MissingIssue or ProblemKind.StaleClaudeMd
+        ? Severity.Warning
+        : Severity.Error;
+
+    public bool Fixable { get; init; }
 }
 
 public static class DocsValidator

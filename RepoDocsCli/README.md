@@ -97,12 +97,46 @@ docs import --json               # { dryRun, sources, imported, skipped, created
 - Source files are never changed. After reviewing the entries, remove the imported text from the sources and run `docs render`.
 - JSON: `sources` lists the repo-relative files read. `imported` and `skipped` hold `{ address, kind, summary, source, line }`, where `line` is the 1-based line of the heading or bullet. `createdFeatures` lists new feature ids and `imports` holds `{ source, line, text }` per `@import` line. `dryRun` is `true` under `--dry-run`, and the same entries are reported as a real run would write them.
 
+### Checking docs
+
+```sh
+docs check             # exit 1 on errors; drift is a warning
+docs check --strict    # exit 1 on warnings too
+docs check --fix       # repair mechanical drift, then report what is left
+docs check --json      # [{ kind, message, file?, address?, severity, fixable }]
+docs check --fix --json  # { fixed: [...], problems: [...] }
+docs validate          # alias of check
+```
+
+`check` is the staleness and consistency gate for agents and CI, with the same exit codes and `--strict` as `issues validate`. It reports:
+
+| Kind | Severity | Fixable | Meaning |
+|---|---|---|---|
+| `InvalidFile` | error | no | A docs file that fails to load, or malformed CLAUDE.md markers. |
+| `UndeclaredKind`, `MissingSummary`, `MultiLineSummary`, `DuplicateEntryId`, `InvalidEntryId`, `StepsOnNonPlan`, `InvalidStep` | error | no | Schema problems. |
+| `MergeConflict` | error | when it merges per entry | A docs file with git conflict markers. |
+| `BrokenAnchor` | error | no | An anchor that can't be found any more. |
+| `MovedAnchor` | warning | yes | An anchor whose code moved unchanged (same file, a git rename or its symbol). |
+| `ChangedAnchor` | warning | no | An anchor whose code changed: review the docs, then re-anchor. |
+| `FuzzyAnchor` | warning | no | An anchor found only by similar context; confirm it before re-anchoring. |
+| `DeadPath` | warning | no | A `when.paths` entry that matches no file or folder (a path ending in `/` must be a folder). |
+| `StatusMismatch` | warning | no | A `planned` feature with linked `InProgress` issues, or a `shipped` one with linked issues still open. |
+| `MissingIssue` | warning | no | A plan step links an issue number that is not in `.repo-issues`. |
+| `StaleClaudeMd` | warning | yes | The generated CLAUDE.md block is missing or out of date. |
+| `UnstampedEdit` | warning | yes | Only reported as fixed: hand edits stamped by `--fix`. |
+
+- Errors mean the docs are wrong or unreadable; warnings mean they drifted from the code or the issues and need a look. A broken anchor is an error because the docs point at code that is gone.
+- Anchors are resolved in this order: hint line, same file, git renames, symbol search, then similar context. All anchors are resolved in one pass that reads each file once; `.repo-issues` and `.repo-docs` are read once.
+- A stale block is only reported when every docs file loads, since a skipped file would make the comparison meaningless.
+- `--fix` holds the docs lock and, in order: merges files with conflict markers per entry (as the merge driver does), stamps hand edits since `HEAD` (as `docs touch`), rewrites the hints of `MovedAnchor` anchors, and re-renders a stale CLAUDE.md block. It never applies changed or fuzzy anchors. Anchor rewrites keep `created` and `updated` as they are, even when the path or context hash changes, since the code itself did not change. Fixed items are printed first, then what still needs a human or agent.
+- JSON: without `--fix` an array of problems, like `issues validate --json`; with `--fix` an object whose `fixed` holds what was repaired and `problems` what is left, in the same shape. `kind` and `severity` (`Error` or `Warning`) are strings, `file` is the file name in `.repo-docs/` (or `CLAUDE.md`), `address` is the feature or `feature/entry` the problem belongs to, and `fixable` says whether `--fix` repairs it. Missing values are omitted. The exit code reflects only the remaining problems.
+
 ## Automation
 
 - `--json` writes only JSON to stdout. For `init` that is `{ folder, created, files, features }`: `files` lists the repo-relative files it created, and `features` the prefilled features in the same shape as their YAML files. Arrays are always present, as `[]` when empty.
 - Prompts never appear when you pass `--json` or `--no-interactive`, set `DOCS_NONINTERACTIVE=1` (or `ISSUES_NONINTERACTIVE=1`), or when stdin/stdout aren't a terminal.
 - Errors go to stderr.
-- Exit codes: `0` ok, `1` validation errors (an invalid docs file or CLAUDE.md markers, or a stale block under `render --check`), `2` usage error / missing input, `3` not found, `4` unexpected error.
+- Exit codes: `0` ok, `1` validation errors (an invalid docs file or CLAUDE.md markers, a stale block under `render --check`, `check` errors, or warnings with `check --strict`), `2` usage error / missing input, `3` not found, `4` unexpected error.
 - `--root <path>` overrides repository discovery. By default `docs` walks up from the current directory to the nearest folder containing `.repo-issues`, `.repo-docs` or `.git`.
 
 ## File format
