@@ -264,7 +264,7 @@ Timestamps drive staleness checks, so the tool keeps them honest:
 
 - `created` is set when a feature or entry first appears. A missing `created` on an existing one is restored from the previous version, or set to now.
 - `updated` changes only when content changes. For an entry that is its `kind`, `summary`, `body` or `when`; for a feature its `status`, `summary` or `when`. Editing an entry does not touch its feature's `updated`. New items get `created` only.
-- Moving an anchor's `line` hint is not an edit. Changing its path, span, symbol or `context`/`body` hashes is.
+- An anchor counts as edited only when what it points at changes: its `body` hash or `span`. Its `path`, `line`, `symbol` and `context` are location hints, so re-locating an anchor (by `check --fix`, a rename or a symbol move) is not an edit.
 - Reading never changes `updated`. `read` is the UTC date of the last real read (`show`, or a hook pushing the full body), never `list`, `find` or the index. It is written only when the date changes, so reading an entry twice in a day leaves the file untouched.
 - Every write by the tool compares against the file on disk and stamps what changed.
 - Hand edits (by you or an agent editing the YAML) are stamped by comparing each file with its version at `HEAD`: run `docs touch` before committing. An edit whose `updated` is already later than `HEAD`'s is left alone, so running it twice changes nothing.

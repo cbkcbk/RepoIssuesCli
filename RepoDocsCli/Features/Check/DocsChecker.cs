@@ -200,8 +200,7 @@ public static class DocsChecker
         var repo = snapshot.Repo;
         if (byOwner.Contains(FeatureId.RepoFileStem))
         {
-            repo = repo with { Entries = Apply(repo.Entries, byOwner[FeatureId.RepoFileStem]) };
-            store.SaveHintFix(repo);
+            repo = store.SaveRepo(repo with { Entries = Apply(repo.Entries, byOwner[FeatureId.RepoFileStem]) });
         }
 
         var features = snapshot.Features.Select(feature =>
@@ -209,13 +208,11 @@ public static class DocsChecker
             if (!byOwner.Contains(feature.Id))
                 return feature;
 
-            var fixedFeature = feature with
+            return store.Save(feature with
             {
                 When = Apply(feature.When, byOwner[feature.Id].Where(move => move.Site.EntryIndex is null)),
                 Entries = Apply(feature.Entries, byOwner[feature.Id]),
-            };
-            store.SaveHintFix(fixedFeature);
-            return fixedFeature;
+            });
         }).ToList();
 
         return snapshot with { Repo = repo, Features = features };

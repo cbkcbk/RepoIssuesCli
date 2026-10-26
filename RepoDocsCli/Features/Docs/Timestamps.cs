@@ -75,8 +75,8 @@ public static class Timestamps
         public static readonly AnchorContent Comparer = new();
 
         public bool Equals(Anchor? left, Anchor? right) =>
-            left is not null && right is not null && left with { Line = 0 } == right with { Line = 0 };
+            left is not null && right is not null && left.Body == right.Body && left.Span == right.Span;
 
-        public int GetHashCode(Anchor anchor) => (anchor with { Line = 0 }).GetHashCode();
+        public int GetHashCode(Anchor anchor) => HashCode.Combine(anchor.Body, anchor.Span);
     }
 }
