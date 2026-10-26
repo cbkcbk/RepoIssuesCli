@@ -31,6 +31,11 @@ public static class ClaudeMdFile
         return string.Concat(existing.AsSpan(0, found.Start), block, existing.AsSpan(found.End));
     }
 
+    public static (string OutsideBlock, string Block) Split(string text) =>
+        FindBlock(text) is { } found
+            ? (string.Concat(text.AsSpan(0, found.Start), text.AsSpan(found.End)), text[found.Start..found.End])
+            : (text, "");
+
     public static bool IsStale(string root, DocsSnapshot snapshot)
     {
         var existing = Read(root);
