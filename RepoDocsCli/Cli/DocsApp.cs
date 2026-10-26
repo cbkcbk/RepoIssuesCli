@@ -47,6 +47,9 @@ public static class DocsApp
                 .WithExample("edit", "billing/rounding");
             config.AddCommand<RmCommand>("rm")
                 .WithExample("rm", "billing/rounding", "--force");
+            config.AddCommand<AffectedCommand>("affected")
+                .WithExample("affected", "--json")
+                .WithExample("affected", "--since", "origin/main", "--strict");
             config.AddCommand<MergeDriverCommand>("merge-driver")
                 .WithExample("merge-driver", "%O", "%A", "%B", "%P");
             config.AddCommand<ImportCommand>("import")

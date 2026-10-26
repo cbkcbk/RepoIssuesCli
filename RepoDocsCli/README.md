@@ -214,6 +214,31 @@ docs prune --today 2026-10-26       # count unread days up to this date instead 
 - `--reason` takes the codes above, in any case and with or without dashes (`dead-path`). It keeps candidates with at least one of the given reasons and still shows all their reasons. An unknown `--feature` exits `3`.
 - JSON: an array of candidates. `address` is the feature id for feature candidates and `feature/entry` (or `repo/entry`) for entries. `kind` is the entry kind and is omitted for features; `summary` is omitted when missing.
 
+### Docs affected by a change
+
+```sh
+docs affected                            # docs hit by uncommitted changes but not updated
+docs affected --since origin/main        # ... by everything since a ref (CI)
+docs affected --since origin/main --strict  # exit 1 when anything is affected
+docs affected --json                     # { since, entries: [{ address, kind, summary, matched, suggestion }] }
+```
+
+`affected` lists the docs that went stale in the current change: their code changed, but they were not updated. Review each one, then fix it with `docs edit <address>`, or run `docs touch <address>` when it is still correct. A Claude Code Stop hook runs it after an agent finishes; CI runs it with `--strict`.
+
+- The diff is between `--since <ref>` (default `HEAD`) and the working tree: staged, unstaged and untracked files, with renames detected. Changes under `.repo-docs/` are not code changes. When the ref has moved on (say `origin/main` got new commits), pass the merge base instead (`--since $(git merge-base origin/main HEAD)`), since commits that are only on the ref show up as changes too.
+- A feature or entry is **hit** when the diff touches one of its hints:
+  - an anchor (`AnchorEdited`): a changed line falls inside the anchor's span, located in the ref's version of the file: at the line hint when the body hash matches there, else at the nearest line where the body hash, then the context hash, matches, else at the line hint. Lines added just before or after the span don't count; edits elsewhere in the file don't either. A deleted (`AnchorDeleted`) or renamed (`AnchorRenamed`) anchored file is always a hit;
+  - a path (`PathAdded`, `PathModified`, `PathDeleted`, `PathRenamed`): a changed file that a `when.paths` entry covers, matched as in `docs for`. A file already hit through an anchor is not listed again as a path hit.
+  - An entry without location hints (no `when.paths` or `when.anchors`) uses its feature's, as in `docs for`. Like `for`, it leaves out `decision` entries and `plan` entries unless their feature is `in-progress`. `repo.yaml` entries only count with their own hints.
+- A hit feature or entry is **updated**, and not listed, when either:
+  1. its content (an entry's `kind`, `summary`, `body` or `when`; a feature's `status`, `summary` or `when`) differs from the ref, or it is new since the ref; or
+  2. its last change (`updated`, else `created`) is not earlier than every hit file's change time. A file with uncommitted changes changed at its last write time (a deleted file at its folder's); otherwise at the author time of the last commit since the ref that touched it.
+- So `docs touch <address>` clears an entry until its code changes again. A deleted or renamed anchored file usually needs `docs edit` to fix the anchor anyway.
+- Anchor hits sort first, since they are stronger than path hits; the rest keep file order (`repo.yaml`, then features by id, each feature before its entries).
+- `affected` writes nothing and takes no lock. It runs at most five git commands: the changed names, untracked files, the `-U0` hunks (only when an anchored file was modified) and, for a ref other than `HEAD`, the uncommitted files and the commit times. It also reads the ref's version of each changed docs file and modified anchored file.
+- Exit codes: `0`, also when docs are affected; `1` under `--strict` when anything is affected; `2` without `.repo-docs/`, outside a git repository, or for a ref that names no commit.
+- JSON: `since` is the ref as given. Each entry has its `address` (a feature id, `feature/entry` or `repo/entry`), `kind` (`feature` for a feature), `summary`, a `suggestion` and `matched`: `{ path, anchor, previousPath, reason }` per hit file. `path` is the file's current repo-relative path (for deletions, the deleted path), `anchor` is the anchor as `path:line` and only on anchor hits, `previousPath` is the old path of a rename, and `reason` is one of the names above.
+
 ### Reading docs
 
 Agents read docs through these commands, never through the YAML files.
@@ -257,7 +282,7 @@ JSON shapes. Arrays are always present, as `[]` when empty; missing values are o
 - `--json` writes only JSON to stdout. For `init` that is `{ folder, created, files, features }`: `files` lists the repo-relative files it created, and `features` the prefilled features in the same shape as their YAML files. Arrays are always present, as `[]` when empty.
 - Prompts never appear when you pass `--json` or `--no-interactive`, set `DOCS_NONINTERACTIVE=1` (or `ISSUES_NONINTERACTIVE=1`), or when stdin/stdout aren't a terminal.
 - Errors go to stderr.
-- Exit codes: `0` ok, `1` validation errors (an invalid docs file or CLAUDE.md markers, a stale block under `render --check`, `check` errors, or warnings with `check --strict`), `2` usage error / missing input, `3` not found, `4` unexpected error.
+- Exit codes: `0` ok, `1` validation errors (an invalid docs file or CLAUDE.md markers, a stale block under `render --check`, `check` errors, or warnings with `check --strict`, affected docs with `affected --strict`), `2` usage error / missing input, `3` not found, `4` unexpected error.
 - `--root <path>` overrides repository discovery. By default `docs` walks up from the current directory to the nearest folder containing `.repo-issues`, `.repo-docs` or `.git`.
 
 ## File format
