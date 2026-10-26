@@ -12,9 +12,12 @@ public static class DocsApp
         app.Configure(config =>
         {
             RepoCliApp.Configure(config, "docs", typeof(DocsApp).Assembly, output, errors);
+            config.Settings.Registrar.RegisterInstance(new ErrorConsole(errors));
 
             config.AddCommand<InitCommand>("init")
                 .WithExample("init", "--json");
+            config.AddCommand<RenderCommand>("render")
+                .WithExample("render", "--check");
         });
         return app;
     }
