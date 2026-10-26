@@ -1,0 +1,19 @@
+{
+  "id": "01a178a1-2a2f-7f20-84c3-63d86edb27a6",
+  "number": 21,
+  "name": "Anchor resolver: ok / moved / changed / broken",
+  "description": "Resolution order: hint line \u002B context match -\u003E context elsewhere in same file -\u003E git rename detection (-M) -\u003E symbol search -\u003E fuzzy context similarity above threshold (needs confirmation) -\u003E broken.\nBody hash mismatch at the resolved spot = changed. Auto-fix rewrites hints for moved only, never for changed.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "High",
+  "blockedBy": [
+    19,
+    20
+  ],
+  "tags": [
+    "core",
+    "anchors"
+  ],
+  "created": "2026-10-26T14:33:10+00:00",
+  "updated": "2026-10-26T14:33:10+00:00"
+}

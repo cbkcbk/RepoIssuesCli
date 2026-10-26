@@ -1,0 +1,17 @@
+{
+  "id": "01a178a1-34cd-7f94-a42d-32f86a6338ec",
+  "number": 35,
+  "name": "docs import from existing CLAUDE.md",
+  "description": "Convert headings of existing CLAUDE.md / AGENTS.md / nested CLAUDE.md files into entries, guessing feature by path and kind by wording; agent reviews the result. Migration path for existing repos.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    24
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:13+00:00",
+  "updated": "2026-10-26T14:33:13+00:00"
+}

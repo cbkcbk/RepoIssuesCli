@@ -1,0 +1,17 @@
+{
+  "id": "01a178a1-2bb6-73a3-b9a8-bb0a7865e7f7",
+  "number": 23,
+  "name": "docs init and YAML feature store",
+  "description": "RepoDocsCli scaffold on RepoCli.Core: .repo-docs/ with repo.yaml, one {feature}.yaml per feature, config.yaml, .gitignore for the lock.\nYamlDotNet; tool owns formatting (comments not preserved). git add / git mv like issues; lock for concurrent writes. init prefills a feature per Features/{X}/ with when.paths.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "High",
+  "blockedBy": [
+    18
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:10+00:00",
+  "updated": "2026-10-26T14:33:10+00:00"
+}

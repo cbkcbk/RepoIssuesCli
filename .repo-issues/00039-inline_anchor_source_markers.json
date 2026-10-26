@@ -1,0 +1,19 @@
+{
+  "id": "01a178a1-37db-73d7-8312-fe1fb628261b",
+  "number": 39,
+  "name": "Inline @anchor source markers",
+  "description": "Optional strongest anchor tier: // @anchor \u003Cid\u003E comment in source, survives any edit. Opt-in only.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Low",
+  "blockedBy": [
+    21
+  ],
+  "tags": [
+    "core",
+    "anchors",
+    "later"
+  ],
+  "created": "2026-10-26T14:33:13+00:00",
+  "updated": "2026-10-26T14:33:13+00:00"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "01a178a1-3109-73f9-8d83-06f14b3919b5",
+  "number": 30,
+  "name": "docs budget: always-loaded vs on-demand tokens",
+  "description": "Report token cost of the always-loaded set (rendered block \u002B CLAUDE.md import chain) vs on-demand entries, per feature and per kind. Headline metric for condensing.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    29
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:12+00:00",
+  "updated": "2026-10-26T14:33:12+00:00"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a178a1-328a-71a6-a206-3d46bd8c317c",
+  "number": 32,
+  "name": "docs affected --since \u003Cref\u003E",
+  "description": "List entries whose anchors/paths changed in the diff but whose entry was not updated. Used by the Stop hook and CI.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    27,
+    28
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:12+00:00",
+  "updated": "2026-10-26T14:33:26+00:00"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a178a1-28b0-7674-b6f8-133f7cfdadc0",
+  "number": 19,
+  "name": "Anchor model with context and body fingerprints",
+  "description": "Location = path \u002B line hint \u002B optional symbol \u002B span \u002B context hash (normalized lines around start) \u002B body hash (normalized span).\nNormalization: trim, collapse whitespace, ignore blank lines, so reformatting is not drift.\nContext hash answers \u0027where is it\u0027; body hash answers \u0027did it change\u0027. Lives in RepoCli.Core/Features/Anchors.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "High",
+  "blockedBy": [
+    18
+  ],
+  "tags": [
+    "core",
+    "anchors"
+  ],
+  "created": "2026-10-26T14:33:10+00:00",
+  "updated": "2026-10-26T14:33:10+00:00"
+}

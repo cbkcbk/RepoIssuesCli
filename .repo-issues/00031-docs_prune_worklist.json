@@ -1,0 +1,19 @@
+{
+  "id": "01a178a1-31c9-77d2-aded-30c15f0f1778",
+  "number": 31,
+  "name": "docs prune worklist",
+  "description": "Candidates with reasons: broken anchor/claim/path, changed anchor body, orphaned (when matches no files), unread for N days per kind policy, plan entries of shipped features (convert to decision/fact or delete), deprecated features with orphaned paths, collapsible steps with all issues done. --json worklist for agents.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "High",
+  "blockedBy": [
+    25,
+    26,
+    28
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:12+00:00",
+  "updated": "2026-10-26T14:33:12+00:00"
+}

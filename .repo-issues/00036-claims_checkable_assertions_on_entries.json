@@ -1,0 +1,18 @@
+{
+  "id": "01a178a1-358b-782a-9b29-9ffc3b43e4f1",
+  "number": 36,
+  "name": "Claims: checkable assertions on entries",
+  "description": "Simple file predicates on entries (files \u003Cglob\u003E contain \u003Ctext\u003E, no files \u003Cglob\u003E, count) evaluated by check; failing claim = broken entry. Not a scripting language.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Low",
+  "blockedBy": [
+    28
+  ],
+  "tags": [
+    "docs",
+    "later"
+  ],
+  "created": "2026-10-26T14:33:13+00:00",
+  "updated": "2026-10-26T14:33:26+00:00"
+}

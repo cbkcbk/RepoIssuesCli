@@ -1,0 +1,18 @@
+{
+  "id": "01a178a1-296f-78e4-8530-1c098cfca936",
+  "number": 20,
+  "name": "Regex symbol scanner for anchors",
+  "description": "Find the enclosing declaration (class/record/method/function) for a line using language-agnostic regex heuristics. No native dependencies (no tree-sitter) so the tools stay pure managed.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    19
+  ],
+  "tags": [
+    "core",
+    "anchors"
+  ],
+  "created": "2026-10-26T14:33:10+00:00",
+  "updated": "2026-10-26T14:33:10+00:00"
+}

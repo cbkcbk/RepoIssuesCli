@@ -1,0 +1,19 @@
+{
+  "id": "01a178a1-2f85-7618-babb-547748e2b4d0",
+  "number": 28,
+  "name": "docs check / validate",
+  "description": "Schema, undeclared kinds, dead paths, anchor resolution (moved/changed/broken), manual status vs linked issue states (planned with InProgress issues, shipped with open issues), rendered CLAUDE.md block out of date.\nSame exit codes and --strict semantics as issues validate; --fix for moved anchors and timestamp conflicts.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "High",
+  "blockedBy": [
+    24,
+    21,
+    26
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:11+00:00",
+  "updated": "2026-10-26T14:33:11+00:00"
+}

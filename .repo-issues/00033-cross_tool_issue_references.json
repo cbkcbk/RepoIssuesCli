@@ -1,0 +1,19 @@
+{
+  "id": "01a178a1-334a-7462-bfae-84928079e5e8",
+  "number": 33,
+  "name": "Cross-tool issue references",
+  "description": "issues renumber rewrites issue numbers in .repo-docs steps; issues delete warns when docs reference the issue; issues show lists referencing docs entries. Logic lives in RepoCli.Core.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    26
+  ],
+  "tags": [
+    "core",
+    "issues",
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:12+00:00",
+  "updated": "2026-10-26T14:33:26+00:00"
+}

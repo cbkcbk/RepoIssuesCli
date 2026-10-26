@@ -1,0 +1,20 @@
+{
+  "id": "01a178a1-340c-7c33-b95b-d08d389d5528",
+  "number": 34,
+  "name": "Claude Code plugin and hooks for docs",
+  "description": "generate-plugin for docs: skill teaching lookup and the condense/prune workflow.\nHooks: on Read/Edit push matching entries per kind push policy (summary, full body under ~150 tokens, counts as read); on Stop run docs affected.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "High",
+  "blockedBy": [
+    27,
+    29,
+    32
+  ],
+  "tags": [
+    "docs",
+    "plugin"
+  ],
+  "created": "2026-10-26T14:33:12+00:00",
+  "updated": "2026-10-26T14:33:12+00:00"
+}

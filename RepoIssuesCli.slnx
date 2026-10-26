@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="RepoIssuesCli/RepoIssuesCli.csproj" />
+  <Project Path="RepoDocsCli/RepoDocsCli.csproj" />
   <Project Path="RepoIssuesCli.Tests/RepoIssuesCli.Tests.csproj" />
 </Solution>

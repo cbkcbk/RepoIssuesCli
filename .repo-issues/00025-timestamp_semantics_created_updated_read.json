@@ -1,0 +1,17 @@
+{
+  "id": "01a178a1-2d37-769f-b248-e8caa72ae446",
+  "number": 25,
+  "name": "Timestamp semantics: created, updated, read",
+  "description": "updated bumps only on summary/body/when/claims edits, not on anchor-hint fixes or read.\nread is day-granular, written only when the date changes, and only by real reads (show, hook full-body injection), not list/find/index.\nMerge rule: later timestamp wins; validate repairs leftover conflicts (optional git merge driver).",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    24
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:11+00:00",
+  "updated": "2026-10-26T14:33:11+00:00"
+}

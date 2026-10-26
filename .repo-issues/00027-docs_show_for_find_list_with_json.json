@@ -1,0 +1,18 @@
+{
+  "id": "01a178a1-2ec2-7c0a-a3d0-1977c1b1625e",
+  "number": 27,
+  "name": "docs show / for / find / list with --json",
+  "description": "show \u003Cfeature\u003E[/\u003Centry\u003E] (single entry to save context); for \u003Cpath\u003E returns repo rules \u002B entries whose when matches, current-state kinds only, plans only when feature in-progress or --plans; find \u003Cquery\u003E ranks by summary/keywords/body; list features with status.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "High",
+  "blockedBy": [
+    24,
+    26
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:11+00:00",
+  "updated": "2026-10-26T14:33:11+00:00"
+}

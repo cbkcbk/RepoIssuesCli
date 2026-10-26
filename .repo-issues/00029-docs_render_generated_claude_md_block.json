@@ -1,0 +1,17 @@
+{
+  "id": "01a178a1-3047-79d2-999f-0c75c3dc49dd",
+  "number": 29,
+  "name": "docs render: generated CLAUDE.md block",
+  "description": "Write a generated block into CLAUDE.md: repo.yaml rules plus one line per feature (id, summary) and kinds with render: index. check fails when it is stale. Root CLAUDE.md shrinks to global rules \u002B index.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "High",
+  "blockedBy": [
+    24
+  ],
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T14:33:12+00:00",
+  "updated": "2026-10-26T14:33:12+00:00"
+}

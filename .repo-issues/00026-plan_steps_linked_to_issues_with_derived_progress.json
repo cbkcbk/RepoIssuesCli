@@ -1,0 +1,18 @@
+{
+  "id": "01a178a1-2df7-7b76-bb34-a64acbffdb5e",
+  "number": 26,
+  "name": "Plan steps linked to issues with derived progress",
+  "description": "plan entries carry steps[] with title \u002B issue numbers. Feature is recorded only in docs; issues get no feature field.\ndocs show renders progress from .repo-issues via core (done/total, per-step state, blocked markers). Progress is derived, never stored.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    24
+  ],
+  "tags": [
+    "docs",
+    "issues"
+  ],
+  "created": "2026-10-26T14:33:11+00:00",
+  "updated": "2026-10-26T14:33:11+00:00"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a178a1-3716-7bee-92ba-59df5935fbb0",
+  "number": 38,
+  "name": "docs derivable: entries restating the repo",
+  "description": "Flag entries restating facts the repo already states (command lists from README, folder trees, versions from csproj); suggest replacing with a pointer.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Low",
+  "blockedBy": [
+    24
+  ],
+  "tags": [
+    "docs",
+    "later"
+  ],
+  "created": "2026-10-26T14:33:13+00:00",
+  "updated": "2026-10-26T14:33:13+00:00"
+}

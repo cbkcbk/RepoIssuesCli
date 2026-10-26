@@ -1,0 +1,18 @@
+{
+  "id": "01a178a1-2af5-7313-beb1-5ceb23b6d073",
+  "number": 22,
+  "name": "Migrate issue locations to anchors",
+  "description": "Issue locations become anchors. Still read legacy path:line:col and upgrade on write.\nissues validate reports moved/changed/broken instead of LocationLineOutOfRange; validate --fix rewrites hints for moved anchors.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    21
+  ],
+  "tags": [
+    "issues",
+    "anchors"
+  ],
+  "created": "2026-10-26T14:33:10+00:00",
+  "updated": "2026-10-26T14:33:10+00:00"
+}
