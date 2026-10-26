@@ -9,12 +9,20 @@
   "blockedBy": [
     27,
     29,
-    32
+    32,
+    40
   ],
   "tags": [
     "docs",
     "plugin"
   ],
   "created": "2026-10-26T14:33:12+00:00",
-  "updated": "2026-10-26T14:33:12+00:00"
+  "updated": "2026-10-26T15:04:22+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:04:22+00:00",
+      "text": "Requirement from the user: the docs skill must strongly discourage editing .repo-docs/*.yaml directly (Edit/Write or shell). Agents always go through the docs CLI (add/edit/rm from #40, check --fix, etc.); if the CLI can\u0027t make the change, tell the user instead. Only exception: resolving a git merge conflict, followed by docs check. Mirror the wording of the issues skill (RepoIssuesCli/Cli/Plugin/IssuesPlugin.cs). Note #34 should come after #40 so the skill can point at real edit commands."
+    }
+  ]
 }
