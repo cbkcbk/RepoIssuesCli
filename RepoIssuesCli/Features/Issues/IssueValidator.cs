@@ -11,12 +11,6 @@ public enum ProblemKind
     LocationLineOutOfRange,
 }
 
-public enum Severity
-{
-    Error,
-    Warning,
-}
-
 public sealed record ValidationProblem(ProblemKind Kind, string Message, string? File = null)
 {
     public Severity Severity => Kind is ProblemKind.MissingLocationFile or ProblemKind.LocationLineOutOfRange

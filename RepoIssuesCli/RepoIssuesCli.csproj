@@ -33,4 +33,14 @@
       <PackageReference Include="Spectre.Console.Cli" Version="0.57.2" />
     </ItemGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="../RepoCli.Core/RepoCli.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="RepoCli.Core.Cli" />
+        <Using Include="RepoCli.Core.Features.Repo" />
+        <Using Include="RepoCli.Core.Features.Validation" />
+    </ItemGroup>
+
 </Project>

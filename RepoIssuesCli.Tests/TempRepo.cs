@@ -39,10 +39,15 @@ public sealed class TempRepo : IDisposable
 
     public string Git(params string[] args)
     {
-        var result = RepoIssuesCli.Features.Issues.Git.Run(Root, args);
+        var result = RepoCli.Core.Features.Repo.Git.Run(Root, args);
         Assert.That(result?.ExitCode, Is.Zero, $"git {string.Join(' ', args)}");
         return result!.Output;
     }
 
-    public void Dispose() => Directory.Delete(Root, recursive: true);
+    public void Dispose()
+    {
+        foreach (var file in Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories))
+            File.SetAttributes(file, FileAttributes.Normal);
+        Directory.Delete(Root, recursive: true);
+    }
 }

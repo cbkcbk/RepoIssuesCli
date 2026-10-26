@@ -1,7 +1,7 @@
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
-namespace RepoIssuesCli.Cli;
+namespace RepoCli.Core.Cli;
 
 public sealed class Unwrapped(IRenderable content) : IRenderable
 {

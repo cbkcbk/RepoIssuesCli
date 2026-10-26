@@ -1,10 +1,11 @@
-namespace RepoIssuesCli.Features.Issues;
+namespace RepoCli.Core.Features.Repo;
 
 public static class RepoLocator
 {
     public const string IssuesFolderName = ".repo-issues";
+    public const string DocsFolderName = ".repo-docs";
 
-    static readonly string[] RootMarkers = [IssuesFolderName, ".git"];
+    static readonly string[] RootMarkers = [IssuesFolderName, DocsFolderName, ".git"];
 
     public static string FindRoot(string? explicitRoot, string startDirectory)
     {

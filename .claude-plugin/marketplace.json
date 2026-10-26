@@ -1,6 +1,6 @@
 {
   "name": "repo-issues",
-  "description": "Claude Code plugin for the issues CLI (RepoIssuesCli).",
+  "description": "Claude Code plugins for the issues and docs CLIs (RepoIssuesCli, RepoDocsCli).",
   "owner": {
     "name": "ChristofferBK"
   },

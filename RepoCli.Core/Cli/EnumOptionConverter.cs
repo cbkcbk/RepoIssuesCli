@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Globalization;
 
-namespace RepoIssuesCli.Cli;
+namespace RepoCli.Core.Cli;
 
 public sealed class EnumOptionConverter<T> : TypeConverter where T : struct, Enum
 {

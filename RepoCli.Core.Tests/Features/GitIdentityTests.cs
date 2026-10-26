@@ -1,6 +1,4 @@
-using RepoIssuesCli.Features.Issues;
-
-namespace RepoIssuesCli.Tests.Features;
+namespace RepoCli.Core.Tests.Features;
 
 public class GitIdentityTests
 {
@@ -13,9 +11,9 @@ public class GitIdentityTests
     [Test]
     public void ReadsAuthorFromRepoConfig()
     {
-        using var repo = new TempRepo();
-        repo.InitGit();
+        using var folder = new TempFolder();
+        folder.InitGit();
 
-        Assert.That(GitIdentity.Author(repo.Root), Is.EqualTo("Test User <test@example.com>"));
+        Assert.That(GitIdentity.Author(folder.Root), Is.EqualTo("Test User <test@example.com>"));
     }
 }

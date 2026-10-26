@@ -44,10 +44,10 @@ Issue references (`<ref>`) accept a number (`3`, `0003`), a name or unique name 
 ## Automation
 
 - `--json` writes only JSON to stdout: one issue for `new`/`show`/`edit`/`status`/`comment`/`delete`, an array for `list`, an array of `{ kind, message, file?, severity }` for `validate` (`severity` is `Error` or `Warning`), and `{ issue, previousNumber, rewritten, keptReferences }` for `renumber`. Issues always include `blockedBy`, `locations`, `tags` and `comments`, as `[]` when empty, though issue files leave empty lists out.
-- Prompts never appear when you pass `--json` or `--no-interactive`, set `ISSUES_NONINTERACTIVE=1`, or when stdin/stdout aren't a terminal. In those modes, missing input is an error.
+- Prompts never appear when you pass `--json` or `--no-interactive`, set `ISSUES_NONINTERACTIVE=1` (or `DOCS_NONINTERACTIVE=1`), or when stdin/stdout aren't a terminal. In those modes, missing input is an error.
 - Errors go to stderr.
 - Exit codes: `0` ok, `1` validation errors (or warnings with `validate --strict`), `2` usage error / missing input, `3` issue not found, `4` unexpected error.
-- `--root <path>` overrides repository discovery. By default `issues` walks up from the current directory to the nearest folder containing `.repo-issues` or `.git` (a folder, or the file used by worktrees and submodules), so running it from a subfolder uses the repository root. Outside any repository it uses the current directory.
+- `--root <path>` overrides repository discovery. By default `issues` walks up from the current directory to the nearest folder containing `.repo-issues`, `.repo-docs` or `.git` (a folder, or the file used by worktrees and submodules), so running it from a subfolder uses the repository root. Outside any repository it uses the current directory.
 
 ## Claude Code plugin
 

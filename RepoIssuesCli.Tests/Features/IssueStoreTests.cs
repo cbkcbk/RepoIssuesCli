@@ -143,7 +143,7 @@ public class IssueStoreTests
         var waiting = new IssueStore(repo.Root) { LockTimeout = TimeSpan.FromMilliseconds(100) };
 
         using (repo.Store.Lock())
-            Assert.Throws<IssueLockTimeoutException>(() => waiting.Lock());
+            Assert.Throws<LockTimeoutException>(() => waiting.Lock());
 
         Assert.DoesNotThrow(() => waiting.Lock().Dispose());
     }

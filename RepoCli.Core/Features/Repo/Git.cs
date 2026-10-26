@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 
-namespace RepoIssuesCli.Features.Issues;
+namespace RepoCli.Core.Features.Repo;
 
 public sealed record GitResult(int ExitCode, string Output)
 {

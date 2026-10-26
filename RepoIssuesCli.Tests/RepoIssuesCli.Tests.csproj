@@ -18,6 +18,9 @@
 
     <ItemGroup>
         <Using Include="NUnit.Framework" />
+        <Using Include="RepoCli.Core.Cli" />
+        <Using Include="RepoCli.Core.Features.Repo" />
+        <Using Include="RepoCli.Core.Features.Validation" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' != 'Debug'">

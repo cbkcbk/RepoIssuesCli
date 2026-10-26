@@ -1,12 +1,12 @@
 using System.ComponentModel;
 using Spectre.Console.Cli;
 
-namespace RepoIssuesCli.Cli;
+namespace RepoCli.Core.Cli;
 
 public class GlobalSettings : CommandSettings
 {
     [CommandOption("--root <PATH>")]
-    [Description("Repository root. Defaults to the nearest folder containing .repo-issues or .git.")]
+    [Description("Repository root. Defaults to the nearest folder containing .repo-issues, .repo-docs or .git.")]
     public string? Root { get; init; }
 
     [CommandOption("--json")]
@@ -14,6 +14,6 @@ public class GlobalSettings : CommandSettings
     public bool Json { get; init; }
 
     [CommandOption("--no-interactive")]
-    [Description("Never prompt; fail when required input is missing. Also enabled by ISSUES_NONINTERACTIVE=1.")]
+    [Description("Never prompt; fail when required input is missing. Also enabled by ISSUES_NONINTERACTIVE=1 or DOCS_NONINTERACTIVE=1.")]
     public bool NoInteractive { get; init; }
 }

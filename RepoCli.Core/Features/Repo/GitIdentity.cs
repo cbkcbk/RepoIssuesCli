@@ -1,4 +1,4 @@
-namespace RepoIssuesCli.Features.Issues;
+namespace RepoCli.Core.Features.Repo;
 
 public static class GitIdentity
 {

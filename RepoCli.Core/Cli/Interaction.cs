@@ -1,14 +1,15 @@
-using RepoIssuesCli.Features.Issues;
 using Spectre.Console;
 
-namespace RepoIssuesCli.Cli;
+namespace RepoCli.Core.Cli;
 
 public sealed class Interaction(IAnsiConsole console, GlobalSettings settings)
 {
+    static readonly string[] NonInteractiveVariables = ["ISSUES_NONINTERACTIVE", "DOCS_NONINTERACTIVE"];
+
     public bool IsInteractive =>
         !settings.NoInteractive
         && !settings.Json
-        && Environment.GetEnvironmentVariable("ISSUES_NONINTERACTIVE") is not ("1" or "true")
+        && !NonInteractiveVariables.Any(name => Environment.GetEnvironmentVariable(name) is "1" or "true")
         && console.Profile.Capabilities.Interactive;
 
     public string RequireText(string? value, string option, string question)
@@ -101,25 +102,7 @@ public sealed class Interaction(IAnsiConsole console, GlobalSettings settings)
 
     public bool Confirm(string question) => console.Confirm(question, defaultValue: false);
 
-    public Issue ChooseIssue(IReadOnlyCollection<Issue> issues, string? reference, string title)
-    {
-        if (!string.IsNullOrWhiteSpace(reference))
-        {
-            var matches = IssueResolver.FindAll(issues, reference);
-            return matches.Count > 1 && IsInteractive
-                ? Choose(title, matches, issue => $"{issue.Title} ({issue.Id})", "<ref>")
-                : IssueResolver.Single(reference, matches);
-        }
-
-        EnsureInteractive("<ref>");
-        if (issues.Count == 0)
-            throw new UsageException("There are no issues yet.");
-
-        var ordered = issues.OrderBy(issue => issue.Status.IsClosed()).ThenBy(issue => issue.Number);
-        return Choose(title, ordered, issue => $"{issue.Title} [{issue.Status}]", "<ref>");
-    }
-
-    void EnsureInteractive(string option)
+    public void EnsureInteractive(string option)
     {
         if (!IsInteractive)
             throw new UsageException($"Missing required input: {option}.");

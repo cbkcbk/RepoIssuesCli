@@ -10,7 +10,7 @@ public static class IssueRenderer
     const int MinOptionalWidth = 10;
     const int ColumnChrome = 3;
 
-    public static void WriteJson<T>(IAnsiConsole console, T value) => console.Profile.Out.Writer.Write(IssueJson.SerializeOutput(value));
+    public static void WriteJson<T>(IAnsiConsole console, T value) => CliOutput.WriteJson(console, IssueJson.SerializeOutput(value));
 
     public static void WriteList(IAnsiConsole console, IReadOnlyList<Issue> shown, IReadOnlyCollection<Issue> all)
     {
@@ -25,10 +25,10 @@ public static class IssueRenderer
         var blockers = shown.Select(issue => BlockerItems(issue, all)).ToList();
 
         var spare = console.Profile.Width - 1
-            - ColumnWidth("#", numbers)
-            - ColumnWidth("Name", shown.Select(issue => Markup.Escape(issue.Name)).ToList(), PreferredNameWidth)
-            - ColumnWidth("Status", shown.Select(issue => StatusMarkup(issue.Status)).ToList())
-            - ColumnWidth("Priority", shown.Select(issue => PriorityMarkup(issue.Priority)).ToList());
+                                          - ColumnWidth("#", numbers)
+                                          - ColumnWidth("Name", shown.Select(issue => Markup.Escape(issue.Name)).ToList(), PreferredNameWidth)
+                                          - ColumnWidth("Status", shown.Select(issue => StatusMarkup(issue.Status)).ToList())
+                                          - ColumnWidth("Priority", shown.Select(issue => PriorityMarkup(issue.Priority)).ToList());
         var blockerWidth = Allot("Blocked by", blockers, ref spare);
         var tagWidth = Allot("Tags", tags, ref spare);
 
@@ -163,12 +163,6 @@ public static class IssueRenderer
 
     public static void WriteSaved(IAnsiConsole console, string verb, Issue issue) =>
         console.MarkupLine($"{verb} [bold]{Markup.Escape(issue.Title)}[/]");
-
-    public static void WriteUnwrappedLine(IAnsiConsole console, string markup)
-    {
-        console.Write(new Unwrapped(new Markup(markup)));
-        console.WriteLine();
-    }
 
     static Tree BlockerTree(Issue issue, IReadOnlyCollection<Issue> all)
     {
