@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using RepoCli.Core.Features.Json;
+using RepoDocsCli.Features.Affected;
 using RepoDocsCli.Features.Check;
 using RepoDocsCli.Features.ClaudeMd;
 using RepoDocsCli.Features.Import;
@@ -27,6 +28,7 @@ namespace RepoDocsCli.Features.Docs;
 [JsonSerializable(typeof(ForResult))]
 [JsonSerializable(typeof(List<SearchHit>))]
 [JsonSerializable(typeof(List<FeatureListItem>))]
+[JsonSerializable(typeof(AffectedResult))]
 public partial class DocsJsonContext : JsonSerializerContext;
 
 public static class DocsJson

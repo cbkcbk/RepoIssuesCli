@@ -34,6 +34,9 @@ public static class DocsApp
             config.AddCommand<TouchCommand>("touch")
                 .WithExample("touch", "billing/rounding")
                 .WithExample("touch", "--json");
+            config.AddCommand<AffectedCommand>("affected")
+                .WithExample("affected", "--json")
+                .WithExample("affected", "--since", "origin/main", "--strict");
             config.AddCommand<MergeDriverCommand>("merge-driver")
                 .WithExample("merge-driver", "%O", "%A", "%B", "%P");
             config.AddCommand<ImportCommand>("import")
