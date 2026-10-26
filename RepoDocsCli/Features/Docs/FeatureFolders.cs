@@ -6,7 +6,7 @@ public static class FeatureFolders
 
     static readonly HashSet<string> SkippedFolders = ["bin", "obj", "node_modules"];
 
-    public static IReadOnlyList<Feature> Prefill(string root) =>
+    public static IReadOnlyList<Feature> Prefill(string root, DateTimeOffset created) =>
         Find(root)
             .Select(folder => (Id: FeatureId.FromFolderName(Path.GetFileName(folder)), Path: RepoPath(root, folder)))
             .Where(found => FeatureId.IsValid(found.Id))
@@ -16,7 +16,8 @@ public static class FeatureFolders
             {
                 Id = group.Key,
                 Status = FeatureStatus.Shipped,
-                When = new FeatureWhen { Paths = group.Select(found => found.Path).Order(StringComparer.Ordinal).ToList() },
+                When = new WhenHints { Paths = group.Select(found => found.Path).Order(StringComparer.Ordinal).ToList() },
+                Created = created,
             })
             .ToList();
 

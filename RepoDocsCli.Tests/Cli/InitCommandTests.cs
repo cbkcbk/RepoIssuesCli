@@ -24,7 +24,7 @@ public class InitCommandTests
         Assert.That(DocsFiles(), Is.EqualTo(new[] { ".gitignore", "config.yaml", "repo.yaml" }));
         Assert.That(repo.ReadDocsFile(".gitignore"), Is.EqualTo(".lock\n"));
         Assert.That(repo.ReadDocsFile("repo.yaml"), Is.EqualTo("entries: []\n"));
-        Assert.That(repo.ReadDocsFile("config.yaml"), Does.StartWith("version: 1\nkinds:\n  rule: {}\n"));
+        Assert.That(repo.ReadDocsFile("config.yaml"), Does.StartWith("version: 1\nkinds:\n  rule:\n    render: index\n"));
         Assert.That(result.Output, Is.EqualTo($"Initialized {repo.Folder}\n"));
     }
 
@@ -70,16 +70,17 @@ public class InitCommandTests
 
         Assert.That(result.ExitCode, Is.Zero, result.Errors);
         Assert.That(DocsFiles(), Is.EqualTo(new[] { ".gitignore", "billing.yaml", "config.yaml", "repo-feature.yaml", "repo.yaml", "user-accounts.yaml" }));
-        Assert.That(repo.ReadDocsFile("billing.yaml"), Is.EqualTo(
+        Assert.That(repo.ReadDocsFile("billing.yaml"), Does.Match(
             """
-            feature: billing
+            ^feature: billing
             status: shipped
             when:
               paths:
                 - App/Features/Billing/
                 - Core/Features/Billing/
-            entries: []
-
+            created: \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ
+            entries: \[\]
+            $
             """.ReplaceLineEndings("\n")));
         Assert.That(result.Output, Does.Contain("Added feature billing (App/Features/Billing/, Core/Features/Billing/)"));
     }
@@ -103,6 +104,7 @@ public class InitCommandTests
         Assert.That(feature.GetProperty("when").GetProperty("paths")[0].GetString(), Is.EqualTo("Src/Features/Search/"));
         Assert.That(feature.GetProperty("entries").GetArrayLength(), Is.Zero);
         Assert.That(feature.TryGetProperty("summary", out _), Is.False);
+        Assert.That(feature.GetProperty("created").GetDateTimeOffset().Offset, Is.EqualTo(TimeSpan.Zero));
 
         var again = JsonDocument.Parse(repo.Run("init", "--json").Output).RootElement;
         Assert.That(again.GetProperty("created").ValueKind, Is.EqualTo(JsonValueKind.False));

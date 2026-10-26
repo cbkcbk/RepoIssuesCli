@@ -10,7 +10,9 @@ public static partial class FeatureId
 
     static readonly string[] Reserved = [RepoFileStem, ConfigFileStem];
 
-    public static bool IsValid(string id) => ValidPattern().IsMatch(id) && !Reserved.Contains(id);
+    public static bool IsValid(string id) => IsKebabCase(id) && !Reserved.Contains(id);
+
+    public static bool IsKebabCase(string? id) => id is not null && ValidPattern().IsMatch(id);
 
     public static string Require(string id) =>
         IsValid(id) ? id : throw new UsageException($"'{id}' is not a valid feature id. Use lowercase letters, digits and single hyphens, and not '{RepoFileStem}' or '{ConfigFileStem}'.");

@@ -23,6 +23,8 @@ public sealed class DocsStore(string root)
 
     public TimeSpan LockTimeout { get; init; } = TimeSpan.FromSeconds(10);
 
+    public TimeProvider Clock { get; init; } = TimeProvider.System;
+
     public string Root => root;
 
     public string Folder => Path.Combine(root, RepoLocator.DocsFolderName);
@@ -62,7 +64,7 @@ public sealed class DocsStore(string root)
             files.Add(ConfigFile);
         }
 
-        var features = created ? FeatureFolders.Prefill(root) : [];
+        var features = created ? FeatureFolders.Prefill(root, DocsTime.Now(Clock)) : [];
         foreach (var feature in features)
         {
             Save(feature);
@@ -137,6 +139,8 @@ public sealed class DocsStore(string root)
 
     public string PathFor(string id) => PathOf(id);
 
+    public static string FileNameFor(string stem) => stem + Extension;
+
     IEnumerable<string> FeatureFiles() =>
         Directory.EnumerateFiles(Folder, "*" + Extension)
             .Where(path => path != RepoFile && path != ConfigFile)
@@ -184,11 +188,23 @@ public sealed class DocsStore(string root)
     static Feature Normalize(Feature feature) => feature with
     {
         Summary = string.IsNullOrWhiteSpace(feature.Summary) ? null : feature.Summary,
-        When = new FeatureWhen { Paths = feature.When?.Paths ?? [] },
-        Entries = feature.Entries ?? [],
+        When = Normalize(feature.When),
+        Entries = Normalize(feature.Entries),
     };
 
-    static RepoDocs Normalize(RepoDocs repo) => repo with { Entries = repo.Entries ?? [] };
+    static RepoDocs Normalize(RepoDocs repo) => repo with { Entries = Normalize(repo.Entries) };
+
+    static List<FeatureEntry> Normalize(List<FeatureEntry>? entries) =>
+        (entries ?? []).OfType<FeatureEntry>().Select(entry => entry with { When = NormalizeOptional(entry.When) }).ToList();
+
+    static WhenHints? NormalizeOptional(WhenHints? when) => Normalize(when) is var hints && hints.HasHints() ? hints : null;
+
+    static WhenHints Normalize(WhenHints? when) => new()
+    {
+        Paths = when?.Paths ?? [],
+        Anchors = when?.Anchors ?? [],
+        Keywords = when?.Keywords ?? [],
+    };
 
     static DocsConfig Normalize(DocsConfig config) => config with
     {
@@ -209,5 +225,5 @@ public sealed class DocsStore(string root)
 
     string RepoPath(string path) => Path.GetRelativePath(root, path).Replace('\\', '/');
 
-    string PathOf(string stem) => Path.Combine(Folder, stem + Extension);
+    string PathOf(string stem) => Path.Combine(Folder, FileNameFor(stem));
 }

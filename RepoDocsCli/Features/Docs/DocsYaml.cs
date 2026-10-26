@@ -8,6 +8,9 @@ public static class DocsYaml
     static readonly ISerializer Serializer = new SerializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .WithEnumNamingConvention(HyphenatedNamingConvention.Instance)
+        .WithTypeConverter(new TimestampYamlConverter())
+        .WithTypeConverter(new DateYamlConverter())
+        .WithTypeConverter(new AnchorYamlConverter())
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
         .WithIndentedSequences()
         .DisableAliases()
@@ -16,6 +19,9 @@ public static class DocsYaml
     static readonly IDeserializer Deserializer = new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .WithEnumNamingConvention(HyphenatedNamingConvention.Instance)
+        .WithTypeConverter(new TimestampYamlConverter())
+        .WithTypeConverter(new DateYamlConverter())
+        .WithTypeConverter(new AnchorYamlConverter())
         .Build();
 
     public static string Serialize<T>(T value) => Serializer.Serialize(value).ReplaceLineEndings("\n");

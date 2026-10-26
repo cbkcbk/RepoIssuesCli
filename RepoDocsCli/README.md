@@ -42,29 +42,73 @@ A feature, `.repo-docs/billing.yaml`:
 
 ```yaml
 feature: billing
-status: shipped
+status: in-progress
 summary: Invoices and payments
 when:
   paths:
     - App/Features/Billing/
-    - Core/Features/Billing/
-entries: []
+  anchors:
+    - path: App/Features/Billing/Invoice.cs
+      line: 42
+      span: 3
+      symbol: Invoice.Total
+      context: a1b2c3d4e5f6
+      body: 0f1e2d3c4b5a
+  keywords:
+    - invoice
+    - vat
+created: 2026-10-20T09:15:00Z
+updated: 2026-10-26T14:33:11Z
+entries:
+  - id: rounding
+    kind: rule
+    summary: Round half to even
+    when:
+      paths:
+        - App/Features/Billing/Money.cs
+    created: 2026-10-20T09:15:00Z
+    updated: 2026-10-21T08:00:00Z
+    read: 2026-10-26
+    body: |
+      Use MidpointRounding.ToEven.
+      Never round twice.
+  - id: vat-cache
+    kind: gotcha
+    summary: VAT rates are cached for an hour
 ```
 
-`config.yaml`:
+`config.yaml`, as written by `init`:
 
 ```yaml
 version: 1
 kinds:
-  rule: {}
-  fact: {}
-  gotcha: {}
-  howto: {}
-  decision: {}
-  plan: {}
+  rule:
+    render: index
+    push: on-edit
+  fact:
+    render: never
+    push: on-read
+    prune:
+      unreadDays: 180
+  gotcha:
+    render: never
+    push: on-edit
+    prune:
+      unreadDays: 365
+  howto:
+    render: index
+    push: never
+    prune:
+      unreadDays: 180
+  decision:
+    render: never
+    push: never
+  plan:
+    render: never
+    push: when-feature-active
 ```
 
-`repo.yaml`:
+`repo.yaml` holds repo-wide entries in the same entry format:
 
 ```yaml
 entries: []
@@ -72,7 +116,15 @@ entries: []
 
 - The tool owns the formatting. Files are rewritten in a fixed layout, so YAML comments are not kept.
 - A feature id is lowercase kebab-case (`user-accounts`) and must match its file name. `repo` and `config` are reserved.
-- `status` is set by hand: `proposed`, `planned`, `in-progress`, `shipped` or `deprecated`.
+- `status` is set by hand: `proposed`, `planned`, `in-progress`, `shipped` or `deprecated`. Progress is never stored; it is derived from linked issues.
+- `when` holds the hints that make a feature or entry relevant: `paths` (files or folders, folders end in `/`), `anchors` (code locations with a line hint, a span of non-blank lines, an optional `symbol`, and `context` and `body` fingerprints) and `keywords`. Empty lists are omitted. An entry without `when` applies wherever its feature does.
+- An entry has an `id`, a `kind`, a one-line `summary` and an optional markdown `body`, written as a literal block. Entry ids are lowercase kebab-case and unique within their feature (or `repo.yaml`). An entry is addressed as `feature/entry`, and repo-wide entries as `repo/entry`.
+- `created` and `updated` are UTC timestamps (`2026-10-26T14:33:11Z`); `read` is a date (`2026-10-26`). The tool stamps `created` on what it creates.
+- `config.yaml` declares the entry kinds. An entry whose kind is not declared is invalid. Each kind sets:
+  - `render`: how it appears in the generated CLAUDE.md block. `always` renders the whole entry, `index` one line with its summary, `never` nothing.
+  - `push`: when hooks push it to the agent. `on-edit` when a matching file is edited, `on-read` when one is read, `when-feature-active` when the feature is `in-progress`, `never` only on request.
+  - `prune`: when it becomes a prune candidate. `unreadDays` flags entries not read for that many days; without it, the kind is never pruned for being unread.
+  - A kind written as `{}` renders and pushes nothing and is never pruned for being unread.
 - `init` prefills one feature per `Features/{X}/` folder anywhere in the repository, skipping hidden folders, `bin`, `obj` and `node_modules`. The id is `{X}` in kebab-case (`UserAccounts` becomes `user-accounts`, and a reserved name gets a `-feature` suffix). Folders with the same name in different projects merge into one feature with several `when.paths`. Prefilled features are `shipped`, because their code already exists.
 - New files are `git add`ed, renamed features are moved with `git mv` and deleted ones are `git rm`ed. Outside a git repository, plain file operations are used.
 - Writes hold `.repo-docs/.lock`, which is listed in `.repo-docs/.gitignore`.
