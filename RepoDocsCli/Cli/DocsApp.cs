@@ -21,6 +21,16 @@ public static class DocsApp
             config.AddCommand<TouchCommand>("touch")
                 .WithExample("touch", "billing/rounding")
                 .WithExample("touch", "--json");
+            config.AddCommand<AddCommand>("add")
+                .WithExample("add", "billing", "--status", "in-progress", "--summary", "Invoices and payments", "--path", "App/Features/Billing/")
+                .WithExample("add", "billing/rounding", "--kind", "rule", "--summary", "Round half to even", "--anchor", "App/Features/Billing/Money.cs:42")
+                .WithExample("add", "billing", "--entry", "--kind", "gotcha", "--summary", "VAT rates are cached for an hour", "--json");
+            config.AddCommand<EditCommand>("edit")
+                .WithExample("edit", "billing/rounding", "--summary", "Round half to even, once", "--add-keyword", "money")
+                .WithExample("edit", "billing", "--id", "invoicing", "--status", "shipped")
+                .WithExample("edit", "billing/rounding");
+            config.AddCommand<RmCommand>("rm")
+                .WithExample("rm", "billing/rounding", "--force");
             config.AddCommand<MergeDriverCommand>("merge-driver")
                 .WithExample("merge-driver", "%O", "%A", "%B", "%P");
         });

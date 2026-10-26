@@ -23,6 +23,58 @@ docs touch --json    # { target, updated, files }
 
 `init` is idempotent. On an existing `.repo-docs/` it only recreates a missing `repo.yaml`, `config.yaml` or `.gitignore`. It never prefills features again, so features you deleted stay deleted.
 
+### Adding, editing and removing docs
+
+`add`, `edit` and `rm` are the way to change docs. Agents should use them instead of editing the YAML, because the commands validate the change, create anchors from the current code, stamp timestamps, stage files in git and hold the lock.
+
+```sh
+# features
+docs add billing --status in-progress --summary "Invoices and payments" --path App/Features/Billing/ --keyword invoice,vat
+docs edit billing --status shipped --add-anchor App/Features/Billing/Invoice.cs:42-44
+docs edit billing --id invoicing                  # rename: git mv billing.yaml invoicing.yaml
+docs rm invoicing --force
+
+# entries (feature/entry, or repo/entry for repo.yaml)
+docs add billing/rounding --kind rule --summary "Round half to even" --body "Use MidpointRounding.ToEven." --path App/Features/Billing/Money.cs
+docs add billing --entry --kind gotcha --summary "VAT rates are cached for an hour"   # id: vat-rates-are-cached-for-an-hour
+docs add repo/style --kind rule --summary "Use file-scoped namespaces" --body-file style.md
+git diff | docs add billing/review --kind fact --summary "Review notes" --body-stdin
+docs edit billing/rounding --summary "Round once, half to even" --remove-keyword money --add-keyword rounding
+docs edit billing/rounding --id money-rounding    # rename within the file
+docs edit billing/rounding                        # interactive field menu
+docs edit repo --summary "Monorepo for the shop"  # the repo.yaml summary
+docs rm billing/rounding --force
+
+# plan steps, with linked issues as trailing #n tokens
+docs add billing/rollout --kind plan --summary "Roll out the new invoices" --step "Schema and store #23 #24" --step "Write the migration guide"
+docs edit billing/rollout --add-step "Release #30" --set-step "2=Write the guide #31" --step-issues 1=23,24,25 --remove-step 3
+```
+
+`docs add <target>` creates a feature when the target is a feature id, and an entry when it is `feature/entry` or `repo/entry`:
+
+- Features take `--status` (`proposed` by default; `in-progress` and `InProgress` both work), `--summary` and the hints `--path`, `--anchor` and `--keyword`.
+- Entries take `--kind` (required, must be declared in `config.yaml`), `--summary` (required, one line), the body as `--body <text>`, `--body-file <path>` or `--body-stdin`, the same hints, and `--step` for `plan` entries.
+- `--entry` creates an entry in the feature given as target and derives its id from the summary: lowercase ASCII words joined by `-`, cut at a word boundary to at most 40 characters, with apostrophes dropped (`entry` when no word is left). If the id is taken in that feature, `-2`, `-3`, … is appended. An explicit id that already exists is an error.
+- Run interactively without a target, `add` prompts for the target, kind, summary and body.
+
+`docs edit <target>` changes only what you pass:
+
+- `--summary`, `--clear-summary` (features and `repo`), `--status` (features), `--kind`, `--body`/`--body-file`/`--body-stdin`, `--clear-body` (entries).
+- `--add-path`/`--remove-path`, `--add-anchor`/`--remove-anchor` and `--add-keyword`/`--remove-keyword`, all repeatable. Removing a hint that isn't there is an error. `--remove-anchor` takes a path (every anchor in the file), `path:line` or a symbol (`Invoice.Total`). `--add-anchor` on the path and line of an existing anchor replaces it, which is how you re-anchor code that changed.
+- Plan steps (plan entries only): `--add-step "<title> #n ..."` appends, `--set-step N="<title> #n ..."` replaces step N, `--step-issues N=23,24` sets its issues (`N=` clears them), and `--remove-step N` removes it. Steps are numbered from 1, as they were before the edit.
+- `--id` renames. A feature's file is moved with `git mv`; an entry is renamed in place and keeps its timestamps.
+- Without change options it opens a field menu when interactive, like `issues edit`, and is a usage error otherwise. An edit that changes nothing reports `Unchanged` and leaves the file alone, so `updated` only moves on real changes.
+
+`docs rm <target>` removes a feature (its whole file, with `git rm`) or a single entry. It asks for confirmation, and needs `--force` when not interactive. `repo` itself can't be removed.
+
+Shared rules:
+
+- Paths and anchors are relative to the current folder when you run inside the repository, and stored repo-relative with `/`. An existing folder gets a trailing `/`.
+- `--anchor path:line` or `path:line-end` is anchored on the file as it is now: the line hint, span, enclosing `symbol` and `context`/`body` hashes are computed for you. A missing file, or a line outside the file, is a usage error (exit `2`).
+- Every change is validated before it is saved, and a change that would add a validation error (an undeclared kind, a summary over several lines, a missing summary, steps on a non-`plan` entry, an invalid or duplicate id) is refused with exit `2` and the problems on stderr. Problems that were already in other files don't block it.
+- A missing feature or entry is exit `3`.
+- `--json` writes the resulting item as `{ address, file, feature }` for a feature, `{ address, file, entry }` for an entry and `{ address, file, repo }` for `edit repo`; `rm` writes the removed item. `feature`, `entry` and `repo` have the same shape as in the YAML files; `file` is repo-relative (`.repo-docs/billing.yaml`).
+
 ### Rendering CLAUDE.md
 
 ```sh
