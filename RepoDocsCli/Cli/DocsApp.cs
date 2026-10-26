@@ -18,6 +18,13 @@ public static class DocsApp
                 .WithExample("init", "--json");
             config.AddCommand<RenderCommand>("render")
                 .WithExample("render", "--check");
+            config.AddCommand<TouchCommand>("touch")
+                .WithExample("touch", "billing/rounding")
+                .WithExample("touch", "--json");
+
+            config.AddCommand<MergeDriverCommand>("merge-driver")
+                .WithExample("merge-driver", "%O", "%A", "%B", "%P");
+                >>>>>>> issue - 0025 - timestamps
         });
         return app;
     }

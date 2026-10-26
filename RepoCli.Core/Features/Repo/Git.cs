@@ -40,6 +40,9 @@ public static class Git
         }
     }
 
+    public static string? Show(string root, string revision, string path) =>
+        Run(root, "show", $"{revision}:./{Path.GetRelativePath(root, path).Replace('\\', '/')}") is { Succeeded: true } result ? result.Output : null;
+
     public static void Add(string root, string path) =>
         Run(root, "add", "--", Path.GetRelativePath(root, path));
 

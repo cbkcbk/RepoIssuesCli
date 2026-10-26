@@ -16,7 +16,7 @@ public sealed class DocsFileException(DocsFileError error) : Exception($"{error.
     public DocsFileError Error => error;
 }
 
-public sealed class DocsStore(string root)
+public sealed partial class DocsStore(string root)
 {
     public const string Extension = ".yaml";
     const string IgnoreFileName = ".gitignore";
@@ -109,9 +109,20 @@ public sealed class DocsStore(string root)
 
     public bool Exists(string id) => FeatureId.IsValid(id) && File.Exists(PathFor(id));
 
-    public void Save(Feature feature) => Write(PathFor(FeatureId.Require(feature.Id)), DocsYaml.Serialize(feature));
+    public Feature Save(Feature feature)
+    {
+        var path = PathFor(FeatureId.Require(feature.Id));
+        var stamped = Timestamps.Stamp(ReadExisting<Feature>(path, Normalize), feature, DocsTime.Now(Clock));
+        Write(path, DocsYaml.Serialize(stamped));
+        return stamped;
+    }
 
-    public void SaveRepo(RepoDocs repo) => Write(RepoFile, DocsYaml.Serialize(repo));
+    public RepoDocs SaveRepo(RepoDocs repo)
+    {
+        var stamped = Timestamps.Stamp(ReadExisting<RepoDocs>(RepoFile, Normalize), repo, DocsTime.Now(Clock));
+        Write(RepoFile, DocsYaml.Serialize(stamped));
+        return stamped;
+    }
 
     public void SaveConfig(DocsConfig config) => Write(ConfigFile, DocsYaml.Serialize(config));
 
@@ -185,14 +196,26 @@ public sealed class DocsStore(string root)
         }
     }
 
-    static Feature Normalize(Feature feature) => feature with
+    static T? ReadExisting<T>(string path, Func<T, T> normalize) where T : class
+    {
+        try
+        {
+            return File.Exists(path) && Read<T>(path) is { } value ? normalize(value) : null;
+        }
+        catch (DocsFileException)
+        {
+            return null;
+        }
+    }
+
+    internal static Feature Normalize(Feature feature) => feature with
     {
         Summary = string.IsNullOrWhiteSpace(feature.Summary) ? null : feature.Summary,
         When = Normalize(feature.When),
         Entries = Normalize(feature.Entries),
     };
 
-    static RepoDocs Normalize(RepoDocs repo) => repo with { Entries = Normalize(repo.Entries) };
+    internal static RepoDocs Normalize(RepoDocs repo) => repo with { Entries = Normalize(repo.Entries) };
 
     static List<FeatureEntry> Normalize(List<FeatureEntry>? entries) =>
         (entries ?? []).OfType<FeatureEntry>().Select(entry => entry with { When = NormalizeOptional(entry.When), Steps = Normalize(entry.Steps) }).ToList();

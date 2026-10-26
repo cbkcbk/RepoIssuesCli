@@ -7,6 +7,8 @@ public static class DocsTime
 
     public static DateTimeOffset Now(TimeProvider clock) => Truncate(clock.GetUtcNow());
 
+    public static DateOnly Today(TimeProvider clock) => DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
+
     public static DateTimeOffset Truncate(DateTimeOffset value)
     {
         var utc = value.ToUniversalTime();
