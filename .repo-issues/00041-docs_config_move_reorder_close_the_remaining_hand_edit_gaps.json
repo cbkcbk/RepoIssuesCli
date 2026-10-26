@@ -1,0 +1,14 @@
+{
+  "id": "01a178ec-3560-7b03-9fa8-6de342a321a1",
+  "number": 41,
+  "name": "docs config / move / reorder: close the remaining hand-edit gaps",
+  "description": "Commands so agents never need to edit .repo-docs YAML by hand: docs kind add/edit/rm (render, push, prune.unreadDays in config.yaml; refuse removing a kind still in use), docs move \u003Cfeature\u003E/\u003Centry\u003E \u003Cfeature\u003E (keeps id/timestamps, makes id unique), docs edit --position / reorder for entry order. Same conventions: --json, exit codes, lock, validation of only introduced problems. Update the docs skill afterwards.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "tags": [
+    "docs"
+  ],
+  "created": "2026-10-26T15:55:08+00:00",
+  "updated": "2026-10-26T15:55:08+00:00"
+}
