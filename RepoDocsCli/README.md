@@ -119,7 +119,7 @@ docs validate          # alias of check
 | `MovedAnchor` | warning | yes | An anchor whose code moved unchanged (same file, a git rename or its symbol). |
 | `ChangedAnchor` | warning | no | An anchor whose code changed: review the docs, then re-anchor. |
 | `FuzzyAnchor` | warning | no | An anchor found only by similar context; confirm it before re-anchoring. |
-| `DeadPath` | warning | no | A `when.paths` entry that matches no file or folder (a path ending in `/` must be a folder). |
+| `DeadPath` | warning | no | A `when.paths` entry that matches no file or folder (a path ending in `/` must be a folder; a glob must match at least one file). |
 | `StatusMismatch` | warning | no | A `planned` feature with linked `InProgress` issues, or a `shipped` one with linked issues still open. |
 | `MissingIssue` | warning | no | A plan step links an issue number that is not in `.repo-issues`. |
 | `StaleClaudeMd` | warning | yes | The generated CLAUDE.md block is missing or out of date. |
@@ -130,6 +130,37 @@ docs validate          # alias of check
 - A stale block is only reported when every docs file loads, since a skipped file would make the comparison meaningless.
 - `--fix` holds the docs lock and, in order: merges files with conflict markers per entry (as the merge driver does), stamps hand edits since `HEAD` (as `docs touch`), rewrites the hints of `MovedAnchor` anchors, and re-renders a stale CLAUDE.md block. It never applies changed or fuzzy anchors. Anchor rewrites keep `created` and `updated` as they are, even when the path or context hash changes, since the code itself did not change. Fixed items are printed first, then what still needs a human or agent.
 - JSON: without `--fix` an array of problems, like `issues validate --json`; with `--fix` an object whose `fixed` holds what was repaired and `problems` what is left, in the same shape. `kind` and `severity` (`Error` or `Warning`) are strings, `file` is the file name in `.repo-docs/` (or `CLAUDE.md`), `address` is the feature or `feature/entry` the problem belongs to, and `fixable` says whether `--fix` repairs it. Missing values are omitted. The exit code reflects only the remaining problems.
+
+### Pruning stale docs
+
+```sh
+docs prune                          # a table of stale-docs candidates, strongest reason first
+docs prune --json                   # [{ address, kind, summary, reasons: [{ code, message }], suggestion: { action, command } }]
+docs prune --reason unread          # only candidates with this reason; repeatable
+docs prune --feature billing        # only the feature and its entries (repo for repo.yaml)
+docs prune --today 2026-10-26       # count unread days up to this date instead of today
+```
+
+`prune` is the worklist for removing stale docs. It is advice, not a gate: it always exits `0`, never writes a file and takes no lock. Act on a candidate through the docs commands, never by editing the YAML.
+
+| Code | Applies to | Suggestion | Meaning |
+|---|---|---|---|
+| `DeprecatedOrphan` | feature | `delete` | A `deprecated` feature whose `when` paths and anchors all match nothing. |
+| `Orphaned` | feature, entry | `delete` | Its `when` has paths or anchors, and none matches a file any more: every path is dead and every anchor broken. Keywords alone never make an orphan. |
+| `BrokenAnchor` | feature, entry | `re-anchor` | An anchor that can't be found any more. |
+| `ChangedAnchor` | feature, entry | `review` | An anchor whose code changed: check the docs still hold, then re-anchor. |
+| `DeadPath` | feature, entry | `re-anchor` | A `when.paths` entry that matches no file or folder, as in `docs check`. |
+| `ShippedPlan` | plan entry | `convert-to-decision` | A plan of a `shipped` feature: turn it into a `decision` or `fact`, or delete it. |
+| `Unread` | entry | `review` | Not read for at least the kind's `prune.unreadDays`. |
+| `CollapsibleStep` | plan entry | `collapse-steps` | Plan steps that are `done` (every linked issue `Done` or `Cancelled`). |
+
+- The table is ordered from strongest to weakest. A candidate lists all its reasons in that order; the first one sets its suggestion. Candidates sort by their strongest reason, then by address.
+- `Unread` counts days from the latest of `read`, `updated` and `created` (an edit or `docs touch` counts as a look), so an entry never read falls back to when it was created or last changed. An entry without any of these is skipped until it is stamped. Kinds without `prune.unreadDays` are never unread.
+- `--today` defaults to today's UTC date.
+- Suggestion commands: `docs rm <address>` for `delete`, `docs touch <address>` for an unread entry that is still correct, and `docs edit <address> ...` for the rest.
+- Anchors and paths are inspected in the same pass as `docs check`. Claims are not checked yet.
+- `--reason` takes the codes above, in any case and with or without dashes (`dead-path`). It keeps candidates with at least one of the given reasons and still shows all their reasons. An unknown `--feature` exits `3`.
+- JSON: an array of candidates. `address` is the feature id for feature candidates and `feature/entry` (or `repo/entry`) for entries. `kind` is the entry kind and is omitted for features; `summary` is omitted when missing.
 
 ### Reading docs
 

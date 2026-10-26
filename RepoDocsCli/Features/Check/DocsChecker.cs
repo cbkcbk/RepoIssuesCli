@@ -1,5 +1,4 @@
 using RepoCli.Core.Features.Anchors;
-using RepoCli.Core.Features.IssueLinks;
 using RepoDocsCli.Features.ClaudeMd;
 using RepoDocsCli.Features.Docs;
 
@@ -43,7 +42,7 @@ public static class DocsChecker
         return new CheckReport(applied, remaining);
     }
 
-    static Inspection Inspect(DocsStore store, DocsSnapshot snapshot)
+    static CheckInspection Inspect(DocsStore store, DocsSnapshot snapshot)
     {
         var conflicts = Conflicts(store).ToList();
         var conflicted = conflicts.Select(conflict => conflict.File).ToHashSet(StringComparer.Ordinal);

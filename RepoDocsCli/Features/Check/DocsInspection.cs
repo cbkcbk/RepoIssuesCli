@@ -1,6 +1,7 @@
 using RepoCli.Core.Features.Anchors;
 using RepoCli.Core.Features.IssueLinks;
 using RepoDocsCli.Features.Docs;
+using RepoDocsCli.Features.Queries;
 
 namespace RepoDocsCli.Features.Check;
 
@@ -26,11 +27,11 @@ public sealed record DocsInspection(DocsSnapshot Snapshot, IReadOnlyList<SiteIns
 {
     public static DocsInspection Run(string root, DocsSnapshot snapshot)
     {
-        var paths = new PathMatcher(root);
+        var paths = new RepoPaths(root);
         var batch = new AnchorResolver(root).Batch();
         var sites = HintSites(snapshot)
             .Select(site => new SiteInspection(site,
-                [.. site.When.Paths.Where(path => !paths.Matches(path))],
+                [.. site.When.Paths.Where(path => !paths.Exists(path))],
                 [.. site.When.Anchors.Select(batch.Resolve)]))
             .ToList();
 
