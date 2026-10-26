@@ -4,7 +4,7 @@
   "name": "docs budget: always-loaded vs on-demand tokens",
   "description": "Report token cost of the always-loaded set (rendered block \u002B CLAUDE.md import chain) vs on-demand entries, per feature and per kind. Headline metric for condensing.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "Medium",
   "blockedBy": [
     29
@@ -13,5 +13,12 @@
     "docs"
   ],
   "created": "2026-10-26T14:33:12+00:00",
-  "updated": "2026-10-26T14:33:12+00:00"
+  "updated": "2026-10-26T15:40:44+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:40:44+00:00",
+      "text": "Merged 5ce3ec8. docs budget [--json] [--by feature|kind] [--top N] is read-only and exits 0. The estimate is max(ceil(chars/4), ceil(words*4/3)) (RepoCli.Core TokenEstimate, swappable). Always-loaded = CLAUDE.md outside the block \u002B the block \u002B its @import chain (relative paths, code fences skipped, cycles and depth 5 handled, ~/ imports external). Nested CLAUDE.md files are reported as contextual. Also shows the block if re-rendered now, on-demand totals by feature and kind, a worst-case push cost per policy, and the largest entries. Not measured: CLAUDE.local.md, ~/.claude/CLAUDE.md, CLAUDE.md files above the root, AGENTS.md."
+    }
+  ]
 }
