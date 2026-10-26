@@ -4,7 +4,7 @@
   "name": "docs show / for / find / list with --json",
   "description": "show \u003Cfeature\u003E[/\u003Centry\u003E] (single entry to save context); for \u003Cpath\u003E returns repo rules \u002B entries whose when matches, current-state kinds only, plans only when feature in-progress or --plans; find \u003Cquery\u003E ranks by summary/keywords/body; list features with status.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "High",
   "blockedBy": [
     24,
@@ -14,12 +14,17 @@
     "docs"
   ],
   "created": "2026-10-26T14:33:11+00:00",
-  "updated": "2026-10-26T15:07:13+00:00",
+  "updated": "2026-10-26T15:23:43+00:00",
   "comments": [
     {
       "author": "cbk \u003Ccbk@snappy.no\u003E",
       "created": "2026-10-26T15:07:13+00:00",
       "text": "When adding show/find, change the hint line in ClaudeMdBlock.FeatureIndex: it currently says each feature lives in .repo-docs/\u003Cid\u003E.yaml. Point agents to \u0027docs show \u003Cid\u003E\u0027 / \u0027docs find \u003Cquery\u003E\u0027 instead; the user wants agents never to read or edit the YAML directly."
+    },
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:23:43+00:00",
+      "text": "Merged 710e505. show \u003Caddr\u003E [--full] (records reads), for \u003Cpath\u003E [--plans] [--all-kinds] [--full], find \u003Cquery\u003E [-n], list [-s]. Matching lives in Features/Queries/PathMatch: case-insensitive per-segment prefix plus * ? ** globs, and anchors match by path equality. Current-state kinds exclude decision (add with --all-kinds) and plan (unless the feature is in-progress or --plans). find score: id/address 1000, summary 100/term, keyword 10, body 1. The CLAUDE.md index hint now points to docs show/find. After merging, the begin marker text says to use the docs CLI. For #34: for does not apply push policies or record reads; DocsFor.ShortBodyLength = 600. Known side effect: MarkRead goes through Save and backfills a missing created on every entry in the file."
     }
   ]
 }
