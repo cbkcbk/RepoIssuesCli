@@ -195,7 +195,10 @@ public sealed class DocsStore(string root)
     static RepoDocs Normalize(RepoDocs repo) => repo with { Entries = Normalize(repo.Entries) };
 
     static List<FeatureEntry> Normalize(List<FeatureEntry>? entries) =>
-        (entries ?? []).OfType<FeatureEntry>().Select(entry => entry with { When = NormalizeOptional(entry.When) }).ToList();
+        (entries ?? []).OfType<FeatureEntry>().Select(entry => entry with { When = NormalizeOptional(entry.When), Steps = Normalize(entry.Steps) }).ToList();
+
+    static List<PlanStep> Normalize(List<PlanStep>? steps) =>
+        (steps ?? []).OfType<PlanStep>().Select(step => step with { Issues = step.Issues ?? [] }).ToList();
 
     static WhenHints? NormalizeOptional(WhenHints? when) => Normalize(when) is var hints && hints.HasHints() ? hints : null;
 

@@ -114,6 +114,22 @@ kinds:
 entries: []
 ```
 
+A `plan` entry lists its `steps`, each with a `title` and the numbers of the [`issues`](https://www.nuget.org/packages/RepoIssuesCli) that implement it:
+
+```yaml
+  - id: rollout
+    kind: plan
+    summary: Roll out the new invoices
+    steps:
+      - title: Schema and store
+        issues: [23, 24]
+      - title: Write the migration guide
+```
+
+- Only `plan` entries may have `steps`. A step needs a one-line `title`; `issues` is optional and omitted when empty.
+- Progress is derived from `.repo-issues` whenever it is shown and never stored. A plan counts its distinct linked issues: `Done` and `Cancelled` ones are resolved (cancelled ones are still listed), and a missing issue number counts as unresolved and is flagged.
+- A step is `done` when it has issues and all are resolved, `in-progress` when any is `InProgress`, `blocked` when every remaining `Open` issue has an unresolved or missing blocker (as in `issues list --blocked`), and `open` otherwise, including steps without issues.
+
 - The tool owns the formatting. Files are rewritten in a fixed layout, so YAML comments are not kept.
 - A feature id is lowercase kebab-case (`user-accounts`) and must match its file name. `repo` and `config` are reserved.
 - `status` is set by hand: `proposed`, `planned`, `in-progress`, `shipped` or `deprecated`. Progress is never stored; it is derived from linked issues.
