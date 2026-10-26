@@ -19,43 +19,43 @@ public class DocsStepsTests
     void WriteDocs(string fileName, string yaml) => File.WriteAllText(DocsPath(fileName), yaml);
 
     const string FlowStyle = """
-        feature: billing
-        status: in-progress
-        created: 2026-10-20T09:15:00Z
-        entries:
-          - id: rollout
-            kind: plan
-            summary: Roll out the new invoices
-            steps:
-              - title: Schema and store
-                issues: [23, 24]
-              - title: Write the migration guide
-              - title: Cut over
-                issues: [24]
-            created: 2026-10-20T09:15:00Z
-          - id: vat-cache
-            kind: gotcha
-            summary: VAT rates are cached for an hour
+                             feature: billing
+                             status: in-progress
+                             created: 2026-10-20T09:15:00Z
+                             entries:
+                               - id: rollout
+                                 kind: plan
+                                 summary: Roll out the new invoices
+                                 steps:
+                                   - title: Schema and store
+                                     issues: [23, 24]
+                                   - title: Write the migration guide
+                                   - title: Cut over
+                                     issues: [24]
+                                 created: 2026-10-20T09:15:00Z
+                               - id: vat-cache
+                                 kind: gotcha
+                                 summary: VAT rates are cached for an hour
 
-        """;
+                             """;
 
     const string HandWritten = """
-        # Billing plan, kept by hand
-        feature: billing
-        entries:
-          # the rollout
-          - id: rollout   # main plan
-            kind: plan
-            summary: Roll out
-            steps:
-              - title: Schema   # first
-                issues:
-                  - 23   # schema
-                  - '7'
-                  - "230"
-              - title: Later
-                issues: [ 7,23 ,  9 ]  # spaced
-        """;
+                               # Billing plan, kept by hand
+                               feature: billing
+                               entries:
+                                 # the rollout
+                                 - id: rollout   # main plan
+                                   kind: plan
+                                   summary: Roll out
+                                   steps:
+                                     - title: Schema   # first
+                                       issues:
+                                         - 23   # schema
+                                         - '7'
+                                         - "230"
+                                     - title: Later
+                                       issues: [ 7,23 ,  9 ]  # spaced
+                               """;
 
     [Test]
     public void FindsFlowStyleReferences()
@@ -91,22 +91,22 @@ public class DocsStepsTests
     public void FindsRepoEntriesAndSkipsConfig()
     {
         WriteDocs("repo.yaml", """
-            entries:
-              - id: cleanup
-                kind: plan
-                summary: Tidy up
-                steps:
-                  - title: Remove dead code
-                    issues: [5]
-            """);
+                               entries:
+                                 - id: cleanup
+                                   kind: plan
+                                   summary: Tidy up
+                                   steps:
+                                     - title: Remove dead code
+                                       issues: [5]
+                               """);
         WriteDocs("config.yaml", """
-            version: 1
-            entries:
-              - id: odd
-                steps:
-                  - title: Not a doc
-                    issues: [5]
-            """);
+                                 version: 1
+                                 entries:
+                                   - id: odd
+                                     steps:
+                                       - title: Not a doc
+                                         issues: [5]
+                                 """);
 
         var scan = Steps.Find(5);
 
@@ -203,7 +203,7 @@ public class DocsStepsTests
             result = Steps.Renumber(5, 7);
 
         Assert.That(result.References, Is.Empty);
-        Assert.That(result.Errors.Single().Message, Does.Contain("by hand"));
+        Assert.That(result.Errors.Single().Message, Does.Contain("docs edit"));
         Assert.That(File.ReadAllText(DocsPath("billing.yaml")), Is.EqualTo(before));
     }
 }

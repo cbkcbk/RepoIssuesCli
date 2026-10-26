@@ -49,7 +49,7 @@ public sealed class DeleteCommand(IAnsiConsole console, ErrorConsole errors) : I
         if (docs.Count > 0)
         {
             errors.Console.MarkupLine($"[yellow]Warning:[/] .repo-docs plan steps still link {Markup.Escape(issue.Title)}: {Steps(docs)}");
-            errors.Console.MarkupLine("[grey]Edit or remove those steps; 'docs check' reports them as MissingIssue.[/]");
+            errors.Console.MarkupLine("[grey]Update or remove those steps with 'docs edit <address> --step-issues' or '--remove-step'; 'docs check' reports them as MissingIssue.[/]");
         }
 
         if (settings.Json)

@@ -23,7 +23,7 @@ public sealed class RenumberCommand(IAnsiConsole console, ErrorConsole errors) :
         using var lease = session.Store.Lock();
         var snapshot = session.Store.Load();
         var issue = snapshot.Issues.FirstOrDefault(candidate => candidate.Id == chosen.Id)
-            ?? throw new IssueNotFoundException(chosen.Id.ToString());
+                    ?? throw new IssueNotFoundException(chosen.Id.ToString());
         var result = IssueRenumbering.Renumber(snapshot, issue);
 
         var docs = new DocsSteps(session.Store.Root) { LockTimeout = session.Store.LockTimeout };
@@ -62,9 +62,8 @@ public sealed class RenumberCommand(IAnsiConsole console, ErrorConsole errors) :
 
         if (result.KeptDocsReferences.Count > 0)
         {
-            var files = Markup.Escape(string.Join(", ", result.KeptDocsReferences.Select(reference => reference.File).Distinct()));
             Console.MarkupLine($"[yellow]Docs steps on {result.PreviousNumber:D4} still mean {Titles(holders)}:[/] {Steps(result.KeptDocsReferences)}");
-            Console.MarkupLine($"[grey]If one meant {Markup.Escape(result.Issue.Title)}, change {result.PreviousNumber} to {result.Issue.Number} in its step in {files}.[/]");
+            Console.MarkupLine($"[grey]If one meant {Markup.Escape(result.Issue.Title)}, run 'docs edit <address> --step-issues <step>=...' with {result.Issue.Number} in place of {result.PreviousNumber}.[/]");
         }
     }
 

@@ -69,6 +69,6 @@ public sealed class IssuesPlugin : IPluginSource
 
           ## Docs references
 
-          Plan steps in `.repo-docs/` (the `docs` tool) link issues by number. `issues show` lists them under `docs`. `issues renumber` rewrites them along with blockers and reports them under `docsReferences` (`keptDocsReferences` when the number was duplicated). `issues delete` warns about them and lists them under `docs` but leaves them in place: update or remove those steps afterwards.
+          Plan steps in `.repo-docs/` (the `docs` tool) link issues by number. `issues show` lists them under `docs`. `issues renumber` rewrites them along with blockers and reports them under `docsReferences` (`keptDocsReferences` when the number was duplicated). `issues delete` warns about them and lists them under `docs` but leaves them in place: update or remove those steps afterwards with `docs edit <address> --step-issues` or `--remove-step`, never by editing the YAML.
           """;
 }

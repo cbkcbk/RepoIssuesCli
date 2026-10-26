@@ -135,7 +135,7 @@ public sealed class DocsSteps(string root)
             var start = (int)scalar.Start.Index;
             var length = (int)scalar.End.Index - start;
             if (Spell(scalar.Style, scalar.Value!) is not { } original || start + length > text.Length || text.Substring(start, length) != original)
-                throw new InvalidDataException($"Can't rewrite issue {scalar.Value} at line {scalar.Start.Line} in place; edit it by hand.");
+                throw new InvalidDataException($"Can't rewrite issue {scalar.Value} at line {scalar.Start.Line} in place; update the step with 'docs edit'.");
 
             builder.Remove(start, length).Insert(start, Spell(scalar.Style, to.ToString(CultureInfo.InvariantCulture)));
         }

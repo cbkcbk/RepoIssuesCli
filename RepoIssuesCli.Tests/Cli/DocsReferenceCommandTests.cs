@@ -15,30 +15,30 @@ public class DocsReferenceCommandTests
     public void TearDown() => repo.Dispose();
 
     const string Billing = """
-        feature: billing
-        status: in-progress
-        entries:
-          # hand-written comment
-          - id: rollout
-            kind: plan
-            summary: Roll out
-            steps:
-              - title: Schema and store
-                issues: [1, 2]
-              - title: Cut over
-                issues:
-                  - 1   # keep me
-        """;
+                           feature: billing
+                           status: in-progress
+                           entries:
+                             # hand-written comment
+                             - id: rollout
+                               kind: plan
+                               summary: Roll out
+                               steps:
+                                 - title: Schema and store
+                                   issues: [1, 2]
+                                 - title: Cut over
+                                   issues:
+                                     - 1   # keep me
+                           """;
 
     const string Repo = """
-        entries:
-          - id: cleanup
-            kind: plan
-            summary: Tidy up
-            steps:
-              - title: Remove dead code
-                issues: [2]
-        """;
+                        entries:
+                          - id: cleanup
+                            kind: plan
+                            summary: Tidy up
+                            steps:
+                              - title: Remove dead code
+                                issues: [2]
+                        """;
 
     string DocsFile(string fileName) => Path.Combine(repo.Root, ".repo-docs", fileName);
 
@@ -119,7 +119,7 @@ public class DocsReferenceCommandTests
         var result = repo.Run("renumber", duplicate.Id.ToString());
 
         Assert.That(result.ExitCode, Is.Zero, result.Errors);
-        Assert.That(result.Output, Does.Contain("Docs steps on 0001 still mean 0001 A").And.Contain(".repo-docs/billing.yaml"));
+        Assert.That(result.Output, Does.Contain("Docs steps on 0001 still mean 0001 A").And.Contain("docs edit <address> --step-issues"));
     }
 
     [Test]
