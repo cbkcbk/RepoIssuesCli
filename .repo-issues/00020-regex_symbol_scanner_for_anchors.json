@@ -4,7 +4,7 @@
   "name": "Regex symbol scanner for anchors",
   "description": "Find the enclosing declaration (class/record/method/function) for a line using language-agnostic regex heuristics. No native dependencies (no tree-sitter) so the tools stay pure managed.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "Medium",
   "blockedBy": [
     19
@@ -14,5 +14,12 @@
     "anchors"
   ],
   "created": "2026-10-26T14:33:10+00:00",
-  "updated": "2026-10-26T14:33:10+00:00"
+  "updated": "2026-10-26T15:02:04+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-26T15:02:04+00:00",
+      "text": "Merged e5dc4d1. SymbolIndex.Scan(SourceText) with EnclosingAt/SymbolAt/Find; Anchor.CreateWithSymbol. Symbols are dot-joined containers without namespaces (Outer.Inner.Method; Go receiver methods are Type.Method; Rust impl methods are Type.method). Find falls back to the longest matching trailing segments, so moved containers still match, and returns all overloads. Covers C#, Java, TS/JS, Python (indentation), Go and Rust. Limits: no C# properties/operators, one declaration per line, scanner doesn\u0027t look at the file type (only scan source files by extension). For #21: tell overloads apart by hash or line distance; scan once per file instead of calling CreateWithSymbol repeatedly."
+    }
+  ]
 }
