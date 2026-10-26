@@ -68,6 +68,35 @@ Clear it with `vat reset`.
 - `render` needs `.repo-docs/` (run `docs init` first) and holds the docs lock while writing. Files that fail to load are reported on stderr and left out; the rest is still rendered.
 - JSON: `path` is the absolute CLAUDE.md path, `created` whether this run created it, `changed` whether it was written, and `stale` whether the block was out of date before the run (with `--check`, `changed` is always `false`).
 
+### Importing existing CLAUDE.md files
+
+```sh
+docs import                      # import the root CLAUDE.md and AGENTS.md plus nested ones
+docs import Web/CLAUDE.md        # import only the given markdown files
+docs import --dry-run            # print the proposed entries; write nothing
+docs import --json               # { dryRun, sources, imported, skipped, createdFeatures, imports }
+```
+
+`import` is the migration path for repos that already have agent docs. It turns markdown sections into entries; an agent or person then reviews them.
+
+- Sources: without file arguments, the root `CLAUDE.md` and `AGENTS.md`, then every nested `CLAUDE.md` and `AGENTS.md`, skipping hidden folders, `bin`, `obj` and `node_modules`. File arguments are relative to the current directory and must be inside the repository.
+- Splitting: each heading with text under it (up to the next heading of any level) becomes one entry, with the heading as `summary` and the text as the markdown `body`. Text before the first heading becomes an entry whose summary is its first sentence. Headings without text of their own are skipped, and headings inside code fences are text.
+- Bullets: when a heading has no subheadings, is not a `how to` or `steps` heading, and its text is only a list of two or more top-level `-`, `*` or `+` bullets (indented lines belong to the bullet above), each bullet becomes its own entry. Its first sentence is the summary and the rest is the body. Numbered lists stay together.
+- Summaries lose a trailing `.` or `:`. Entry ids are the summary in kebab-case, cut to about 40 characters at a word boundary, with `-2`, `-3` appended when the id is taken in that feature.
+- The generated `docs render` block is skipped. Lines that are only an `@import` (`@docs/style.md`, optionally as a bullet) are left out of the entries and listed in the output; resolve them by hand.
+- Feature: sections of a root file go to `repo.yaml`, unless one of their headings (nearest first) names an existing feature, as in `## Billing` for `billing`. A nested file goes to the feature whose `when.paths` is the longest prefix of the file's folder. Without a match, a `shipped` feature named after the folder is created with `when.paths` set to that folder (or the folder is added to an existing feature with that id). When a section's own heading names its feature, the summary is the first sentence of its text instead.
+- Kind, from the headings, summary and body, first match wins:
+  1. `gotcha`: gotcha, careful, beware, note that, watch out, pitfall, caveat.
+  2. `howto`: how to, steps, two or more numbered lines, or a shell code block (`sh`, `bash`, `powershell`, `pwsh`, `cmd`, ... or `$ ` lines).
+  3. `decision`: we chose, we picked, we went with, decided, decision.
+  4. `rule`: always, never, must, don't, do not, avoid.
+  5. `decision`: because.
+  6. `fact` otherwise. A guessed kind that `config.yaml` doesn't declare becomes `fact`, or the first declared kind.
+- Re-importing is safe: an entry whose summary and body already exist in the target feature is skipped and listed under `skipped` with the existing entry's address.
+- A real run holds the docs lock, stamps `created` on new entries and features, and `git add`s new feature files. It stops with exit `1`, writing nothing, when a docs file fails to load. `import` needs `.repo-docs/` (run `docs init` first).
+- Source files are never changed. After reviewing the entries, remove the imported text from the sources and run `docs render`.
+- JSON: `sources` lists the repo-relative files read. `imported` and `skipped` hold `{ address, kind, summary, source, line }`, where `line` is the 1-based line of the heading or bullet. `createdFeatures` lists new feature ids and `imports` holds `{ source, line, text }` per `@import` line. `dryRun` is `true` under `--dry-run`, and the same entries are reported as a real run would write them.
+
 ## Automation
 
 - `--json` writes only JSON to stdout. For `init` that is `{ folder, created, files, features }`: `files` lists the repo-relative files it created, and `features` the prefilled features in the same shape as their YAML files. Arrays are always present, as `[]` when empty.

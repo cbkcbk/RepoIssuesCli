@@ -23,6 +23,9 @@ public static class DocsApp
                 .WithExample("touch", "--json");
             config.AddCommand<MergeDriverCommand>("merge-driver")
                 .WithExample("merge-driver", "%O", "%A", "%B", "%P");
+            config.AddCommand<ImportCommand>("import")
+                .WithExample("import", "--dry-run")
+                .WithExample("import", "Web/CLAUDE.md", "--json");
         });
         return app;
     }

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using RepoCli.Core.Features.Json;
 using RepoDocsCli.Features.ClaudeMd;
+using RepoDocsCli.Features.Import;
 
 namespace RepoDocsCli.Features.Docs;
 
@@ -16,6 +17,7 @@ namespace RepoDocsCli.Features.Docs;
 [JsonSerializable(typeof(RenderResult))]
 [JsonSerializable(typeof(PlanProgress))]
 [JsonSerializable(typeof(TouchResult))]
+[JsonSerializable(typeof(ImportResult))]
 public partial class DocsJsonContext : JsonSerializerContext;
 
 public static class DocsJson
