@@ -1,0 +1,81 @@
+feature: infra-cli
+status: planned
+summary: 'infra: stateless, Luau-scripted infrastructure and host configuration CLI'
+when:
+  paths:
+    - RepoInfraCli/
+created: 2026-10-30T00:40:13Z
+entries:
+  - id: evaluation
+    kind: decision
+    summary: Luau evaluates to a side-effect-free graph; the engine pulls, diffs and pushes with no state file
+    when:
+      keywords:
+        - luau
+    created: 2026-10-30T00:40:47Z
+    body: |-
+      The Luau script runs once without side effects and only records nodes; the C# engine then pulls live state, diffs and pushes. Output<T> is opaque to Luau and shows as "(known after apply)", so scripts can't branch on live values. Sandbox: no io/os/network, require only @infra and .repo-infra, infra.file stays in the repo (or ~/). No state file and no lock: creates re-check name+marker just before acting. Why: honest repeatable plans, and reference-mode evaluation for repo.provider comes for free.
+  - id: ownership-markers
+    kind: decision
+    summary: 'Ownership is a marker per resource kind: tags, description, comment, marker object or name prefix'
+    when:
+      keywords:
+        - tags
+    created: 2026-10-30T00:40:47Z
+    body: |-
+      Marker string: infra:<project>-<env> name=<name> [protect] [exported]. Droplets and DB clusters: DO tags (always lowercase; DO tags are case-stable). VPC: description. Cloudflare record: comment (tags need a paid plan; comments fit 100 chars on Free). Spaces bucket: .infra-owner marker object with object tags (bucket tagging unsupported). Firewall, SSH key, registry: no metadata, so live name is <project>-<env>-<name>; protect/exported on these fails validate, and adopt renames. Unowned resource with a declared name fails the plan until infra adopt.
+  - id: commands
+    kind: decision
+    summary: Command set, filters and exit codes of the infra CLI
+    created: 2026-10-30T00:40:47Z
+    body: |-
+      init, validate, plan [--exit-code], apply, adopt, show [name] [--field], destroy [names], secrets (see #43). Filters: --play, --host, --resources-only, --hosts-only. All take --json, -v/-vv (secrets redacted), --log <jsonl>. apply re-plans then confirms; no saved plan files (stale without state). Exit codes: 0 ok, 1 blocked/invalid, 2 usage, 3 not found, 4 unexpected, 5 partially applied, 6 drift (plan --exit-code). Plan text uses + ~ -/+ - ! grouped Resources then Plays > host > role > task; secrets show as (secret).
+  - id: destroy-and-protect
+    kind: decision
+    summary: Destroy is marker-driven and never touches protected or exported resources
+    created: 2026-10-30T00:40:47Z
+    body: |-
+      protect blocks delete and replace. Everything reachable from the returned Exports table gets the exported marker and is implicitly protected (we can't see importers). Create-only fields warn; replace-only fields show -/+. Any destruction needs --allow-destroy with --yes, else typing <project>-<env>. destroy works from markers alone (file may be gone): reverse graph order, or by kind (records, firewalls, droplets, db clusters, buckets, keys, VPCs); never touches infra.host or existing.*; CI needs --yes --confirm <project>-<env>. No flag overrides protect or exported.
+  - id: hosts
+    kind: decision
+    summary: Hosts are configured agentlessly over Tmds.Ssh with strict known_hosts and sudo become
+    when:
+      keywords:
+        - ssh
+    created: 2026-10-30T00:40:47Z
+    body: |-
+      Agentless SSH via Tmds.Ssh behind an internal interface, one session per host (Windows OpenSSH has no ControlMaster; SSH.NET lacks agent and ssh_config). Reads ~/.ssh/config; ProxyCommand is a clear error. known_hosts strict; hosts created in the same run are trusted on first use; --accept-new-hosts for unknown keys; changed keys always fail. become: sudo -S with become_password from a secret or prompted once per host up front; no TTY or --yes fails. Ubuntu 22.04/24.04 only. Removals explicit only (absent, state). Order: resources by dependency, plays in file order, hosts parallel, stop on first error, no rollback.
+  - id: apps-and-compose
+    kind: decision
+    summary: Apps build with PublishContainer, tag by git sha and deploy through rendered compose files
+    when:
+      keywords:
+        - docker
+    created: 2026-10-30T00:40:48Z
+    body: |-
+      dotnet.container builds with dotnet publish -t:PublishContainer (no Docker daemon). Container settings come from dotnet msbuild -getProperty (ContainerRegistry, ContainerRepository, ContainerBaseImage, ContainerFamily); Luau fills gaps, conflicting values fail validate. Tag is always infra.git.sha; a dirty tree needs --allow-dirty and tags <sha>-dirty-<timestamp>. Redeploy when the running tag differs; skip the build if the tag exists. h:compose renders compose.yaml plus a 0600 .env for secrets, diffs by hash, runs up -d --remove-orphans and waits for healthchecks.
+  - id: envs-and-repos
+    kind: decision
+    summary: Environments via --env and infra.env; other repos via repo.provider sparse clones
+    created: 2026-10-30T00:40:48Z
+    body: |-
+      --env is required when .repo-infra/envs/ exists and is exposed as infra.env; differences are Luau branches on infra.env. Markers include the env, so prune/destroy in staging never touch prod. Secrets resolve <env>/x/y before x/y. repo.provider { url, ref, path? } fetches with git (user's credentials) as a sparse partial clone into %LOCALAPPDATA%/repo-infra/repos/<hash>, evaluates the other file in reference mode and reads its returned Exports. Providers are built-in C# only.
+  - id: plan
+    kind: plan
+    summary: Build the infra CLI in seven shippable milestones
+    steps:
+      - title: 'Core: init, evaluation, validate'
+        issues: [44]
+      - title: 'Hosts: SSH transport and host tasks'
+        issues: [45]
+      - title: Secrets
+        issues: [43]
+      - title: Compose and apps
+        issues: [46]
+      - title: Cloud providers, markers, prune, adopt, destroy
+        issues: [47]
+      - title: Postgres and restore
+        issues: [48, 42]
+      - title: Cross-repo provider and exports
+        issues: [49]
+    created: 2026-10-30T00:41:11Z

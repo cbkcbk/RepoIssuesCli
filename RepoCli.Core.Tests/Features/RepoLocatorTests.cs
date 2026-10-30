@@ -12,6 +12,7 @@ public class RepoLocatorTests
 
     [TestCase(RepoLocator.IssuesFolderName)]
     [TestCase(RepoLocator.DocsFolderName)]
+    [TestCase(RepoLocator.InfraFolderName)]
     [TestCase(".git")]
     public void EachToolFolderMarksTheRoot(string marker)
     {

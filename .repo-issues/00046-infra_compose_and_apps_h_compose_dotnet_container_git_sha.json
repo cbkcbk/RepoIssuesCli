@@ -1,0 +1,18 @@
+{
+  "id": "01a18a40-c22e-7558-8794-882e382881a3",
+  "number": 46,
+  "name": "Infra compose and apps: h:compose, dotnet.container, git-sha deploys",
+  "description": "Milestone 4. h:compose renders compose.yaml \u002B 0600 .env, hash diff, up -d --remove-orphans, healthcheck wait. dotnet.container via dotnet publish -t:PublishContainer with settings from dotnet msbuild -getProperty (Luau fills gaps, conflicts fail validate). Tag = git sha, --allow-dirty, skip build if tag exists, redeploy when running tag differs. traefik labels/args. See docs infra-cli/apps-and-compose.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    45,
+    43
+  ],
+  "tags": [
+    "infra"
+  ],
+  "created": "2026-10-30T00:41:02+00:00",
+  "updated": "2026-10-30T00:41:10+00:00"
+}

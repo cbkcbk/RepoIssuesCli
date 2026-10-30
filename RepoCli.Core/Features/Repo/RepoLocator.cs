@@ -4,8 +4,9 @@ public static class RepoLocator
 {
     public const string IssuesFolderName = ".repo-issues";
     public const string DocsFolderName = ".repo-docs";
+    public const string InfraFolderName = ".repo-infra";
 
-    static readonly string[] RootMarkers = [IssuesFolderName, DocsFolderName, ".git"];
+    static readonly string[] RootMarkers = [IssuesFolderName, DocsFolderName, InfraFolderName, ".git"];
 
     public static string FindRoot(string? explicitRoot, string startDirectory)
     {

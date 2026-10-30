@@ -1,0 +1,28 @@
+{
+  "id": "01a18940-5203-73ac-9743-55e43729e76d",
+  "number": 42,
+  "name": "Add infra restore command for postgres backups",
+  "description": "Restore a postgres backup declared with postgres.backup(db) in .repo-infra/infra.luau. Deferred until the Luau syntax settles.\n\nCommand:\n  infra restore \u003Cdatabase\u003E --list\n  infra restore \u003Cdatabase\u003E [--dump \u003Ckey\u003E | --at \u003Ctime\u003E] [--into \u003Cname\u003E] [--yes]\n\u003Cdatabase\u003E is the Luau database name (api, reports, crm), not a compose service.\n\nFlow:\n1. Evaluate infra.luau; find the postgres.backup whose database has that name (bucket, prefix, credentials). Fail if none backs it.\n2. List dumps under the prefix: --list prints them, default newest, --at newest at or before, --dump exact key.\n3. SSH to the host running the backup compose stack and run \u0060docker compose run --rm backup restore \u003Ckey\u003E\u0060. The sidecar already has db network reach (dbNet or trusted source), Spaces credentials and a matching pg_restore, so the CLI needs no db driver. Requires the sidecar image to support a restore subcommand.\n4. Safety: show db, dump (key, time, size) and host; require typing the database name unless --yes. --into restores into a new database (default way to verify a dump / run a drill). Restoring over the live db drops and recreates objects and warns about apps still using it (infra.app referencing that Database).\n\nPrerequisites: Spectre.Console.Cli commands, Luau evaluation via NuLua, secret resolution, SSH client.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "blockedBy": [
+    48
+  ],
+  "locations": [
+    {
+      "path": "RepoInfraCli/Luau/@infra/postgres.luau",
+      "line": 36,
+      "span": 1,
+      "context": "8cb0428c3776",
+      "body": "f8a6ff642f33",
+      "column": 1
+    }
+  ],
+  "tags": [
+    "infra",
+    "postgres"
+  ],
+  "created": "2026-10-29T20:00:56+00:00",
+  "updated": "2026-10-30T00:41:11+00:00"
+}

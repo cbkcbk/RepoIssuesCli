@@ -4,4 +4,19 @@ when:
   paths:
     - RepoCli.Core/Features/Repo/
 created: 2026-10-26T16:40:25Z
-entries: []
+updated: 2026-10-29T19:49:04Z
+entries:
+  - id: root-markers
+    kind: fact
+    summary: All tools find the repo root at the nearest ancestor holding .repo-issues, .repo-docs, .repo-infra or .git
+    when:
+      anchors:
+        - path: RepoCli.Core/Features/Repo/RepoLocator.cs
+          line: 9
+          span: 1
+          symbol: RepoLocator
+          context: a9494ed17f5a
+          body: 37183c6ac223
+    created: 2026-10-29T19:48:56Z
+    body: |-
+      The markers are shared, so adding a tool folder changes where every tool stops climbing. --root overrides the search; with no marker found the start directory is used.
