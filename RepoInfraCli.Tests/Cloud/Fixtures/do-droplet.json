@@ -1,0 +1,53 @@
+{
+  "id": 3164444,
+  "name": "web-1",
+  "memory": 4096,
+  "vcpus": 2,
+  "disk": 80,
+  "locked": false,
+  "status": "active",
+  "kernel": null,
+  "created_at": "2026-10-01T12:00:00Z",
+  "features": ["monitoring", "ipv6", "private_networking"],
+  "backup_ids": [],
+  "next_backup_window": null,
+  "snapshot_ids": [],
+  "image": {
+    "id": 6918990,
+    "name": "24.04 (LTS) x64",
+    "distribution": "Ubuntu",
+    "slug": "ubuntu-24-04-x64",
+    "public": true,
+    "regions": ["fra1"],
+    "type": "base"
+  },
+  "volume_ids": [],
+  "size": {
+    "slug": "s-2vcpu-4gb",
+    "memory": 4096,
+    "vcpus": 2,
+    "disk": 80,
+    "transfer": 4,
+    "price_monthly": 24,
+    "price_hourly": 0.03571
+  },
+  "size_slug": "s-2vcpu-4gb",
+  "networks": {
+    "v4": [
+      { "ip_address": "10.110.0.2", "netmask": "255.255.240.0", "gateway": "10.110.0.1", "type": "private" },
+      { "ip_address": "203.0.113.10", "netmask": "255.255.240.0", "gateway": "203.0.113.1", "type": "public" }
+    ],
+    "v6": [
+      { "ip_address": "2a03:b0c0:3:d0::1", "netmask": 64, "gateway": "2a03:b0c0:3:d0::1", "type": "public" }
+    ]
+  },
+  "region": {
+    "name": "Frankfurt 1",
+    "slug": "fra1",
+    "features": ["backups", "ipv6", "metadata"],
+    "available": true,
+    "sizes": ["s-2vcpu-4gb"]
+  },
+  "tags": ["web", "infra:test"],
+  "vpc_uuid": "5a4981aa-9653-4bd1-bef5-d6bff52042e4"
+}

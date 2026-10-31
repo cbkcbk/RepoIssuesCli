@@ -1,19 +1,5 @@
-﻿using RepoInfraCli.Features.Infra;
+﻿using RepoInfraCli.Cli;
+using Spectre.Console;
 
-var workspace = InfraWorkspace.Open(RootArgument(args));
-
-if (!workspace.IsInitialized)
-{
-    Console.Error.WriteLine($"No {RepoLocator.InfraFolderName}/{InfraWorkspace.EntryFileName} in {workspace.Root}.");
-    return 1;
-}
-
-Directory.SetCurrentDirectory(workspace.Root);
-Console.WriteLine($"Running {Path.GetRelativePath(workspace.Root, workspace.EntryFile)} in {workspace.Root}");
-return 0;
-
-static string? RootArgument(string[] args)
-{
-    var index = Array.IndexOf(args, "--root");
-    return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
-}
+var errors = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(Console.Error) });
+return await InfraApp.Create(AnsiConsole.Console, errors, Console.In).RunAsync(args);

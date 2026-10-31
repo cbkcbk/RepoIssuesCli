@@ -1,0 +1,28 @@
+{
+  "result": [
+    {
+      "id": "023e105f4ecef8ad9ca31a8372d0c353",
+      "name": "example.com",
+      "status": "active",
+      "paused": false,
+      "type": "full",
+      "development_mode": 0,
+      "name_servers": ["bob.ns.cloudflare.com", "lola.ns.cloudflare.com"],
+      "account": { "id": "01a7362d577a6c3019a474fd6f485823", "name": "Snappy" }
+    },
+    {
+      "id": "0b1d7e2f3c4a5b6d7e8f9a0b1c2d3e4f",
+      "name": "snappy.no",
+      "status": "active",
+      "paused": false,
+      "type": "full",
+      "development_mode": 0,
+      "name_servers": ["bob.ns.cloudflare.com", "lola.ns.cloudflare.com"],
+      "account": { "id": "01a7362d577a6c3019a474fd6f485823", "name": "Snappy" }
+    }
+  ],
+  "result_info": { "page": 1, "per_page": 50, "count": 2, "total_count": 2, "total_pages": 1 },
+  "success": true,
+  "errors": [],
+  "messages": []
+}

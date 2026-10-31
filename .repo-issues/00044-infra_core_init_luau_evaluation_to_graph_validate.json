@@ -2,13 +2,20 @@
   "id": "01a18a40-c0a5-7741-ba17-66008ce96c08",
   "number": 44,
   "name": "Infra core: init, Luau evaluation to graph, validate",
-  "description": "Milestone 1. infra init (scaffold, copy @infra stubs to .repo-infra/.luau, .luaurc), evaluate infra.luau into a side-effect-free graph with NuLua.Luau, sandbox (require only @infra and .repo-infra, no io/os), Output placeholders, --env and infra.env, validate command, --json/-v/--log plumbing and exit codes. Test: validate over demo/.repo-infra. See docs infra-cli/evaluation and infra-cli/commands.",
+  "description": "Milestone 1. infra init (scaffold, copy @infra stubs to .repo-infra/.luau, .luaurc), evaluate infra.luau into a side-effect-free graph with NuLua.Luau, sandbox (require only @infra and .repo-infra, no io/os), Output placeholders, --env and infra.env, validate command, --json/-v/--log plumbing and exit codes. Test: validate over demo/.repo-infra. See docs infra-cli/evaluation, infra-cli/commands and infra-cli/validation.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "High",
   "tags": [
     "infra"
   ],
   "created": "2026-10-30T00:41:01+00:00",
-  "updated": "2026-10-30T00:41:01+00:00"
+  "updated": "2026-10-30T10:37:29+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-30T10:16:12+00:00",
+      "text": "Design update: validate is runtime-only, no Luau type checking (NuLua.Luau has no analyzer). See docs infra-cli/validation."
+    }
+  ]
 }

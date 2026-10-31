@@ -22,7 +22,7 @@ export type Bucket = {
 export type Database = {
     name: string,
     host: Input<string>,
-    connection_string: Secret,
+    connection_string: Output<string>,
 }
 
 export type FirewallRule = {
@@ -89,7 +89,7 @@ export type ComposeHealthcheck = {
 }
 
 export type ComposeService = {
-    image: string,
+    image: Input<string>,
     restart: ("no" | "always" | "on-failure" | "unless-stopped")?,
     ports: { string }?,
     networks: { Network }?,
@@ -124,6 +124,7 @@ export type HostConnection = {
     user: string,
     port: number?,
     become: boolean?,
+    become_password: Secret?,
 }
 
 export type HostOptions = {
@@ -131,6 +132,7 @@ export type HostOptions = {
     user: string,
     port: number?,
     become: boolean?,
+    become_password: Secret?,
 }
 
 -- Apps and plays --------------------------------------------------------------
@@ -139,7 +141,7 @@ export type Build = { __build: string }
 
 export type AppOptions = {
     build: Build,
-    deploy: (host: Host, image: string) -> (),
+    deploy: (host: Host, image: Input<string>) -> (),
 }
 
 export type App = { name: string }

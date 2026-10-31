@@ -1,0 +1,21 @@
+{
+  "id": "fb6045f1-cf1d-4ca3-bfac-18832663025b",
+  "name": "test-web",
+  "status": "succeeded",
+  "inbound_rules": [
+    {
+      "protocol": "tcp",
+      "ports": "22",
+      "sources": { "addresses": ["10.0.0.0/24"] }
+    }
+  ],
+  "outbound_rules": [
+    { "protocol": "tcp", "ports": "0", "destinations": { "addresses": ["0.0.0.0/0", "::/0"] } },
+    { "protocol": "udp", "ports": "0", "destinations": { "addresses": ["0.0.0.0/0", "::/0"] } },
+    { "protocol": "icmp", "ports": "0", "destinations": { "addresses": ["0.0.0.0/0", "::/0"] } }
+  ],
+  "created_at": "2026-10-01T12:00:00Z",
+  "droplet_ids": [3164444],
+  "tags": [],
+  "pending_changes": []
+}

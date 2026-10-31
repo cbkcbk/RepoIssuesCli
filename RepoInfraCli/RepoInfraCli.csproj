@@ -5,15 +5,37 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <RollForward>Major</RollForward>
+        <InvariantGlobalization>true</InvariantGlobalization>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>infra</ToolCommandName>
+        <PackageId>RepoInfraCli</PackageId>
+        <Version>0.1.0</Version>
+        <Description>Stateless, Luau-scripted infrastructure and host configuration stored in your repository (.repo-infra).</Description>
+        <PackageTags>infra;luau;cli;git;dotnet-tool</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageOutputPath>$(MSBuildThisFileDirectory)../nupkg</PackageOutputPath>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="NuLua" Version="0.1.0" />
       <PackageReference Include="NuLua.Luau" Version="0.1.0" />
+      <PackageReference Include="Spectre.Console.Cli" Version="0.57.2" />
+      <PackageReference Include="Tmds.Ssh" Version="0.26.0" />
     </ItemGroup>
+
+    <Target Name="DropTmdsSshPublicApiAnalyzers" AfterTargets="ResolveLockFileAnalyzers">
+      <ItemGroup>
+        <Analyzer Remove="@(Analyzer)" Condition="'%(Analyzer.NuGetPackageId)' == 'Microsoft.CodeAnalysis.PublicApiAnalyzers'" />
+      </ItemGroup>
+    </Target>
 
     <ItemGroup>
       <None Include="demo\.repo-infra\**" />
+      <EmbeddedResource Include="Luau\@infra\**" LogicalName="infra-stubs/%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>
 
     <ItemGroup>
@@ -21,7 +43,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Using Include="RepoCli.Core.Cli" />
       <Using Include="RepoCli.Core.Features.Repo" />
+      <Using Include="RepoCli.Core.Features.Validation" />
     </ItemGroup>
 
 </Project>

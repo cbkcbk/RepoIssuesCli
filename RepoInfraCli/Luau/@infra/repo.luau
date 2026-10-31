@@ -5,6 +5,7 @@ local types = require("@infra/types")
 export type ProviderOptions = {
     url: string,
     ref: string,
+    path: string?,
 }
 
 export type Provider = {

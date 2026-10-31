@@ -1,0 +1,39 @@
+{
+  "result": [
+    {
+      "id": "372e67954025e0ba6aaa6d586b9e0b59",
+      "zone_id": "023e105f4ecef8ad9ca31a8372d0c353",
+      "zone_name": "example.com",
+      "name": "api.example.com",
+      "type": "A",
+      "content": "198.51.100.4",
+      "proxiable": true,
+      "proxied": true,
+      "ttl": 1,
+      "comment": "infra:test name=api",
+      "tags": [],
+      "created_on": "2026-01-01T05:20:00.12345Z",
+      "modified_on": "2026-01-01T05:20:00.12345Z"
+    },
+    {
+      "id": "8d1c2e3f4a5b6c7d8e9f0a1b2c3d4e5f",
+      "zone_id": "023e105f4ecef8ad9ca31a8372d0c353",
+      "zone_name": "example.com",
+      "name": "example.com",
+      "type": "MX",
+      "content": "mail.example.com",
+      "priority": 10,
+      "proxiable": false,
+      "proxied": false,
+      "ttl": 3600,
+      "comment": null,
+      "tags": [],
+      "created_on": "2024-01-01T05:20:00.12345Z",
+      "modified_on": "2024-01-01T05:20:00.12345Z"
+    }
+  ],
+  "result_info": { "page": 1, "per_page": 100, "count": 2, "total_count": 2, "total_pages": 1 },
+  "success": true,
+  "errors": [],
+  "messages": []
+}

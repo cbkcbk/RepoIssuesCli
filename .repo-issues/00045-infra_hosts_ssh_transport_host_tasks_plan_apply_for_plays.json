@@ -4,7 +4,7 @@
   "name": "Infra hosts: SSH transport, host tasks, plan/apply for plays",
   "description": "Milestone 2. infra.host, Tmds.Ssh behind an internal connection interface (one session per host, ~/.ssh/config, strict known_hosts, --accept-new-hosts), sudo become with become_password, Ubuntu 22.04/24.04 check, tasks apt/apt_repo/user/file/ufw/service/handler/shell with probe\u002Bapply scripts, plan/apply for plays with --play/--host filters. Tests: Testcontainers Ubuntu sshd. See docs infra-cli/hosts.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "High",
   "blockedBy": [
     44
@@ -13,5 +13,5 @@
     "infra"
   ],
   "created": "2026-10-30T00:41:02+00:00",
-  "updated": "2026-10-30T00:41:10+00:00"
+  "updated": "2026-10-30T11:25:15+00:00"
 }

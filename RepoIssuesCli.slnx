@@ -6,4 +6,5 @@
   <Project Path="RepoInfraCli/RepoInfraCli.csproj" />
   <Project Path="RepoIssuesCli.Tests/RepoIssuesCli.Tests.csproj" />
   <Project Path="RepoDocsCli.Tests/RepoDocsCli.Tests.csproj" />
+  <Project Path="RepoInfraCli.Tests/RepoInfraCli.Tests.csproj" />
 </Solution>

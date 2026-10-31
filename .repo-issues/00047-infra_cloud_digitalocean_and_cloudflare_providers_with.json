@@ -4,7 +4,7 @@
   "name": "Infra cloud: DigitalOcean and Cloudflare providers with markers, prune, adopt, destroy",
   "description": "Milestone 5. Providers for droplet, firewall, ssh_key, vpc, spaces_bucket, database_cluster (\u002B existing.*), cloudflare zone/record. Ownership markers per kind (tags, description, comment, .infra-owner object, name prefix), protect, exported, create-only vs replace fields, prune with --allow-destroy, adopt, destroy, show, plan --exit-code. Tests: recorded API responses plus opt-in live category. See docs infra-cli/ownership-markers and infra-cli/destroy-and-protect.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "Medium",
   "blockedBy": [
     44,
@@ -14,5 +14,5 @@
     "infra"
   ],
   "created": "2026-10-30T00:41:02+00:00",
-  "updated": "2026-10-30T00:41:10+00:00"
+  "updated": "2026-10-30T13:06:38+00:00"
 }
