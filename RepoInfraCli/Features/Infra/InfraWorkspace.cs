@@ -1,6 +1,6 @@
 namespace RepoInfraCli.Features.Infra;
 
-public sealed class InfraWorkspace(string root)
+public sealed class InfraWorkspace(string root, string? folder = null)
 {
     public const string EntryFileName = "infra.luau";
     public const string LuauRcFileName = ".luaurc";
@@ -9,7 +9,7 @@ public sealed class InfraWorkspace(string root)
 
     public string Root => root;
 
-    public string Folder => Path.Combine(root, RepoLocator.InfraFolderName);
+    public string Folder => folder ?? Path.Combine(root, RepoLocator.InfraFolderName);
 
     public string EntryFile => Path.Combine(Folder, EntryFileName);
 

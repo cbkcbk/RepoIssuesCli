@@ -1,3 +1,4 @@
+using System.Net;
 using RepoInfraCli.Features.Infra.Graph;
 using Tmds.Ssh;
 
@@ -110,10 +111,23 @@ sealed class SshRemoteShell(SshClient client) : IRemoteShell
         return new CommandResult(exitCode, stdout, stderr);
     }
 
+    public async Task<IPortForward> ForwardAsync(string remoteHost, int remotePort, CancellationToken cancellationToken)
+    {
+        var forward = await client.StartForwardAsync(new IPEndPoint(IPAddress.Loopback, 0), new RemoteHostEndPoint(remoteHost, remotePort), cancellationToken);
+        return new SshPortForward(forward);
+    }
+
     public ValueTask DisposeAsync()
     {
         client.Dispose();
         return ValueTask.CompletedTask;
+    }
+
+    sealed class SshPortForward(LocalForward forward) : IPortForward
+    {
+        public int LocalPort => ((IPEndPoint)forward.ListenEndPoint!).Port;
+
+        public void Dispose() => forward.Dispose();
     }
 
     sealed class HostKeyVerdict

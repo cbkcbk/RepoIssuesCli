@@ -28,7 +28,7 @@ public enum FieldMode
     CreateOnly,
 }
 
-public sealed record FieldSpec(string Name, FieldMode Mode = FieldMode.Update, bool Sensitive = false);
+public sealed record FieldSpec(string Name, FieldMode Mode = FieldMode.Update, bool Sensitive = false, string? Note = null);
 
 public sealed class ResourcePlanException(string message) : Exception(message);
 

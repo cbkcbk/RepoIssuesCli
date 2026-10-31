@@ -1,6 +1,6 @@
 {
   "name": "repo-issues",
-  "description": "Claude Code plugins for the issues and docs CLIs (RepoIssuesCli, RepoDocsCli).",
+  "description": "Claude Code plugins for the issues, docs and infra CLIs (RepoIssuesCli, RepoDocsCli, RepoInfraCli).",
   "owner": {
     "name": "ChristofferBK"
   },
@@ -15,6 +15,12 @@
       "name": "docs",
       "source": "./plugins/docs",
       "description": "Find, maintain and prune agent docs stored in the repository with the docs CLI, with hooks that push matching docs and flag stale ones.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "infra",
+      "source": "./plugins/infra",
+      "description": "Write and run infrastructure stored in the repository with the infra CLI, with a guard hook that asks before infra changes anything and an edit hook that validates .repo-infra Luau.",
       "version": "0.1.0"
     }
   ]

@@ -3,6 +3,7 @@ using RepoInfraCli.Features.Infra.Graph;
 using RepoInfraCli.Features.Infra.Hosts;
 using RepoInfraCli.Features.Infra.Hosts.Tasks;
 using RepoInfraCli.Features.Infra.Logging;
+using RepoInfraCli.Features.Infra.Postgres;
 using RepoInfraCli.Features.Infra.Secrets;
 
 namespace RepoInfraCli.Features.Infra.Plan;
@@ -31,13 +32,17 @@ public sealed class Planner(IHostConnector connector, ILiveValues? live = null, 
     readonly HostTaskRegistry modules = tasks ?? HostTaskRegistry.Default;
     readonly ContainerBuilds containerBuilds = builds ?? ContainerBuilds.Default;
 
+    public const string UnresolvedNote = "from a repo.provider that could not be fetched";
+
     sealed record HostState(HostNode Host, string? Address, HostStatus Status, string? Note, IHostConnection? Connection);
 
     public async Task<PlanRun> PlanAsync(InfraGraph graph, PlanOptions options, CancellationToken cancellationToken = default)
     {
         options.Filter.Validate(graph);
         var buildPlans = await containerBuilds.PlanAsync(graph, options.Filter, options.Workspace, options.AllowDirty, cancellationToken);
-        var run = new PlanRun(graph, options.Workspace, new BuildImages(values, buildPlans), options.Secrets ?? SecretLookup.Unavailable(options.Workspace)) { Options = options };
+        var secrets = options.Secrets ?? SecretLookup.Unavailable(options.Workspace);
+        var live = new SelfHostedDatabases(new BuildImages(values, buildPlans), graph, secrets);
+        var run = new PlanRun(graph, options.Workspace, live, secrets) { Options = options };
         try
         {
             var resourcePlan = options.Filter.HostsOnly ? ResourcePlan.Empty : await PlanResourcesAsync(run, options.Filter, cancellationToken);
@@ -56,7 +61,7 @@ public sealed class Planner(IHostConnector connector, ILiveValues? live = null, 
                 states[host.Id] = state;
                 if (state.Connection is not null)
                     run.Connections[host.Id] = state.Connection;
-                if (state.Status == HostStatus.Failed)
+                if (state.Status is HostStatus.Failed or HostStatus.External)
                     problems.Add(new PlanProblem(host.Name, state.Note ?? "failed"));
             }
 
@@ -71,10 +76,17 @@ public sealed class Planner(IHostConnector connector, ILiveValues? live = null, 
                 problems.AddRange(hostPlans.SelectMany(host => host.Tasks
                     .Where(task => task.Error is not null)
                     .Select(task => new PlanProblem(host.Host.Name, $"{play.Name} > {task.Label}: {task.Error}"))));
+                problems.AddRange(hostPlans.SelectMany(host => host.Roles
+                    .Where(role => role.External)
+                    .Select(role => new PlanProblem(host.Host.Name, $"{play.Name} > {role.Name}: role {UnresolvedNote}"))));
             }
 
             problems.InsertRange(0, buildPlans.Where(build => build.Error is not null).Select(build => new PlanProblem(null, $"{build.Label}: {build.Error}")));
-            run.Plan = new InfraPlan(resourceChanges, playPlans, problems, !options.Filter.HostsOnly) { Builds = buildPlans };
+            run.Plan = new InfraPlan(resourceChanges, playPlans, problems, !options.Filter.HostsOnly)
+            {
+                Builds = buildPlans,
+                Copies = CopySteps.Plan(graph, options.Filter),
+            };
             return run;
         }
         catch
@@ -139,7 +151,7 @@ public sealed class Planner(IHostConnector connector, ILiveValues? live = null, 
     async Task<HostState> OpenAsync(HostNode host, PlanOptions options, CancellationToken cancellationToken)
     {
         if (host.External)
-            return new HostState(host, null, HostStatus.External, "external host from repo.provider; handled in a later milestone (#49)", null);
+            return new HostState(host, null, HostStatus.External, UnresolvedNote, null);
 
         var address = host.Address switch
         {

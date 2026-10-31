@@ -8,9 +8,9 @@ namespace RepoInfraCli.Tests.Cloud;
 public class CloudCommandsTests
 {
     const string Database = """
-        local main = cloud.database_cluster "main" { engine = "pg", version = "17", size = "db-s-1vcpu-1gb", region = "fra1", protect = true }
-        local reports = main.database "reports" { user = "reports" }
-        """;
+                            local main = cloud.database_cluster "main" { engine = "pg", version = "17", size = "db-s-1vcpu-1gb", region = "fra1", protect = true }
+                            local reports = main.database "reports" { user = "reports" }
+                            """;
 
     CloudHarness harness = null!;
 
@@ -24,9 +24,9 @@ public class CloudCommandsTests
     public void AdoptTagsAnUnownedDropletAndRenamesAFirewall()
     {
         harness.Script("""
-            local web1 = cloud.droplet "web-1" { image = "ubuntu-24-04-x64", size = "s-2vcpu-4gb", region = "fra1", tags = { "web" } }
-            cloud.firewall "web" { droplets = { web1.id }, inbound = { { tcp = 22, from = { "10.0.0.0/24" } } } }
-            """);
+                       local web1 = cloud.droplet "web-1" { image = "ubuntu-24-04-x64", size = "s-2vcpu-4gb", region = "fra1", tags = { "web" } }
+                       cloud.firewall "web" { droplets = { web1.id }, inbound = { { tcp = 22, from = { "10.0.0.0/24" } } } }
+                       """);
         var firewall = CloudHarness.Fixture("do-firewall.json");
         firewall["name"] = "web";
         harness.Account("droplets", "droplets", CloudHarness.Droplet(tags: ["web"]))
@@ -40,11 +40,11 @@ public class CloudCommandsTests
 
         Assert.That(result.ExitCode, Is.EqualTo(InfraExitCodes.Success), result.Output + result.Errors);
         Assert.That(result.Output, Does.Contain("~ digitalocean droplet web-1: tag droplet 3164444 with infra:test"));
-        Assert.That(result.Output, Does.Contain("~ digitalocean firewall web: rename firewall web -> test-web").And.Contain("Adopted 2 resource(s)."));
+        Assert.That(result.Output, Does.Contain("~ digitalocean firewall web: rename firewall web -> test--web").And.Contain("Adopted 2 resource(s)."));
         var tagged = harness.Http.Sent("POST", "tags/infra%3Atest/resources").Single().Json!;
         Assert.That(tagged["resources"]![0]!["resource_id"]!.GetValue<string>(), Is.EqualTo("3164444"));
         var renamed = harness.Http.Sent("PUT", "firewalls/").Single().Json!;
-        Assert.That(renamed["name"]!.GetValue<string>(), Is.EqualTo("test-web"));
+        Assert.That(renamed["name"]!.GetValue<string>(), Is.EqualTo("test--web"));
         Assert.That(renamed["inbound_rules"]![0]!["ports"]!.GetValue<string>(), Is.EqualTo("22"));
     }
 
@@ -126,14 +126,48 @@ public class CloudCommandsTests
     }
 
     [Test]
+    public void DestroyWithAnEnvOnlyTouchesThatEnvsMarkers()
+    {
+        harness.Script("""cloud.droplet "web-1" { image = "ubuntu-24-04-x64", size = "s-2vcpu-4gb", region = "fra1" }""");
+        harness.Repo.WriteFile(".repo-infra/envs/prod/.keep", "");
+        harness.Repo.WriteFile(".repo-infra/envs/staging/.keep", "");
+        var firewall = CloudHarness.Fixture("do-firewall.json");
+        firewall["name"] = "test--prod--web";
+        var stagingFirewall = CloudHarness.Fixture("do-firewall.json");
+        stagingFirewall["id"] = "staging-firewall";
+        stagingFirewall["name"] = "test--staging--web";
+        harness.EmptyAccount()
+            .Account("droplets", "droplets",
+                CloudHarness.Droplet(tags: ["infra:test", "infra-env:prod"]),
+                CloudHarness.Droplet("staging", 7, tags: ["infra:test", "infra-env:staging"]),
+                CloudHarness.Droplet("envless", 8, tags: ["infra:test"]))
+            .Account("firewalls", "firewalls", firewall, stagingFirewall);
+        harness.Http
+            .On("DELETE", $"{CloudHarness.DigitalOcean}droplets/3164444", "", HttpStatusCode.NoContent)
+            .On("DELETE", $"{CloudHarness.DigitalOcean}firewalls/fb6045f1-cf1d-4ca3-bfac-18832663025b", "", HttpStatusCode.NoContent);
+
+        var wrongConfirm = harness.Run("destroy", "--env", "prod", "--yes", "--confirm", "test");
+        var result = harness.Run("destroy", "--env", "prod", "--yes", "--confirm", "test-prod");
+
+        Assert.That(wrongConfirm.ExitCode, Is.EqualTo(InfraExitCodes.Usage));
+        Assert.That(wrongConfirm.Errors, Does.Contain("--confirm test-prod"));
+        Assert.That(result.ExitCode, Is.EqualTo(InfraExitCodes.Success), result.Output + result.Errors);
+        Assert.That(harness.Http.Changes.Select(request => $"{request.Method} {request.Url}"), Is.EqualTo(new[]
+        {
+            $"DELETE {CloudHarness.DigitalOcean}firewalls/fb6045f1-cf1d-4ca3-bfac-18832663025b",
+            $"DELETE {CloudHarness.DigitalOcean}droplets/3164444",
+        }));
+    }
+
+    [Test]
     public void ExportedResourcesCarryTheExportedMarkerButTheirDependenciesDoNot()
     {
         harness.Script("""
-            local key = cloud.ssh_key "deploy" { public_key = infra.file "keys/deploy.pub" }
-            local web1 = cloud.droplet "web-1" { image = "ubuntu-24-04-x64", size = "s-2vcpu-4gb", region = "fra1", ssh_keys = { key.fingerprint } }
-            local web = web1:host { user = "root" }
-            return { hosts = { web = web } }
-            """);
+                       local key = cloud.ssh_key "deploy" { public_key = infra.file "keys/deploy.pub" }
+                       local web1 = cloud.droplet "web-1" { image = "ubuntu-24-04-x64", size = "s-2vcpu-4gb", region = "fra1", ssh_keys = { key.fingerprint } }
+                       local web = web1:host { user = "root" }
+                       return { hosts = { web = web } }
+                       """);
         harness.Repo.WriteFile("keys/deploy.pub", CloudPlanTests.DeployKey);
         harness.Account("droplets", "droplets", CloudHarness.Droplet(tags: ["infra:test"]))
             .Account("account/keys", "ssh_keys", CloudHarness.Fixture("do-ssh-key.json"));

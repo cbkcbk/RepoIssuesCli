@@ -13,6 +13,14 @@ public interface IHostConnection : IAsyncDisposable
     Task UploadAsync(string path, ReadOnlyMemory<byte> content, string? mode, string? owner, CancellationToken cancellationToken = default);
 
     Task<byte[]?> ReadFileAsync(string path, CancellationToken cancellationToken = default);
+
+    Task<IPortForward> ForwardAsync(string remoteHost, int remotePort, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException($"{GetType().Name} can't forward ports");
+}
+
+public interface IPortForward : IDisposable
+{
+    int LocalPort { get; }
 }
 
 public sealed record CommandResult(int ExitCode, string Stdout, string Stderr)

@@ -31,7 +31,7 @@ public sealed class CloudServices
 
     public static CloudServices CreateDefault()
     {
-        var http = new HttpClient();
+        var http = new HttpClient(new TrafficHandler(new HttpClientHandler()));
         http.DefaultRequestHeaders.UserAgent.ParseAdd("repo-infra/0.1");
         return new CloudServices(http);
     }

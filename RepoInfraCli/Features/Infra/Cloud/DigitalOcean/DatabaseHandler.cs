@@ -8,6 +8,7 @@ namespace RepoInfraCli.Features.Infra.Cloud.DigitalOcean;
 public sealed class DatabaseHandler : ResourceHandler
 {
     public const string KindName = "database";
+    public const string AdminConnectionStringField = "admin_connection_string";
     const string MissingUser = "(none)";
 
     public override string Provider => DigitalOceanModule.ProviderKind;
@@ -20,7 +21,7 @@ public sealed class DatabaseHandler : ResourceHandler
 
     public override bool Prunable => false;
 
-    public override IReadOnlySet<string> SensitiveOutputs { get; } = new HashSet<string> { "connection_string" };
+    public override IReadOnlySet<string> SensitiveOutputs { get; } = new HashSet<string> { "connection_string", AdminConnectionStringField };
 
     public override IReadOnlyList<FieldSpec> Fields { get; } = [new("user")];
 
@@ -44,6 +45,9 @@ public sealed class DatabaseHandler : ResourceHandler
         var outputs = new Dictionary<string, string>();
         if (password is not null && cluster is not null)
             outputs["connection_string"] = session.Sensitive(ConnectionString(cluster, live.Name, user, session.Sensitive(password)));
+        if (cluster?.Raw.Text("connection", "user") is { } admin && cluster.Raw.Text("connection", "password") is { } adminPassword)
+            outputs[AdminConnectionStringField] = session.Sensitive(
+                ConnectionString(cluster, cluster.Raw.Text("connection", "database") ?? "defaultdb", admin, session.Sensitive(adminPassword)));
         return live with
         {
             Fields = new Dictionary<string, string> { ["user"] = password is null ? MissingUser : user },

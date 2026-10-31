@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using RepoInfraCli.Features.Infra.Logging;
 
 namespace RepoInfraCli.Features.Infra.Apps;
 
@@ -23,13 +24,14 @@ public sealed class ProcessRunner : IProcessRunner
 {
     public static ProcessRunner Instance { get; } = new();
 
-    public async Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory = null, string? stdin = null, CancellationToken cancellationToken = default)
+    public static ProcessStartInfo StartInfo(
+        string fileName, IReadOnlyList<string> arguments, string? workingDirectory = null, bool redirectStdin = false, IReadOnlyDictionary<string, string>? environment = null)
     {
         var start = new ProcessStartInfo(fileName)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            RedirectStandardInput = stdin is not null,
+            RedirectStandardInput = redirectStdin,
             UseShellExecute = false,
             CreateNoWindow = true,
             StandardOutputEncoding = Encoding.UTF8,
@@ -39,8 +41,30 @@ public sealed class ProcessRunner : IProcessRunner
             start.WorkingDirectory = workingDirectory;
         foreach (var argument in arguments)
             start.ArgumentList.Add(argument);
+        foreach (var (name, value) in environment ?? new Dictionary<string, string>())
+            start.Environment[name] = value;
+        return start;
+    }
 
-        using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start {fileName}");
+    public async Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory = null, string? stdin = null, CancellationToken cancellationToken = default)
+    {
+        var call = ProcessTraffic.Start(InfraLog.Current, fileName, arguments, workingDirectory, [], stdin);
+        try
+        {
+            var result = await ExecuteAsync(fileName, arguments, workingDirectory, stdin, cancellationToken);
+            call.Exited(result.ExitCode, result.Stdout, result.Stderr);
+            return result;
+        }
+        catch (Exception exception)
+        {
+            call?.Failed(exception);
+            throw;
+        }
+    }
+
+    static async Task<ProcessResult> ExecuteAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, string? stdin, CancellationToken cancellationToken)
+    {
+        using var process = Process.Start(StartInfo(fileName, arguments, workingDirectory, stdin is not null)) ?? throw new InvalidOperationException($"could not start {fileName}");
         var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
         if (stdin is not null)
@@ -58,6 +82,7 @@ public sealed class ProcessRunner : IProcessRunner
             process.Kill(entireProcessTree: true);
             throw;
         }
+
         return new ProcessResult(process.ExitCode, await stdout, await stderr);
     }
 }

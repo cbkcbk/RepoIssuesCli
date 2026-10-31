@@ -21,6 +21,7 @@ public static class DiagnosticCodes
     public const string MissingProject = "missing-project";
     public const string DuplicateProject = "duplicate-project";
     public const string InvalidName = "invalid-name";
+    public const string NameSeparator = "name-separator";
     public const string EnvRequired = "env-required";
     public const string UnknownEnv = "unknown-env";
     public const string UndefinedHost = "undefined-host";
@@ -29,4 +30,7 @@ public static class DiagnosticCodes
     public const string RequireDenied = "require-denied";
     public const string ContainerConflict = "container-conflict";
     public const string ContainerUnreadable = "container-unreadable";
+    public const string RepoUnavailable = "repo-unavailable";
+    public const string RepoCycle = "repo-cycle";
+    public const string MissingExport = "missing-export";
 }

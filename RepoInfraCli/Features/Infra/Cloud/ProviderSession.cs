@@ -10,9 +10,6 @@ namespace RepoInfraCli.Features.Infra.Cloud;
 
 public sealed class ProviderSession(ProviderNode provider, CloudServices cloud, SecretLookup secrets, InfraLog log)
 {
-    public const string SpacesAccessKey = "spaces_access_key";
-    public const string SpacesSecretKey = "spaces_secret_key";
-
     DigitalOceanClient? digitalOcean;
     CloudflareClient? cloudflare;
     SpacesClient? spaces;
@@ -27,7 +24,8 @@ public sealed class ProviderSession(ProviderNode provider, CloudServices cloud, 
 
     public CloudflareClient Cloudflare => cloudflare ??= new CloudflareClient(cloud.Http, Token());
 
-    public SpacesClient Spaces => spaces ??= new SpacesClient(cloud.Http, secrets.Get(SpacesSecret(SpacesAccessKey)), secrets.Get(SpacesSecret(SpacesSecretKey)));
+    public SpacesClient Spaces => spaces ??= new SpacesClient(
+        cloud.Http, secrets.Get(SpacesSecret(DigitalOceanModule.SpacesAccessKey)), secrets.Get(SpacesSecret(DigitalOceanModule.SpacesSecretKey)));
 
     public string Token() => secrets.Get(TokenSecret);
 
@@ -35,12 +33,10 @@ public sealed class ProviderSession(ProviderNode provider, CloudServices cloud, 
         provider.Options[provider.Kind == CloudflareModule.ProviderKind ? "api_token" : "token"] as SecretRef
         ?? throw new ResourcePlanException($"{provider.Kind}.provider has no token secret");
 
-    public SecretRef SpacesSecret(string name)
-    {
-        var path = TokenSecret.Path;
-        var slash = path.LastIndexOf('/');
-        return new SecretRef(slash < 0 ? name : path[..(slash + 1)] + name);
-    }
+    SecretRef SpacesSecret(string option) =>
+        provider.Options[option] as SecretRef
+        ?? throw new SecretUnavailableException(
+            $"{provider.Kind}.provider has no {option}; Spaces buckets need {DigitalOceanModule.SpacesAccessKey} and {DigitalOceanModule.SpacesSecretKey} secrets");
 
     public string Sensitive(string value)
     {

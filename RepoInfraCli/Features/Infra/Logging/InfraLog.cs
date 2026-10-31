@@ -1,6 +1,9 @@
-using System.Globalization;
 using System.Text;
-using System.Text.Json;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
+using Serilog.Parsing;
 using Spectre.Console;
 
 namespace RepoInfraCli.Features.Infra.Logging;
@@ -13,24 +16,39 @@ public enum InfraLogLevel
     Debug,
 }
 
-public sealed class InfraLog(IAnsiConsole? console, int verbosity, TextWriter? events, ISecretRedactor? redactor = null) : ISecretRedactor, IDisposable
+public sealed class InfraLog(IAnsiConsole? console, int verbosity, Logger? file, ISecretRedactor? redactor = null) : ISecretRedactor, IDisposable
 {
+    static readonly AsyncLocal<InfraLog?> current = new();
+
     readonly Lock gate = new();
 
     public static InfraLog Silent() => new(null, 0, null);
 
-    public static InfraLog Create(IAnsiConsole console, int verbosity, string? logPath)
+    public static InfraLog? Current => current.Value;
+
+    public static InfraLog Create(IAnsiConsole console, int verbosity, string? logPath, string command, string? env)
     {
         if (string.IsNullOrWhiteSpace(logPath))
             return new InfraLog(console, verbosity, null);
 
         var full = Path.GetFullPath(logPath);
         Directory.CreateDirectory(Path.GetDirectoryName(full)!);
-        var writer = new StreamWriter(full, append: true, new UTF8Encoding(false)) { AutoFlush = true, NewLine = "\n" };
-        return new InfraLog(console, verbosity, writer);
+        var file = RunLogger(command, env)
+            .WriteTo.File(new RenderedCompactJsonFormatter(), full, encoding: new UTF8Encoding(false))
+            .CreateLogger();
+        return new InfraLog(console, verbosity, file);
     }
 
+    public static LoggerConfiguration RunLogger(string command, string? env) =>
+        new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .Enrich.WithProperty("RunId", Guid.CreateVersion7().ToString())
+            .Enrich.WithProperty("Command", command)
+            .Enrich.WithProperty("Env", env);
+
     public int Verbosity => verbosity;
+
+    public bool RecordsTraffic => file is not null;
 
     public ISecretRedactor Secrets { get; } = redactor ?? new SecretRedactor();
 
@@ -39,6 +57,13 @@ public sealed class InfraLog(IAnsiConsole? console, int verbosity, TextWriter? e
     public string Redact(string text) => Secrets.Redact(text);
 
     public bool ShowsOnConsole(InfraLogLevel level) => (int)level <= 1 + verbosity;
+
+    public IDisposable UseAsCurrent()
+    {
+        var previous = current.Value;
+        current.Value = this;
+        return new CurrentScope(previous);
+    }
 
     public void Error(string eventName, string message, IReadOnlyDictionary<string, object?>? fields = null) =>
         Write(InfraLogLevel.Error, eventName, message, fields);
@@ -54,23 +79,43 @@ public sealed class InfraLog(IAnsiConsole? console, int verbosity, TextWriter? e
 
     public void Write(InfraLogLevel level, string eventName, string message, IReadOnlyDictionary<string, object?>? fields = null)
     {
-        var text = Redact(message);
-        lock (gate)
+        if (console is not null && ShowsOnConsole(level))
         {
-            if (console is not null && ShowsOnConsole(level))
-                console.MarkupLine(ConsoleMarkup(level, text));
-            events?.WriteLine(EventLine(level, eventName, text, fields));
+            var markup = ConsoleMarkup(level, Redact(message));
+            lock (gate)
+                console.MarkupLine(markup);
         }
+
+        Record(level, eventName, message, fields);
     }
 
     public void Record(InfraLogLevel level, string eventName, string message, IReadOnlyDictionary<string, object?>? fields = null)
     {
-        if (events is null)
+        if (file is null)
             return;
-        var line = EventLine(level, eventName, Redact(message), fields);
-        lock (gate)
-            events.WriteLine(line);
+
+        var properties = new List<LogEventProperty> { new("EventName", new ScalarValue(eventName)) };
+        foreach (var (key, value) in fields ?? new Dictionary<string, object?>())
+            properties.Add(new LogEventProperty(key, new ScalarValue(FieldValue(value))));
+        var template = new MessageTemplate([new TextToken(Redact(message))]);
+        file.Write(new LogEvent(DateTimeOffset.UtcNow, SerilogLevel(level), null, template, properties));
     }
+
+    public TrafficCall Request(string provider, string summary, IReadOnlyDictionary<string, object?> fields) => new(this, provider, summary, fields);
+
+    object? FieldValue(object? value) => value switch
+    {
+        null or bool or int or long or double or float or decimal => value,
+        _ => Redact(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? ""),
+    };
+
+    static LogEventLevel SerilogLevel(InfraLogLevel level) => level switch
+    {
+        InfraLogLevel.Error => LogEventLevel.Error,
+        InfraLogLevel.Warning => LogEventLevel.Warning,
+        InfraLogLevel.Info => LogEventLevel.Information,
+        _ => LogEventLevel.Debug,
+    };
 
     static string ConsoleMarkup(InfraLogLevel level, string text) => level switch
     {
@@ -80,46 +125,10 @@ public sealed class InfraLog(IAnsiConsole? console, int verbosity, TextWriter? e
         _ => Markup.Escape(text),
     };
 
-    string EventLine(InfraLogLevel level, string eventName, string message, IReadOnlyDictionary<string, object?>? fields)
-    {
-        using var buffer = new MemoryStream();
-        using (var json = new Utf8JsonWriter(buffer))
-        {
-            json.WriteStartObject();
-            json.WriteString("time", DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
-            json.WriteString("level", level.ToString().ToLowerInvariant());
-            json.WriteString("event", eventName);
-            json.WriteString("message", message);
-            if (fields is { Count: > 0 })
-            {
-                json.WriteStartObject("fields");
-                foreach (var (key, value) in fields)
-                    WriteField(json, key, value);
-                json.WriteEndObject();
-            }
-            json.WriteEndObject();
-        }
-        return Encoding.UTF8.GetString(buffer.ToArray());
-    }
+    public void Dispose() => file?.Dispose();
 
-    void WriteField(Utf8JsonWriter json, string key, object? value)
+    sealed class CurrentScope(InfraLog? previous) : IDisposable
     {
-        switch (value)
-        {
-            case null:
-                json.WriteNull(key);
-                break;
-            case bool flag:
-                json.WriteBoolean(key, flag);
-                break;
-            case int or long or double or float or decimal:
-                json.WriteNumber(key, Convert.ToDouble(value, CultureInfo.InvariantCulture));
-                break;
-            default:
-                json.WriteString(key, Redact(Convert.ToString(value, CultureInfo.InvariantCulture) ?? ""));
-                break;
-        }
+        public void Dispose() => current.Value = previous;
     }
-
-    public void Dispose() => events?.Dispose();
 }

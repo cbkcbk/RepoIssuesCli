@@ -268,7 +268,7 @@ public class EvaluationTests
                          repo.provider { url = "git@github.com:snappy/platform-infra.git", ref = "v1", path = "infra" }
                          """);
 
-        Assert.That(repo.Evaluate().Diagnostics, Is.Empty);
+        Assert.That(repo.Evaluate().Diagnostics.Select(diagnostic => diagnostic.Code), Is.EqualTo(new[] { DiagnosticCodes.RepoUnavailable }));
     }
 
     [Test]
@@ -284,8 +284,29 @@ public class EvaluationTests
         var error = SingleError(repo.Evaluate());
 
         Assert.That(error.Code, Is.EqualTo(DiagnosticCodes.ProtectUnsupported));
-        Assert.That(error.Message, Does.Contain("firewall \"web\" can't be protect").And.Contain("test-web"));
+        Assert.That(error.Message, Does.Contain("firewall \"web\" can't be protect").And.Contain("test--web"));
         Assert.That(error.Location?.Line, Is.EqualTo(5));
+    }
+
+    [Test]
+    public void DoubleDashInProjectEnvOrNamePrefixedNamesIsAnError()
+    {
+        repo.WriteInfra("""
+                        local infra = require("@infra")
+                        infra.project "my--app" {}
+                        local digitalocean = require("@infra/digitalocean")
+                        local provider = digitalocean.provider { token = infra.secret "do/token" }
+                        provider.firewall "web--edge" {}
+                        provider.droplet "web--1" { image = "ubuntu", size = "s", region = "fra1" }
+                        """);
+        repo.WriteFile(".repo-infra/envs/blue--green/.keep", "");
+
+        var errors = repo.Evaluate(env: "blue--green").Diagnostics.Where(diagnostic => diagnostic.Code == DiagnosticCodes.NameSeparator).ToList();
+
+        Assert.That(errors.Select(error => error.Message).ToList(), Has.Count.EqualTo(3)
+            .And.Some.StartsWith("project name \"my--app\" can't contain \"--\"")
+            .And.Some.StartsWith("env name \"blue--green\" can't contain \"--\"")
+            .And.Some.StartsWith("firewall name \"web--edge\" can't contain \"--\""));
     }
 
     [Test]

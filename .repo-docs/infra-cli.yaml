@@ -5,7 +5,7 @@ when:
   paths:
     - RepoInfraCli/
 created: 2026-10-30T00:40:13Z
-updated: 2026-10-30T10:37:55Z
+updated: 2026-10-31T15:44:46Z
 entries:
   - id: evaluation
     kind: decision
@@ -14,35 +14,41 @@ entries:
       keywords:
         - luau
     created: 2026-10-30T00:40:47Z
-    read: 2026-10-30
+    read: 2026-10-31
     body: |-
       The Luau script runs once without side effects and only records nodes; the C# engine then pulls live state, diffs and pushes. Output<T> is opaque to Luau and shows as "(known after apply)", so scripts can't branch on live values. Sandbox: no io/os/network, require only @infra and .repo-infra, infra.file stays in the repo (or ~/). No state file and no lock: creates re-check name+marker just before acting. Why: honest repeatable plans, and reference-mode evaluation for repo.provider comes for free.
   - id: ownership-markers
     kind: decision
-    summary: 'Ownership is a marker per resource kind: tags, description, comment, marker object or name prefix'
+    summary: 'Ownership is a marker per resource kind: split DO tags, text marker, marker object or --separated name prefix'
     when:
       keywords:
         - tags
     created: 2026-10-30T00:40:47Z
-    updated: 2026-10-30T10:50:45Z
-    read: 2026-10-30
+    updated: 2026-10-31T15:23:19Z
+    read: 2026-10-31
     body: |-
-      Marker string: infra:<project>-<env> name=<name> [protect] [exported]; without --env the owner is just <project> (infra:<project> name=<name>, name prefix <project>-<name>). Droplets and DB clusters: DO tags (always lowercase; DO tags are case-stable). VPC: description. Cloudflare record: comment (tags need a paid plan; comments fit 100 chars on Free). Spaces bucket: .infra-owner marker object with object tags (bucket tagging unsupported). Firewall, SSH key, registry: no metadata, so live name is <project>-<env>-<name>; protect/exported on these fails validate, and adopt renames. Unowned resource with a declared name fails the plan until infra adopt.
+      The owner is the project and env together (see infra-cli/glossary); markers record the project and the env (when --env is given) separately, and matching needs the exact project and env (a run without --env only matches markers without an env).
+
+      - Text markers (VPC description, Cloudflare record comment, which fits 100 chars on Free; Spaces `.infra-owner` marker object plus object tags, since bucket tagging is unsupported): `infra:<project> [env=<env>] name=<name> [protect] [exported]`.
+      - DigitalOcean tags (droplets, DB clusters; lowercase, DO allows letters, digits, colons, dashes and underscores, 255 chars): `infra:<project>`, `infra-env:<env>` (only with an env), `infra-protect`, `infra-exported`. The resource's own name is the name.
+      - Firewall, SSH key, registry have no metadata, so the live name is `<project>--<name>` or `<project>--<env>--<name>`; project names, env names and the names of these resources must not contain `--` (validate). protect/exported on these fails validate, and adopt renames.
+      - An unowned resource with a declared name fails the plan until `infra adopt`.
   - id: commands
     kind: decision
     summary: Command set, filters and exit codes of the infra CLI
     created: 2026-10-30T00:40:47Z
-    read: 2026-10-30
+    updated: 2026-10-31T15:40:20Z
+    read: 2026-10-31
     body: |-
-      init, validate, plan [--exit-code], apply, adopt, show [name] [--field], destroy [names], secrets (see #43). Filters: --play, --host, --resources-only, --hosts-only. All take --json, -v/-vv (secrets redacted), --log <jsonl>. apply re-plans then confirms; no saved plan files (stale without state). Exit codes: 0 ok, 1 blocked/invalid, 2 usage, 3 not found, 4 unexpected, 5 partially applied, 6 drift (plan --exit-code). Plan text uses + ~ -/+ - ! grouped Resources then Plays > host > role > task; secrets show as (secret).
+      init, validate [--offline], plan [--exit-code], apply [--yes] [--allow-destroy], adopt [names] [--yes], show [name] [--field], destroy [names] [--yes --confirm <owner>], restore <database> --list | [--dump <key> | --at <time>] [--into <name>] [--yes] (see infra-cli/postgres), db copy <database> --to <target> [--scrub] [--migrate] [--confirm] (see infra-cli/db-copy), secrets (see infra-cli/secrets), hook shell|edit (see infra-cli/claude-plugin). validate --offline skips the msbuild container check and uses other repos only as cached, never cloning or fetching. Filters: --play, --host, --resources-only, --hosts-only; plan and apply also take --accept-new-hosts and --allow-dirty. All take --json, -v/-vv (secrets redacted), --log <path> (CLEF run log with provider traffic, see infra-cli/run-log). apply re-plans then confirms; no saved plan files (stale without state). apply order: resources, re-plan hosts whose address was known after apply, builds, copies, plays; copies are planned only on unfiltered runs. A plan with any delete, replace or copy into a protected target refuses the whole apply without --allow-destroy. Exit codes: 0 ok, 1 blocked/invalid, 2 usage, 3 not found, 4 unexpected, 5 partially applied, 6 drift (plan --exit-code). Plan text uses + ~ -/+ - ! ? grouped Resources, Builds, Copies, then Plays > host > role > task; secrets show as (secret).
   - id: destroy-and-protect
     kind: decision
     summary: Destroy is marker-driven and never touches protected or exported resources
     created: 2026-10-30T00:40:47Z
-    updated: 2026-10-30T10:50:45Z
-    read: 2026-10-30
+    updated: 2026-10-31T00:20:24Z
+    read: 2026-10-31
     body: |-
-      protect blocks delete and replace. Exported values (hosts, networks, databases from the returned Exports table) and the resources that own them (host -> droplet, database -> cluster) get the exported marker and are implicitly protected (we can't see importers). Dependencies are not followed transitively, so e.g. a droplet's ssh_key stays unexported. Create-only fields warn; replace-only fields show -/+. Any destruction needs --allow-destroy with --yes, else typing <project>-<env>. destroy works from markers alone (file may be gone): reverse graph order, or by kind (records, firewalls, droplets, db clusters, buckets, keys, VPCs); never touches infra.host or existing.*; CI needs --yes --confirm <project>-<env>. No flag overrides protect or exported.
+      protect blocks delete and replace. Exported values (hosts, networks, databases from the returned Exports table) and the resources that own them (host -> droplet, database -> cluster) get the exported marker and are implicitly protected (we can't see importers). Dependencies are not followed transitively, so e.g. a droplet's ssh_key stays unexported. Create-only fields warn; replace-only fields show -/+. Any destruction needs --allow-destroy with --yes, else typing <project>-<env>. destroy finds what to delete by markers, so resources already removed from infra.luau are still found, but infra.luau must still evaluate because provider tokens come from it. It deletes in reverse graph order, or by kind (records, firewalls, droplets, db clusters, buckets, keys, VPCs); never touches infra.host or existing.*; CI needs --yes --confirm <project>-<env>. No flag overrides protect or exported.
   - id: hosts
     kind: decision
     summary: Hosts are configured agentlessly over Tmds.Ssh with strict known_hosts and sudo become
@@ -60,19 +66,27 @@ entries:
       keywords:
         - docker
     created: 2026-10-30T00:40:48Z
-    read: 2026-10-30
+    updated: 2026-10-31T00:34:41Z
+    read: 2026-10-31
     body: |-
-      dotnet.container builds with dotnet publish -t:PublishContainer (no Docker daemon). Container settings come from dotnet msbuild -getProperty (ContainerRegistry, ContainerRepository, ContainerBaseImage, ContainerFamily); Luau fills gaps, conflicting values fail validate. Tag is always infra.git.sha; a dirty tree needs --allow-dirty and tags <sha>-dirty-<timestamp>. Redeploy when the running tag differs; skip the build if the tag exists. h:compose renders compose.yaml plus a 0600 .env for secrets, diffs by hash, runs up -d --remove-orphans and waits for healthchecks.
+      dotnet.container builds with `dotnet publish -t:PublishContainer` (no Docker daemon), defaulting to `-c Release -r linux-x64`. Container settings come from `dotnet msbuild -getProperty` (ContainerRegistry, ContainerRepository, ContainerBaseImage, ContainerFamily); Luau fills gaps, conflicting values fail validate. Tag is infra.git.sha; a dirty tree needs --allow-dirty and tags `<sha>-dirty-<short hash of the diff and untracked files>`, so an unchanged dirty tree reuses its image. Skip the build if the tag exists; redeploy when the running tag differs.
+
+      h:compose renders compose.yaml plus a root 0600 .env holding every secret (compose refers to them as `${VAR}`), diffs by hash, runs `up -d --remove-orphans` and waits for healthy containers. `healthcheck = { http = url }` renders a real compose healthcheck run inside the container (curl or wget when present, otherwise a bash /dev/tcp GET, http only), checked every 5s unless `interval` is set; images without a shell need an explicit `test`. Every compose.network is an external network named exactly as in Luau and created when missing. Hosts must already be able to pull from the registry.
   - id: envs-and-repos
     kind: decision
     summary: Environments via --env and infra.env; other repos via repo.provider sparse clones
     created: 2026-10-30T00:40:48Z
-    read: 2026-10-30
+    updated: 2026-10-31T02:29:12Z
+    read: 2026-10-31
     body: |-
-      --env is required when .repo-infra/envs/ exists and is exposed as infra.env; differences are Luau branches on infra.env. Markers include the env, so prune/destroy in staging never touch prod. Secrets resolve <env>/x/y before x/y. repo.provider { url, ref, path? } fetches with git (user's credentials) as a sparse partial clone into %LOCALAPPDATA%/repo-infra/repos/<hash>, evaluates the other file in reference mode and reads its returned Exports. Providers are built-in C# only.
+      --env is required when .repo-infra/envs/ exists and is exposed as infra.env; differences are Luau branches on infra.env. Markers include the env, so prune/destroy in staging never touch prod. Secrets resolve <env>/x/y before x/y. Providers are built-in C# only.
+
+      repo.provider { url, ref, path? } fetches with git (user's credentials) as a sparse partial clone into %LOCALAPPDATA%/repo-infra/repos/<hash> (INFRA_REPO_CACHE overrides), with core.autocrlf=false and files used by imported roles fetched on demand. `path` is the repo-relative folder holding infra.luau (default .repo-infra). Each run fetches and pins ref; if fetching fails the last pinned commit is used, and with no cache validate warns (repo-unavailable) while plan/apply fail for plays that use the provider.
+
+      The other file is evaluated in reference mode: its own workspace, the same --env if it has envs/ (else none), plays don't run, and its resources are only looked up by its own markers, never created, changed or pruned. Its returned Exports give hosts (planned and applied like local ones), roles (run on this repo's hosts), networks and cluster databases; self-hosted databases can't be exported. Imported ids are `<label>/<id>`. Its provider tokens are read from this repo's secrets under the same path. Missing names are missing-export errors; import cycles are repo-cycle errors. Imported databases can be db copy sources but not targets, and restore refuses them.
   - id: plan
     kind: plan
-    summary: Build the infra CLI in seven shippable milestones
+    summary: Build the infra CLI in eight shippable milestones
     steps:
       - title: 'Core: init, evaluation, validate'
         issues: [44]
@@ -84,13 +98,17 @@ entries:
         issues: [46]
       - title: Cloud providers, markers, prune, adopt, destroy
         issues: [47]
-      - title: Postgres and restore
-        issues: [48, 42]
+      - title: Postgres, self-hosted backups, restore and db copy
+        issues: [48, 42, 50]
       - title: Cross-repo provider and exports
         issues: [49]
+      - title: 'Claude Code plugin: skill, guard and edit hooks, offline validate'
+        issues: [51]
+      - title: 'Run log: Serilog with provider traffic'
+        issues: [52]
     created: 2026-10-30T00:41:11Z
-    updated: 2026-10-30T13:06:38Z
-    read: 2026-10-30
+    updated: 2026-10-31T15:23:35Z
+    read: 2026-10-31
   - id: validation
     kind: decision
     summary: validate checks at runtime only; Luau types are not checked
@@ -111,6 +129,7 @@ entries:
       keywords:
         - secrets
     created: 2026-10-30T12:30:10Z
+    read: 2026-10-31
     body: |-
       Secrets live encrypted in `.repo-infra/secrets.yaml`, with a `recipients` section (name → `p256:<base64 SPKI>`) and a `secrets` section (name → value).
 
@@ -120,3 +139,124 @@ entries:
       - `set`, `generate`, `show` and `recipients` reject `--env`; the env goes in the name (`prod/db/password`).
       - Removing a recipient re-encrypts every secret this machine can read under a fresh data key and lists the secrets that person could read as needing rotation.
       - Resolved values are added to the log redactor before use.
+  - id: cloud-providers
+    kind: decision
+    summary: Cloud providers use plain REST clients; field rules decide update, resize, replace or create-only
+    when:
+      paths:
+        - RepoInfraCli/Features/Infra/Cloud/
+      keywords:
+        - digitalocean
+        - cloudflare
+    created: 2026-10-31T00:19:26Z
+    updated: 2026-10-31T01:36:55Z
+    read: 2026-10-31
+    body: |-
+      Providers talk to the public REST APIs with HttpClient; Spaces uses its own SigV4 signer, no SDK.
+
+      - `digitalocean.provider { token, spaces_access_key, spaces_secret_key }`: the Spaces keys are secrets, required only when a bucket is declared.
+      - Droplet: `size` resizes in place (power off, CPU/RAM only so the disk can shrink back, power on, wait); region, image and vpc replace; ssh_keys and monitoring are create-only (`?`); tags and backups update.
+      - Database cluster: engine and region replace; version is create-only; size, nodes and trusted_sources update. Absent trusted_sources is left unmanaged, because an empty list opens the database to everyone. Databases expose `connection_string` and `admin_connection_string` (both sensitive). Databases in an owned cluster are never pruned on their own; they go with the cluster.
+      - Firewall without `outbound` allows all outbound traffic. Record ttl is forced to 1 when proxied.
+      - Lookups (Cloudflare zone, `existing.*`) are read-only; a missing one is a plan problem.
+  - id: db-copy
+    kind: decision
+    summary: Backups and restore only for self-hosted postgres; db copy moves data elsewhere
+    when:
+      keywords:
+        - postgres
+        - backup
+    created: 2026-10-31T00:43:39Z
+    updated: 2026-10-31T01:36:55Z
+    body: |-
+      Backups and restore are only for self-hosted postgres (postgres.database run by postgres.server); postgres.backup on a managed DigitalOcean database fails validate, since DigitalOcean backs those up itself. Moving data elsewhere is done by copy.
+
+      - `infra db copy <database> --to local:<db>|<declared database> [--scrub file] [--migrate] [--confirm owner]`; no other flags. <database> is a declared database, never a cluster or server.
+      - `postgres.copy(from, to) { scrub, migrate = app }` declares the same copy as an apply step: its own plan group between Builds and Plays, marker !, runs on every apply after builds and before plays.
+      - Sources: DigitalOcean clusters direct on port 25060 with sslmode=require (never the pool); self-hosted through an SSH port forward; local:<db> via INFRA_LOCAL_PG (default postgres://postgres@localhost:5432).
+      - Safety: refuse same source and target; source major version must match the declared version; a cloud source into local: needs --scrub; a protected target needs the typed owner or --confirm.
+      - On a DigitalOcean target, create, drop and rename run as the cluster admin (`admin_connection_string`); restore, scrub and migrations run as the app user, which is granted the temp database. Self-hosted databases are reached through an SSH forward on 127.0.0.1; on Linux, containers can't reach a 127.0.0.1-only listener via host.docker.internal.
+      - `--migrate` without a step uses the one app whose deploy references the target (the source for local: targets). `dotnet ef database update --connection` exposes the connection string in the process list; it is redacted from logs. CLI `--scrub` is relative to the current directory, Luau `scrub` to .repo-infra.
+      - If the rename fails after the old target was dropped, the temp database is kept and named in the error.
+      - Restore into <db>__infra_tmp_<timestamp> with pg_dump | pg_restore in postgres:<major> containers (credentials only in PG* env vars), scrub in one transaction, optional EF migrations, then drop the old target WITH (FORCE) and rename. Any failure or Ctrl+C removes the containers and the temp database and leaves the old target untouched.
+  - id: postgres
+    kind: decision
+    summary: Self-hosted postgres backups run a mounted script in the stock postgres image
+    when:
+      paths:
+        - RepoInfraCli/Features/Infra/Postgres/
+      keywords:
+        - postgres
+        - backup
+    created: 2026-10-31T01:10:19Z
+    updated: 2026-10-31T01:36:55Z
+    body: |-
+      Self-hosted postgres is postgres.database run by exactly one postgres.server compose service; its `connection_string` is `postgresql://<user>:<password>@<server service>:5432/<db>`, sensitive, so it lands in the compose .env.
+
+      - postgres.backup runs the stock `postgres:<major>` image (no custom image). A file task writes one bash script to `/usr/local/lib/repo-infra/postgres-backup-<content hash>`, mounted read-only as `/usr/local/bin/schedule|backup|list|restore`; the script installs curl on first use (needs outbound apt access) and talks to Spaces with `curl --aws-sigv4`.
+      - Commands: `schedule` (default; UTC cron with `*`, numbers, ranges, lists, `*/n`), `backup` (pg_dump -Fc to `<prefix>/<db>-<yyyyMMddTHHmmssZ>.dump`, single upload up to 5 GB), `list`, `restore <key>` (over the live db, one transaction), `restore <key> <name>` (into a new database, dropped again on failure).
+      - `credentials = secret ...` is `<access key>:<secret key>`. Retention is the bucket lifecycle rule; validate warns when none covers the prefix.
+      - `infra restore` finds the backup by label, SSHes to its host and runs `docker compose -p <project> run --rm -T <service> list|restore ...` in the compose dir; it shows db, dump and host and needs the typed database name unless --yes. Managed and other-repo databases are refused with a pointer to `infra db copy`.
+      - Services carry labels `repo-infra.postgres.server: <db>` and `repo-infra.postgres.backup: <db>`, used to find them on hosts.
+      - Validate rejects postgres.backup on managed or other-repo databases, outside a role or deploy, or on a different host than its server; bad cron, prefixes or names; a used database without exactly one server.
+  - id: glossary
+    kind: fact
+    summary: 'Infra terms: project, env, owner, marker, protected, exported, provider, provider traffic'
+    when:
+      keywords:
+        - glossary
+    created: 2026-10-31T15:05:57Z
+    updated: 2026-10-31T15:21:40Z
+    read: 2026-10-31
+    body: |-
+      Project: the name an infra.luau declares; the name in every marker. Env: the environment chosen with --env (infra.env); optional. Owner: project and env together, written <project>-<env>, or <project> without an env; markers belong to an owner, and --confirm <owner> types it. Marker: the per-resource record that says which owner a live resource belongs to. Protected: a resource that may not be deleted or replaced. Exported: a value another repo may import, and the resource behind it; implicitly protected. Provider: a cloud service that owns resource kinds (digitalocean, cloudflare); not to be confused with repo.provider. Provider traffic: every request and response the CLI exchanges with something outside itself (cloud and registry HTTP, SSH commands, local tool processes); what a run's log records in detail.
+  - id: claude-plugin
+    kind: decision
+    summary: Claude plugin guard asks before changing infra commands, denies where an ask might not prompt, and fails closed
+    when:
+      paths:
+        - RepoInfraCli/Features/Infra/Hooks/
+        - RepoInfraCli/Cli/Plugin/
+      keywords:
+        - plugin
+        - hooks
+    created: 2026-10-31T15:08:22Z
+    updated: 2026-10-31T15:23:19Z
+    read: 2026-10-31
+    body: |-
+      The infra plugin's PreToolUse guard (`infra hook shell`, Bash|PowerShell) returns ask for infra commands that change cloud, hosts, databases or secrets, deny for `secrets show`, and turns every ask into a deny (telling Claude to have the user run it with !) unless permission_mode is default or auto. Why: Claude Code documents a hook ask as prompting only in default and auto mode, so the guard only relies on ask there. It fails closed itself (unreadable input or an exception denies) instead of onFailure: block, because a missing `infra` on PATH would then block every shell call in every repo. A mention of infra only asks when a segment starts with a launcher (bash, pwsh, iex, xargs...) or a variable, so `cd infra` or commit messages don't prompt. The edit hook runs offline evaluation (no msbuild, cached repos only, every env) so it stays fast, and hides repo-unavailable warnings.
+  - id: run-log
+    kind: decision
+    summary: The log option is a Serilog CLEF run log that always records provider traffic, redacted
+    when:
+      paths:
+        - RepoInfraCli/Features/Infra/Logging/
+      keywords:
+        - logging
+        - serilog
+        - traffic
+    created: 2026-10-31T15:40:15Z
+    body: |-
+      `--log <PATH>` is the run log: Serilog appends rendered compact JSON (CLEF: `@t`, `@m`, `@l`, `@i`) to it, one line per event. Every event carries `EventName`, `RunId`, `Command` and `Env`; the file always records Debug and provider traffic whatever `-v` says (`-v` only drives the console, which still goes through Spectre in `InfraLog`).
+
+      - Provider traffic (see infra-cli/glossary) is a `provider.request` written before the call and a `provider.response` or `provider.failed` after it, sharing `RequestId`, with `Provider` and `DurationMs`. Sources: `TrafficHandler` on the cloud and registry `HttpClient`s (provider from host: digitalocean, cloudflare, spaces; registry is named), `ProcessRunner` and db copy's piped docker processes (`process`), and `HostSession` (`ssh:<host>`).
+      - HTTP handler and process runner find the log through `InfraLog.Current`, an AsyncLocal that `InfraCommand` sets with `log.UseAsCurrent()`; they are app singletons built before any command's log exists. Without a current log, or a log without a file, nothing is recorded or buffered.
+      - Redaction, in order: credential headers and signed query parameters always `(secret)`; JSON values of credential-named properties (password, token, uri, private_key, ...) spliced out of the exact wire text; then the secret redactor; then a 64 KB cap noting the full byte length. Non-text bodies are logged as type and length and never read (streams stay unconsumed). Process environment variables are logged by name only.
+      - SSH logs the display script, not raw stdin: uploads show as `upload <path> (n bytes)`, `read <path>` hides the base64 output, and the sudo password stdin is never logged. Extra stdin given to `RunAsync` is logged.
+      - Event fields must not reuse the enriched names case-insensitively (`env`, `command`): PowerShell and other case-insensitive JSON readers reject the line.
+      - Not covered: Npgsql connections in db copy and restore, and Tmds.Ssh port forwards.
+  - id: plugin-debug-only
+    kind: gotcha
+    summary: Cli/Plugin code compiles only in Debug; Release builds must exclude it
+    when:
+      paths:
+        - RepoInfraCli/RepoInfraCli.csproj
+        - RepoInfraCli.Tests/RepoInfraCli.Tests.csproj
+        - RepoInfraCli/Cli/Plugin/
+      keywords:
+        - plugin
+        - release
+        - build
+    created: 2026-10-31T15:44:46Z
+    body: |-
+      RepoCli.Core compiles `Cli/Plugin/**` (PluginGenerator, IPluginSource, GeneratedFile) only in Debug, and `generate-plugin` is registered under `#if DEBUG`. RepoInfraCli and RepoInfraCli.Tests therefore exclude their own `Cli/Plugin/**` outside Debug, like the docs and issues CLIs; without that, `build.ps1` (Release) fails with CS0234 on `RepoCli.Core.Cli.Plugin`. Plugin tests go in `RepoInfraCli.Tests/Cli/Plugin/` so the exclusion covers them; they only run in Debug.

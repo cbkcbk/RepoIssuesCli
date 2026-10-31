@@ -84,7 +84,7 @@ public class HostSessionTests
     {
         var shell = Shell();
         var events = new StringWriter();
-        using var log = new InfraLog(null, 2, events);
+        using var log = TestLogs.Writing(events);
         await using var session = await HostSession.OpenAsync(shell, FakeHost.Node(become: true), Connect((_, _) => Task.FromResult("hunter2"), log));
 
         await session.RunAsync("echo hunter2 && id -u");
@@ -137,13 +137,46 @@ public class HostSessionTests
     public async Task UploadsKeepContentOutOfTheLog()
     {
         var events = new StringWriter();
-        using var log = new InfraLog(null, 2, events);
+        using var log = TestLogs.Writing(events);
         await using var session = await HostSession.OpenAsync(Shell(), FakeHost.Node(), Connect(log: log));
 
         await session.UploadAsync("/etc/app.env", Encoding.UTF8.GetBytes("TOKEN=abc"), "0600", "root");
 
         var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("TOKEN=abc"));
         Assert.That(events.ToString(), Does.Contain("upload /etc/app.env (9 bytes, mode 0600, owner root)").And.Not.Contain(base64));
+    }
+
+    [Test]
+    public async Task CommandsAreProviderTrafficWithOutputAndExtraStdin()
+    {
+        var events = new StringWriter();
+        using var log = TestLogs.Writing(events);
+        await using var session = await HostSession.OpenAsync(Shell(), FakeHost.Node("web-1"), Connect(log: log));
+
+        await session.RunAsync("cat", Encoding.UTF8.GetBytes("payload"));
+
+        var lines = TestLogs.Events(events.ToString());
+        var request = lines.Last(line => line.EventName() == "provider.request");
+        var response = lines.Last(line => line.EventName() == "provider.response");
+        Assert.That(request.GetProperty("Provider").GetString(), Is.EqualTo("ssh:web-1"));
+        Assert.That(request.GetProperty("Script").GetString(), Is.EqualTo("cat"));
+        Assert.That(request.GetProperty("Stdin").GetString(), Is.EqualTo("payload"));
+        Assert.That(response.GetProperty("RequestId").GetString(), Is.EqualTo(request.GetProperty("RequestId").GetString()));
+        Assert.That(response.TryGetProperty("ExitCode", out _), Is.True);
+    }
+
+    [Test]
+    public async Task ReadFileKeepsContentOutOfTheLog()
+    {
+        var events = new StringWriter();
+        var content = Convert.ToBase64String(Encoding.UTF8.GetBytes("TOKEN=abc"));
+        using var log = TestLogs.Writing(events);
+        var shell = new FakeShell((command, _) => command == HostFacts.ProbeCommand ? Ok(Noble) : Ok(content));
+        await using var session = await HostSession.OpenAsync(shell, FakeHost.Node(), Connect(log: log));
+
+        await session.ReadFileAsync("/etc/app.env");
+
+        Assert.That(events.ToString(), Does.Contain("read /etc/app.env").And.Not.Contain(content));
     }
 
     static BecomePasswords Passwords(bool canPrompt, TestConsole? console = null, Func<string, string?>? variables = null) =>
@@ -198,12 +231,12 @@ public class HostSessionTests
         var included = Path.GetTempFileName();
         File.WriteAllText(included, "Host jump-*\n  ProxyCommand ssh -W %h:%p bastion\n");
         File.WriteAllText(config, $"""
-            Include {included}
-            Host *.internal !skip.internal
-              ProxyCommand nc %h %p
-            Host plain
-              ProxyCommand none
-            """);
+                                   Include {included}
+                                   Host *.internal !skip.internal
+                                     ProxyCommand nc %h %p
+                                   Host plain
+                                     ProxyCommand none
+                                   """);
         try
         {
             Assert.That(SshConfigFile.ProxyCommand([config], "db.internal"), Is.EqualTo("nc %h %p"));

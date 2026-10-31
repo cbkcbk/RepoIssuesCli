@@ -1,5 +1,7 @@
 using RepoInfraCli.Features.Infra.Evaluation;
+using RepoInfraCli.Features.Infra.Evaluation.Natives;
 using RepoInfraCli.Features.Infra.Graph;
+using RepoInfraCli.Features.Infra.Postgres;
 
 namespace RepoInfraCli.Tests.Features;
 
@@ -14,7 +16,7 @@ public class DemoGraphTests
         repo = new TempRepo();
         repo.CopyDemo();
         var result = repo.Evaluate();
-        Assert.That(result.Diagnostics, Is.Empty, string.Join("\n", result.Diagnostics));
+        Assert.That(result.Diagnostics.Select(diagnostic => diagnostic.Code), Is.EqualTo(new[] { DiagnosticCodes.RepoUnavailable }), string.Join("\n", result.Diagnostics));
         graph = result.Graph!;
     }
 
@@ -42,8 +44,12 @@ public class DemoGraphTests
         Assert.That(graph.Project, Is.EqualTo(new ProjectNode("snappy", true, new SourceLocation(".repo-infra/infra.luau", 23))));
         Assert.That(graph.Providers.Select(provider => provider.Id.Value), Is.EqualTo(new[] { "digitalocean", "cloudflare", "repo" }));
         Assert.That(graph.Providers[0].Options["token"], Is.EqualTo(new SecretRef("digitalocean/token")));
-        Assert.That(graph.Secrets.Select(secret => secret.Path),
-            Is.EqualTo(new[] { "digitalocean/token", "cloudflare/token", "postgres/api", "cloudflare/dns_token", "spaces/backups" }));
+        Assert.That(graph.Providers[0].Options[DigitalOceanModule.SpacesAccessKey], Is.EqualTo(new SecretRef("digitalocean/spaces_access_key")));
+        Assert.That(graph.Secrets.Select(secret => secret.Path), Is.EqualTo(new[]
+        {
+            "digitalocean/token", "digitalocean/spaces_access_key", "digitalocean/spaces_secret_key", "cloudflare/token", "postgres/api", "cloudflare/dns_token",
+            "spaces/backups",
+        }));
     }
 
     [Test]
@@ -118,13 +124,14 @@ public class DemoGraphTests
             .And.Contain("--providers.docker.exposedbydefault=false")
             .And.Contain("--providers.docker.network=edge"));
 
-        var database = graph.Play("data")!.Runs.Single().Tasks.Single();
-        var services = (MapValue)database.Options["services"]!;
+        var tasks = graph.Play("data")!.Runs.Single().Tasks;
+        Assert.That(tasks.Select(task => $"{task.Kind} {task.Name}"), Is.EqualTo(new[] { $"file {BackupScript.HostPath}", "compose postgres" }));
+        var services = (MapValue)tasks[1].Options["services"]!;
         var postgres = (MapValue)services["postgres"]!;
         Assert.That(postgres.GetString("image"), Is.EqualTo("postgres:17"));
         Assert.That(((MapValue)postgres["environment"]!)["POSTGRES_PASSWORD"], Is.EqualTo(new SecretRef("postgres/api")));
         Assert.That(((ListValue)postgres["networks"]!).Items.Single(), Is.EqualTo(new NodeRef(new NodeId("compose.network:db"))));
-        Assert.That(services.Entries.Keys, Is.EquivalentTo(new[] { "postgres", "backup", "backup_reports" }));
+        Assert.That(services.Entries.Keys, Is.EquivalentTo(new[] { "postgres", "backup" }));
     }
 
     [Test]
@@ -144,9 +151,10 @@ public class DemoGraphTests
     {
         Assert.That(graph.Marker.For(Resource("droplet", "web-1")), Is.EqualTo("infra:snappy name=web-1 exported"));
         Assert.That(graph.Marker.For(Resource("record", "@")), Is.EqualTo("infra:snappy name=@ protect"));
-        Assert.That(graph.Marker.PrefixedName("web"), Is.EqualTo("snappy-web"));
-        Assert.That(new Marker("snappy", "prod").For("db", protect: true, exported: true), Is.EqualTo("infra:snappy-prod name=db protect exported"));
-        Assert.That(new Marker("snappy", "prod").PrefixedName("web"), Is.EqualTo("snappy-prod-web"));
+        Assert.That(graph.Marker.PrefixedName("web"), Is.EqualTo("snappy--web"));
+        Assert.That(new Marker("snappy", "prod").For("db", protect: true, exported: true), Is.EqualTo("infra:snappy env=prod name=db protect exported"));
+        Assert.That(new Marker("snappy", "prod").PrefixedName("web"), Is.EqualTo("snappy--prod--web"));
+        Assert.That(new Marker("snappy", "prod").Owner, Is.EqualTo("snappy-prod"));
         Assert.That(Resource("firewall", "web").UsesNamePrefix, Is.True);
         Assert.That(Resource("droplet", "web-1").UsesNamePrefix, Is.False);
     }
@@ -156,7 +164,7 @@ public class DemoGraphTests
     {
         var reference = repo.Evaluate(mode: EvaluationMode.Reference);
 
-        Assert.That(reference.Diagnostics, Is.Empty);
+        Assert.That(reference.Errors, Is.Empty);
         Assert.That(reference.Graph!.Resources, Has.Count.EqualTo(graph.Resources.Count));
         Assert.That(reference.Graph.Tasks, Is.Empty);
         Assert.That(reference.Graph.Exports!.Hosts.Keys, Is.EqualTo(new[] { "web" }));

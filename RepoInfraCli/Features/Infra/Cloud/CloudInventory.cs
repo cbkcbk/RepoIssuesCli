@@ -34,7 +34,8 @@ public sealed class CloudInventory
         foreach (var provider in graph.Providers.Where(provider => cloud.Handles(provider.Kind)))
         {
             var declared = managed.Where(resource => resource.ProviderId == provider.Id).ToList();
-            if (declared.Count == 0 && !allKinds)
+            var listsAll = allKinds && provider.Reference is null;
+            if (declared.Count == 0 && !listsAll)
                 continue;
 
             var session = new ProviderSession(provider, cloud, run.Secrets, log);
@@ -51,13 +52,13 @@ public sealed class CloudInventory
             sessions[provider.Id] = session;
             session.SpacesRegions.UnionWith(declared.Where(resource => resource.Kind == SpacesBucketHandler.KindName)
                 .Select(resource => resource.Options.GetString("region")).OfType<string>());
-            if (allKinds)
+            if (listsAll)
                 session.SpacesRegions.UnionWith(SpacesBucketHandler.Regions);
 
             foreach (var handler in cloud.Handlers.Where(handler => handler.Provider == provider.Kind && handler.ParentKind is null))
             {
                 var used = declared.Any(resource => resource.Kind == handler.Kind);
-                if (!used && (!allKinds || handler.LookupOnly))
+                if (!used && (!listsAll || handler.LookupOnly))
                     continue;
                 try
                 {
@@ -104,14 +105,15 @@ public sealed class CloudInventory
             }
         }
 
-        bool Stray(LiveResource live) => live.Mark?.Owner == inventory.Marker.Owner && !claimed.Any(live.Is);
-        foreach (var ((providerId, kind), pool) in pools)
+        bool Stray(LiveResource live) => live.Mark is { } mark && mark.BelongsTo(inventory.Marker) && !claimed.Any(live.Is);
+        foreach (var ((providerId, kind), pool) in pools.Where(pool => sessions[pool.Key.Provider].Provider.Reference is null))
         {
             var handler = cloud.Handler(sessions[providerId].Provider.Kind, kind)!;
             if (handler.Prunable)
                 inventory.Strays.AddRange(pool.Where(Stray).Select(live => new StrayResource(handler, sessions[providerId], live)));
         }
-        foreach (var match in inventory.Matches.Values.Where(match => match.Live is not null).ToList())
+
+        foreach (var match in inventory.Matches.Values.Where(match => match.Live is not null && match.Node.Reference is null).ToList())
         foreach (var handler in cloud.Handlers.Where(handler => handler.ParentKind == match.Handler.Kind && handler.Prunable))
             inventory.Strays.AddRange(handler.ChildrenOf(match.Live!).Where(Stray).Select(live => new StrayResource(handler, match.Session, live)));
 
@@ -122,13 +124,17 @@ public sealed class CloudInventory
         CloudInventory inventory, ResourceNode node, ResourceHandler handler, ProviderSession session, IReadOnlyList<LiveResource> pool, LiveResource? parent,
         List<LiveResource> claimed, CloudState state, CancellationToken cancellationToken)
     {
-        if (node.Existing)
+        if (node.IsLookup)
         {
-            if (handler.FindExisting(node, pool) is not { } found)
+            var found = node.Reference is { } owner ? handler.FindOwned(node, pool, owner) : handler.FindExisting(node, pool);
+            if (found is null)
             {
-                inventory.Problem($"{Describe(node, handler)} was not found; existing resources are looked up, never created");
+                inventory.Problem(node.Reference is { } reference
+                    ? $"{Describe(node, handler)} with the marker {reference.Label} was not found; it comes from repo.provider, so apply it in the repo that declares it first"
+                    : $"{Describe(node, handler)} was not found; existing resources are looked up, never created");
                 return;
             }
+
             claimed.Add(found);
             var bound = await handler.BindAsync(session, node, found, parent, cancellationToken);
             state.Found(node.Id, bound);
@@ -141,7 +147,7 @@ public sealed class CloudInventory
         var unowned = owned is null ? handler.FindUnowned(node, pool, marker) : null;
         if (owned is null && unowned is null && handler.UniqueNames
             && pool.FirstOrDefault(live => live.Name == handler.LiveName(node, marker)) is { Mark: { } other })
-            inventory.Problem($"{Describe(node, handler)}: the name {handler.LiveName(node, marker)} is already taken by {OwnerMark.OwnerTag(other.Owner)}");
+            inventory.Problem($"{Describe(node, handler)}: the name {handler.LiveName(node, marker)} is already taken by {other.Marker.Label}");
 
         if (owned is not null)
         {
@@ -149,6 +155,7 @@ public sealed class CloudInventory
             owned = await handler.BindAsync(session, node, owned, parent, cancellationToken);
             state.Found(node.Id, owned);
         }
+
         if (unowned is not null)
             claimed.Add(unowned);
         inventory.Matches[node.Id] = new NodeMatch(node, handler, session, owned, unowned);
@@ -171,6 +178,7 @@ public sealed class CloudInventory
             done.Add(next.Id);
             remaining.Remove(next);
         }
+
         return order;
     }
 }

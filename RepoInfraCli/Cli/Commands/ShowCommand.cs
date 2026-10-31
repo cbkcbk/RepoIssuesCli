@@ -82,6 +82,7 @@ public sealed class ShowCommand(IAnsiConsole console, ErrorConsole errors, ISecr
     static string Status(CloudInventory inventory, CloudTarget target) => target.Node switch
     {
         null => $"not in {InfraWorkspace.EntryFileName}",
+        { Reference: { } owner } => $"looked up ({owner.Label})",
         { Existing: true } => "existing",
         { } node when inventory.Matches[node.Id].Unowned is not null => "unowned (adopt)",
         { } when target.Live is null => "missing (apply creates it)",

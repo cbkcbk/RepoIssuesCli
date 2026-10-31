@@ -24,6 +24,10 @@
         <Using Include="RepoCli.Core.Features.Validation" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+        <Compile Remove="Cli/Plugin/**" />
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="../RepoInfraCli/RepoInfraCli.csproj" />
     </ItemGroup>

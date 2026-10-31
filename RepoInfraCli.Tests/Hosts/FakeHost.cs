@@ -9,7 +9,7 @@ public sealed record Upload(string Path, byte[] Content, string? Mode, string? O
 
 public sealed class FakeHost(HostNode host) : IHostConnection
 {
-    readonly List<(string Fragment, CommandResult Result)> rules = [];
+    readonly List<(string Fragment, Func<CommandResult> Result)> rules = [];
 
     public HostNode Host => host;
 
@@ -23,7 +23,15 @@ public sealed class FakeHost(HostNode host) : IHostConnection
 
     public FakeHost On(string fragment, string stdout, int exitCode = 0, string stderr = "")
     {
-        rules.Add((fragment, new CommandResult(exitCode, stdout, stderr)));
+        var result = new CommandResult(exitCode, stdout, stderr);
+        rules.Add((fragment, () => result));
+        return this;
+    }
+
+    public FakeHost OnEach(string fragment, params string[] stdouts)
+    {
+        var remaining = new Queue<string>(stdouts);
+        rules.Add((fragment, () => new CommandResult(0, remaining.Count > 1 ? remaining.Dequeue() : remaining.Peek(), "")));
         return this;
     }
 
@@ -31,7 +39,7 @@ public sealed class FakeHost(HostNode host) : IHostConnection
     {
         Scripts.Enqueue(script);
         var match = rules.LastOrDefault(rule => script.Contains(rule.Fragment, StringComparison.Ordinal));
-        return Task.FromResult(match.Result ?? new CommandResult(0, "", ""));
+        return Task.FromResult(match.Result?.Invoke() ?? new CommandResult(0, "", ""));
     }
 
     public Task UploadAsync(string path, ReadOnlyMemory<byte> content, string? mode, string? owner, CancellationToken cancellationToken = default)

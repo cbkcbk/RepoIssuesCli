@@ -12,15 +12,15 @@ public class DotnetBuildToolsTests
         {
             var project = Path.Combine(folder, "Api.csproj");
             await File.WriteAllTextAsync(project, """
-                <Project Sdk="Microsoft.NET.Sdk">
-                  <PropertyGroup>
-                    <OutputType>Exe</OutputType>
-                    <TargetFramework>net10.0</TargetFramework>
-                    <ContainerRepository>team/api</ContainerRepository>
-                    <ContainerFamily>noble-chiseled</ContainerFamily>
-                  </PropertyGroup>
-                </Project>
-                """);
+                                                  <Project Sdk="Microsoft.NET.Sdk">
+                                                    <PropertyGroup>
+                                                      <OutputType>Exe</OutputType>
+                                                      <TargetFramework>net10.0</TargetFramework>
+                                                      <ContainerRepository>team/api</ContainerRepository>
+                                                      <ContainerFamily>noble-chiseled</ContainerFamily>
+                                                    </PropertyGroup>
+                                                  </Project>
+                                                  """);
 
             var properties = await DotnetBuildTools.Default.ReadPropertiesAsync(project, CancellationToken.None);
 
@@ -39,22 +39,36 @@ public class DotnetBuildToolsTests
         Assert.ThrowsAsync<BuildToolException>(() => DotnetBuildTools.Default.ReadPropertiesAsync(Path.Combine(Path.GetTempPath(), "missing-infra", "Nope.csproj"), CancellationToken.None));
 
     [Test]
-    public async Task GitStatusTellsWhetherTheTreeIsDirty()
+    public async Task DirtyHashFollowsTheDiffAndUntrackedFiles()
     {
         var folder = Directory.CreateTempSubdirectory("infra-git-").FullName;
+        Task<string?> Hash() => DotnetBuildTools.Default.DirtyHashAsync(folder, CancellationToken.None);
         try
         {
             await Git(folder, "init", "-q");
             await File.WriteAllTextAsync(Path.Combine(folder, "a.txt"), "a");
+            await File.WriteAllTextAsync(Path.Combine(folder, ".gitignore"), "*.log\n");
             await Git(folder, "add", ".");
             await Git(folder, "-c", "user.email=t@example.test", "-c", "user.name=t", "commit", "-q", "-m", "init");
 
-            var clean = await DotnetBuildTools.Default.IsDirtyAsync(folder, CancellationToken.None);
+            var clean = await Hash();
             await File.WriteAllTextAsync(Path.Combine(folder, "a.txt"), "b");
-            var dirty = await DotnetBuildTools.Default.IsDirtyAsync(folder, CancellationToken.None);
+            var edited = await Hash();
+            var again = await Hash();
+            await File.WriteAllTextAsync(Path.Combine(folder, "build.log"), "ignored");
+            var withIgnored = await Hash();
+            await File.WriteAllTextAsync(Path.Combine(folder, "new.txt"), "one");
+            var withUntracked = await Hash();
+            await File.WriteAllTextAsync(Path.Combine(folder, "new.txt"), "two");
+            var untrackedEdited = await Hash();
+            await File.WriteAllTextAsync(Path.Combine(folder, "a.txt"), "c");
+            var editedAgain = await Hash();
 
-            Assert.That(clean, Is.False);
-            Assert.That(dirty, Is.True);
+            Assert.That(clean, Is.Null);
+            Assert.That(edited, Does.Match("^[0-9a-f]{12}$"));
+            Assert.That(again, Is.EqualTo(edited));
+            Assert.That(withIgnored, Is.EqualTo(edited));
+            Assert.That(new[] { edited, withUntracked, untrackedEdited, editedAgain }, Is.Unique);
         }
         finally
         {

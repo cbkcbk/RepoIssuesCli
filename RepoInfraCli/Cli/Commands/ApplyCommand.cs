@@ -70,7 +70,8 @@ public sealed class ApplyCommand(
     }
 
     static int Destroys(InfraPlan plan) =>
-        plan.Resources.Count(resource => resource.Changes.Any(change => change.Marker is ChangeMarker.Remove or ChangeMarker.Replace));
+        plan.Resources.Count(resource => resource.Changes.Any(change => change.Marker is ChangeMarker.Remove or ChangeMarker.Replace))
+        + plan.Copies.Count(copy => copy.Protected);
 
     bool ConfirmOwner(PlanRun run, int destroys)
     {

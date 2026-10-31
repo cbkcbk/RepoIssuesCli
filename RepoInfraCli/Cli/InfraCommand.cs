@@ -16,10 +16,11 @@ public abstract class InfraCommand<TSettings>(IAnsiConsole console, ErrorConsole
 
     public override int Execute(CommandContext context, TSettings settings, CancellationToken cancellationToken)
     {
-        using var log = InfraLog.Create(errors.Console, settings.Verbose ? Verbosity(context.Arguments) : 0, settings.Log);
-        log.Debug("command.start", $"infra {context.Name}", new Dictionary<string, object?> { ["command"] = context.Name, ["env"] = settings.Env });
+        using var log = InfraLog.Create(errors.Console, settings.Verbose ? Verbosity(context.Arguments) : 0, settings.Log, context.Name, settings.Env);
+        using var current = log.UseAsCurrent();
+        log.Debug("command.start", $"infra {context.Name}");
         var exitCode = Run(InfraWorkspace.Open(settings.Root), settings, log);
-        log.Debug("command.end", $"infra {context.Name} exited with {exitCode}", new Dictionary<string, object?> { ["command"] = context.Name, ["exitCode"] = exitCode });
+        log.Debug("command.end", $"infra {context.Name} exited with {exitCode}", new Dictionary<string, object?> { ["exitCode"] = exitCode });
         return exitCode;
     }
 

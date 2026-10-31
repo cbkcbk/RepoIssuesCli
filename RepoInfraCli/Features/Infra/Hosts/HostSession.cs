@@ -14,7 +14,6 @@ public enum BecomeMode
 public sealed class HostSession : IHostConnection
 {
     const int MissingFileExitCode = 3;
-    const int LoggedOutputLength = 4000;
 
     readonly IRemoteShell shell;
     readonly InfraLog log;
@@ -36,7 +35,7 @@ public sealed class HostSession : IHostConnection
     public static async Task<HostSession> OpenAsync(IRemoteShell shell, HostNode host, HostConnectOptions options, CancellationToken cancellationToken = default)
     {
         var session = new HostSession(shell, host, options.Log);
-        var release = await session.ExecAsync(HostFacts.ProbeCommand, default, HostFacts.ProbeCommand, cancellationToken);
+        var release = await session.ExecAsync(HostFacts.ProbeCommand, default, new LoggedAs(HostFacts.ProbeCommand), cancellationToken);
         if (!release.Succeeded)
             throw new HostException(host.Name, $"cannot read /etc/os-release on '{host.Name}': {release.Stderr.Trim()}");
         session.Facts = HostFacts.Parse(release.Stdout);
@@ -49,7 +48,7 @@ public sealed class HostSession : IHostConnection
 
     async Task NegotiateBecomeAsync(BecomePasswordProvider? provider, CancellationToken cancellationToken)
     {
-        if ((await ExecAsync("sudo -n true", default, "sudo -n true", cancellationToken)).Succeeded)
+        if ((await ExecAsync("sudo -n true", default, new LoggedAs("sudo -n true"), cancellationToken)).Succeeded)
         {
             Become = BecomeMode.Passwordless;
             return;
@@ -60,7 +59,7 @@ public sealed class HostSession : IHostConnection
 
         var candidate = await provider(Host, cancellationToken);
         log.AddSecret(candidate);
-        var check = await ExecAsync("sudo -k -S -p '' true", Encoding.UTF8.GetBytes(candidate + "\n"), "sudo -S true (password on stdin)", cancellationToken);
+        var check = await ExecAsync("sudo -k -S -p '' true", Encoding.UTF8.GetBytes(candidate + "\n"), new LoggedAs("sudo -S true (password on stdin)"), cancellationToken);
         if (!check.Succeeded)
             throw new HostException(Host.Name, $"sudo on '{Host.Name}' rejected the password for {Host.User}");
 
@@ -69,7 +68,7 @@ public sealed class HostSession : IHostConnection
     }
 
     public Task<CommandResult> RunAsync(string script, ReadOnlyMemory<byte> stdin = default, CancellationToken cancellationToken = default) =>
-        RunAsync(script, stdin, script, cancellationToken);
+        RunAsync(script, stdin, new LoggedAs(script, stdin), cancellationToken);
 
     public async Task UploadAsync(string path, ReadOnlyMemory<byte> content, string? mode, string? owner, CancellationToken cancellationToken = default)
     {
@@ -88,14 +87,15 @@ public sealed class HostSession : IHostConnection
             .AppendLine("mv -f \"$t\" \"$p\"")
             .AppendLine("trap - EXIT")
             .ToString();
-        var result = await RunAsync(script, default, $"upload {path} ({content.Length} bytes{(mode is null ? "" : $", mode {mode}")}{(owner is null ? "" : $", owner {owner}")})", cancellationToken);
+        var summary = $"upload {path} ({content.Length} bytes{(mode is null ? "" : $", mode {mode}")}{(owner is null ? "" : $", owner {owner}")})";
+        var result = await RunAsync(script, default, new LoggedAs(summary), cancellationToken);
         if (!result.Succeeded)
             throw new HostException(Host.Name, $"upload of {path} failed: {result.Stderr.Trim()}");
     }
 
     public async Task<byte[]?> ReadFileAsync(string path, CancellationToken cancellationToken = default)
     {
-        var result = await RunAsync($"if [ -f {Sh.Quote(path)} ]; then base64 -w0 {Sh.Quote(path)}; else exit {MissingFileExitCode}; fi", default, $"read {path}", cancellationToken);
+        var result = await RunAsync($"if [ -f {Sh.Quote(path)} ]; then base64 -w0 {Sh.Quote(path)}; else exit {MissingFileExitCode}; fi", default, new LoggedAs($"read {path}", HidesOutput: true), cancellationToken);
         if (result.ExitCode == MissingFileExitCode)
             return null;
         if (!result.Succeeded)
@@ -103,7 +103,7 @@ public sealed class HostSession : IHostConnection
         return Convert.FromBase64String(result.Stdout.Trim());
     }
 
-    async Task<CommandResult> RunAsync(string script, ReadOnlyMemory<byte> stdin, string display, CancellationToken cancellationToken)
+    async Task<CommandResult> RunAsync(string script, ReadOnlyMemory<byte> stdin, LoggedAs logged, CancellationToken cancellationToken)
     {
         var body = Encoding.UTF8.GetBytes("export LC_ALL=C\n" + script.ReplaceLineEndings("\n"));
         var prefix = Become == BecomeMode.Password ? Encoding.UTF8.GetBytes(password + "\n") : [];
@@ -111,7 +111,7 @@ public sealed class HostSession : IHostConnection
         prefix.CopyTo(input, 0);
         body.CopyTo(input, prefix.Length);
         stdin.Span.CopyTo(input.AsSpan(prefix.Length + body.Length));
-        return await ExecAsync(Command(Become, body.Length), input, display, cancellationToken);
+        return await ExecAsync(Command(Become, body.Length), input, logged, cancellationToken);
     }
 
     public static string Command(BecomeMode become, int scriptLength)
@@ -125,20 +125,45 @@ public sealed class HostSession : IHostConnection
         };
     }
 
-    async Task<CommandResult> ExecAsync(string command, ReadOnlyMemory<byte> stdin, string display, CancellationToken cancellationToken)
+    async Task<CommandResult> ExecAsync(string command, ReadOnlyMemory<byte> stdin, LoggedAs logged, CancellationToken cancellationToken)
     {
-        var result = await shell.ExecAsync(command, stdin, cancellationToken);
-        log.Debug("host.command", $"{Host.Name}$ {FirstLine(display)} (exit {result.ExitCode})", new Dictionary<string, object?>
+        var call = Traffic(logged);
+        CommandResult result;
+        try
+        {
+            result = await shell.ExecAsync(command, stdin, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            call?.Failed(exception);
+            throw;
+        }
+
+        call?.Response($"exit {result.ExitCode}", new Dictionary<string, object?>
+        {
+            ["ExitCode"] = result.ExitCode,
+            ["Stdout"] = logged.HidesOutput ? $"(file content, {result.Stdout.Length} characters)" : call.Body(result.Stdout),
+            ["Stderr"] = call.Body(result.Stderr),
+        });
+        log.Debug("host.command", $"{Host.Name}$ {FirstLine(logged.Display)} (exit {result.ExitCode})", new Dictionary<string, object?>
         {
             ["host"] = Host.Name,
-            ["command"] = display,
+            ["script"] = logged.Display,
             ["become"] = Become.ToString(),
             ["exitCode"] = result.ExitCode,
-            ["stdout"] = Clip(result.Stdout),
-            ["stderr"] = Clip(result.Stderr),
         });
         return result;
     }
+
+    TrafficCall? Traffic(LoggedAs logged) =>
+        log.RecordsTraffic
+            ? log.Request($"ssh:{Host.Name}", FirstLine(logged.Display), new Dictionary<string, object?>
+            {
+                ["Script"] = TrafficRedaction.Body(logged.Display, log),
+                ["Become"] = Become.ToString(),
+                ["Stdin"] = logged.Stdin.IsEmpty ? null : TrafficRedaction.Bytes(logged.Stdin.Span, log),
+            })
+            : null;
 
     static string FirstLine(string text)
     {
@@ -146,7 +171,15 @@ public sealed class HostSession : IHostConnection
         return lines.Length == 1 ? lines[0] : $"{lines[0]} (+{lines.Length - 1} line(s))";
     }
 
-    static string Clip(string text) => text.Length <= LoggedOutputLength ? text : text[..LoggedOutputLength] + "...";
+    public async Task<IPortForward> ForwardAsync(string remoteHost, int remotePort, CancellationToken cancellationToken = default)
+    {
+        var forward = await shell.ForwardAsync(remoteHost, remotePort, cancellationToken);
+        log.Debug("host.forward", $"{Host.Name}: localhost:{forward.LocalPort} -> {remoteHost}:{remotePort}",
+            new Dictionary<string, object?> { ["host"] = Host.Name, ["localPort"] = forward.LocalPort, ["remote"] = $"{remoteHost}:{remotePort}" });
+        return forward;
+    }
 
     public ValueTask DisposeAsync() => shell.DisposeAsync();
+
+    sealed record LoggedAs(string Display, ReadOnlyMemory<byte> Stdin = default, bool HidesOutput = false);
 }

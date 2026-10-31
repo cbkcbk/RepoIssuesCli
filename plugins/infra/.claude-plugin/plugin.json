@@ -1,0 +1,8 @@
+{
+  "name": "infra",
+  "version": "0.1.0",
+  "description": "Write and run infrastructure stored in the repository with the infra CLI, with a guard hook that asks before infra changes anything and an edit hook that validates .repo-infra Luau.",
+  "author": {
+    "name": "ChristofferBK"
+  }
+}

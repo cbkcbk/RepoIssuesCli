@@ -34,12 +34,16 @@ public sealed class CloudHarness : IDisposable
     public CloudServices Cloud { get; private set; } = null!;
 
     public const string Providers = """
-        local digitalocean = require("@infra/digitalocean")
-        local cloudflare = require("@infra/cloudflare")
-        local cloud = digitalocean.provider { token = infra.secret "digitalocean/token" }
-        local dns = cloudflare.provider { api_token = infra.secret "cloudflare/token" }
+                                    local digitalocean = require("@infra/digitalocean")
+                                    local cloudflare = require("@infra/cloudflare")
+                                    local cloud = digitalocean.provider {
+                                        token = infra.secret "digitalocean/token",
+                                        spaces_access_key = infra.secret "digitalocean/spaces_access_key",
+                                        spaces_secret_key = infra.secret "digitalocean/spaces_secret_key",
+                                    }
+                                    local dns = cloudflare.provider { api_token = infra.secret "cloudflare/token" }
 
-        """;
+                                    """;
 
     public void Script(string body, bool prune = false) =>
         Repo.WriteInfra($$"""

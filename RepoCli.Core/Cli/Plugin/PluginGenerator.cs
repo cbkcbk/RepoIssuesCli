@@ -25,7 +25,7 @@ public static class PluginGenerator
 {
     public const string MarketplaceName = "repo-issues";
     public const string CommandName = "generate-plugin";
-    const string MarketplaceDescription = "Claude Code plugins for the issues and docs CLIs (RepoIssuesCli, RepoDocsCli).";
+    const string MarketplaceDescription = "Claude Code plugins for the issues, docs and infra CLIs (RepoIssuesCli, RepoDocsCli, RepoInfraCli).";
 
     static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -79,7 +79,7 @@ public static class PluginGenerator
         }
     }
 
-    public static string ExitCodeRows() => string.Join('\n', typeof(ExitCodes)
+    public static string ExitCodeRows(Type? codes = null) => string.Join('\n', (codes ?? typeof(ExitCodes))
         .GetFields(BindingFlags.Public | BindingFlags.Static)
         .Select(field => $"| {field.GetValue(null)} | {field.GetCustomAttribute<DescriptionAttribute>()?.Description} |"));
 
@@ -100,21 +100,28 @@ public static class PluginGenerator
         console.Profile.Width = 100_000;
         createApp(console).Run(["cli", "xmldoc"]);
 
-        return XDocument.Parse(writer.ToString()).Root!
-            .Elements("Command")
-            .Where(command => command.Attribute("Name")!.Value != CommandName)
-            .Select(command => new CommandUsage(Usage(toolName, command), command.Element("Description")?.Value.Trim() ?? ""))
+        return Leaves(XDocument.Parse(writer.ToString()).Root!, toolName)
+            .Where(command => command.Usage != $"{toolName} {CommandName}")
             .ToList();
     }
 
-    static string Usage(string toolName, XElement command)
+    static IEnumerable<CommandUsage> Leaves(XElement parent, string prefix) =>
+        parent.Elements("Command").SelectMany(command =>
+        {
+            var path = $"{prefix} {command.Attribute("Name")!.Value}";
+            return command.Elements("Command").Any()
+                ? Leaves(command, path)
+                : [new CommandUsage(Usage(path, command), command.Element("Description")?.Value.Trim() ?? "")];
+        });
+
+    static string Usage(string path, XElement command)
     {
         var arguments = command.Element("Parameters")?.Elements("Argument")
             .OrderBy(argument => (int)argument.Attribute("Position")!)
             .Select(argument => argument.Attribute("Required")!.Value == "true"
                 ? $"<{argument.Attribute("Name")!.Value}>"
                 : $"[{argument.Attribute("Name")!.Value}]") ?? [];
-        return string.Join(' ', [toolName, command.Attribute("Name")!.Value, .. arguments]);
+        return string.Join(' ', [path, .. arguments]);
     }
 
     static JsonArray MergePlugins(JsonArray? existing, JsonObject plugin)

@@ -50,6 +50,8 @@ public sealed class GraphRecorder
 
     public List<SecretRef> Secrets { get; } = [];
 
+    public List<CopyNode> Copies { get; } = [];
+
     public Dictionary<NodeId, DatabaseInfo> Databases { get; } = [];
 
     public Dictionary<NodeId, IReadOnlyList<RoleRun>> Runs { get; } = [];
@@ -68,7 +70,7 @@ public sealed class GraphRecorder
 
     public NodeId NextProviderId(string kind)
     {
-        var count = Providers.Count(provider => provider.Kind == kind);
+        var count = Providers.Count(provider => provider.Kind == kind && provider.Reference is null);
         return new NodeId(count == 0 ? kind : $"{kind}#{count + 1}");
     }
 
@@ -107,7 +109,7 @@ public sealed class GraphRecorder
             play.Location)).ToList();
         var apps = Apps.Select(app => new AppNode(app.Id, app.Name, app.Build, app.Location)).ToList();
 
-        return new InfraGraph(project, env, [.. Providers], resources, [.. Hosts], plays, apps, [.. Components], [.. Secrets], Exports);
+        return new InfraGraph(project, env, [.. Providers], resources, [.. Hosts], plays, apps, [.. Components], [.. Secrets], Exports) { Copies = [.. Copies] };
     }
 
     HashSet<NodeId> ExportedResources()

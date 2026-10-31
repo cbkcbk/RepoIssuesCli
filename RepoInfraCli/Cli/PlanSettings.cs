@@ -27,7 +27,7 @@ public class HostRunSettings : InfraSettings
     public bool AcceptNewHosts { get; init; }
 
     [CommandOption("--allow-dirty")]
-    [Description("Build app images from a working tree with uncommitted changes; they are tagged <sha>-dirty-<timestamp>.")]
+    [Description("Build app images from a working tree with uncommitted changes; they are tagged <sha>-dirty-<hash of the changes>, so an unchanged dirty tree reuses its image.")]
     public bool AllowDirty { get; init; }
 
     public PlanFilter Filter => new(Plays, Hosts, HostsOnly) { ResourcesOnly = ResourcesOnly };

@@ -2,7 +2,10 @@ namespace RepoInfraCli.Features.Infra.Graph;
 
 public sealed record ProjectNode(string Name, bool Prune, SourceLocation? Location);
 
-public sealed record ProviderNode(NodeId Id, string Kind, MapValue Options, SourceLocation? Location);
+public sealed record ProviderNode(NodeId Id, string Kind, MapValue Options, SourceLocation? Location)
+{
+    public Marker? Reference { get; init; }
+}
 
 public sealed record ComponentNode(NodeId Id, string Module, string Kind, string Name, MapValue Options, bool External, SourceLocation? Location);
 

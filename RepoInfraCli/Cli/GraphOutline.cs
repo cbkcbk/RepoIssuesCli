@@ -38,7 +38,7 @@ public static class GraphOutline
     }
 
     static string Flags(ResourceNode resource) =>
-        (resource.Existing ? " [grey]existing[/]" : "") + (resource.Protect ? " [yellow]protect[/]" : "") + (resource.Exported ? " [blue]exported[/]" : "");
+        (resource.Existing ? " [grey]existing[/]" : "") + (resource.Reference is { } owner ? $" [grey]from {Markup.Escape(owner.Label)}[/]" : "") + (resource.Protect ? " [yellow]protect[/]" : "") + (resource.Exported ? " [blue]exported[/]" : "");
 
     static void Line(IAnsiConsole console, string markup) => CliOutput.WriteUnwrappedLine(console, markup);
 }

@@ -1,0 +1,29 @@
+{
+  "description": "infra plugin: ask before infra commands that change cloud resources, hosts, databases or secrets (deny where an ask might not prompt), and validate .repo-infra Luau offline after Edit/Write.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "infra hook shell",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "infra hook edit",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

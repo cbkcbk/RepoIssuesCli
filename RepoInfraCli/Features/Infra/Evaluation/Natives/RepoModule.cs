@@ -23,16 +23,22 @@ public sealed class RepoModule : INativeModule
 
     static LuaValue Provider(EvaluationContext context, LuaValue options)
     {
-        var scope = ProviderScope.Register(context, ProviderKind, options, ProviderOptions, context.Here());
+        var location = context.Here();
+        var scope = ProviderScope.Register(context, ProviderKind, options, ProviderOptions, location);
         var label = Label(context, scope.Provider);
+        var imported = ImportedRepo.Open(context, scope.Provider, label, location);
 
         return context.Map(
         [
-            KeyValuePair.Create("host", context.Named("host", (name, location) => Host(context, scope.Provider, label, name, location))),
-            KeyValuePair.Create("role", context.Named("role", (name, _) => Role(context, label, name))),
-            KeyValuePair.Create("network", context.Named("network", (name, location) =>
-                ComposeModule.Network(context, name, location, NodeId.Of("compose.network", $"{label}/{name}"), external: true))),
-            KeyValuePair.Create("database", context.Named("database", (name, location) => Database(context, label, name, location))),
+            KeyValuePair.Create("host", context.Named("host", (name, at) => imported?.Host(name, at) ?? Host(context, scope.Provider, label, name, at))),
+            KeyValuePair.Create("role", context.Named("role", (name, at) =>
+            {
+                imported?.CheckRole(name, at);
+                return Role(context, label, name);
+            })),
+            KeyValuePair.Create("network", context.Named("network", (name, at) =>
+                imported?.Network(name, at) ?? ComposeModule.Network(context, name, at, Placeholder(label, "compose.network", name), external: true))),
+            KeyValuePair.Create("database", context.Named("database", (name, at) => imported?.Database(name, at) ?? Database(context, label, name, at))),
         ]);
     }
 
@@ -56,10 +62,13 @@ public sealed class RepoModule : INativeModule
         return label;
     }
 
+    static NodeId Placeholder(string label, string kind, string name) => new($"{label}/{NodeId.Of(kind, name)}");
+
     static LuaValue Host(EvaluationContext context, ProviderNode provider, string label, string name, SourceLocation? location)
     {
-        var id = NodeId.Of(NodeKinds.Host, $"{label}/{name}");
-        context.Recorder.Hosts.Add(new HostNode(id, name, new OutputRef(id, "address"), "", null, false, null, null, true, provider.Id, location));
+        var id = Placeholder(label, NodeKinds.Host, name);
+        if (context.Recorder.Hosts.All(host => host.Id != id))
+            context.Recorder.Hosts.Add(new HostNode(id, name, new OutputRef(id, "address"), "", null, false, null, null, true, provider.Id, location));
         return HostTasks.For(context).Table(id, name);
     }
 
@@ -73,7 +82,7 @@ public sealed class RepoModule : INativeModule
 
     static LuaValue Database(EvaluationContext context, string label, string name, SourceLocation? location)
     {
-        var id = NodeId.Of("repo.database", $"{label}/{name}");
+        var id = Placeholder(label, "repo.database", name);
         context.Recorder.AddComponent(new ComponentNode(id, ProviderKind, NodeKinds.Database, name, MapValue.Empty, true, location));
         return DatabaseValues.Table(context, id, name, context.Output(id, "host"));
     }

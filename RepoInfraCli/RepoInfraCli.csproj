@@ -21,8 +21,12 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Npgsql" Version="10.0.3" />
       <PackageReference Include="NuLua" Version="0.1.0" />
       <PackageReference Include="NuLua.Luau" Version="0.1.0" />
+      <PackageReference Include="Serilog" Version="4.4.0" />
+      <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+      <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
       <PackageReference Include="Spectre.Console.Cli" Version="0.57.2" />
       <PackageReference Include="Tmds.Ssh" Version="0.26.0" />
     </ItemGroup>
@@ -36,6 +40,11 @@
     <ItemGroup>
       <None Include="demo\.repo-infra\**" />
       <EmbeddedResource Include="Luau\@infra\**" LogicalName="infra-stubs/%(RecursiveDir)%(Filename)%(Extension)" />
+      <EmbeddedResource Include="Features\Infra\Postgres\postgres-backup.sh" LogicalName="postgres-backup.sh" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+      <Compile Remove="Cli/Plugin/**" />
     </ItemGroup>
 
     <ItemGroup>

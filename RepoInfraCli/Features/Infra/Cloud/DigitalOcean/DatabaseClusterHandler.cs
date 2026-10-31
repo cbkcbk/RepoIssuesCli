@@ -60,7 +60,7 @@ public sealed class DatabaseClusterHandler : ResourceHandler
 
     public override async Task<LiveResource> BindAsync(ProviderSession session, ResourceNode node, LiveResource live, LiveResource? parent, CancellationToken cancellationToken)
     {
-        if (node.Existing || node.Options["trusted_sources"] is null)
+        if (node.IsLookup || node.Options["trusted_sources"] is null)
             return live;
         return await WithSourcesAsync(session, live, cancellationToken);
     }

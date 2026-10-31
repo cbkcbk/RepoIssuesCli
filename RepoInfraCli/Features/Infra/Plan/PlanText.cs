@@ -20,6 +20,7 @@ public static class PlanText
         }
 
         WriteBuilds(console, plan);
+        WriteCopies(console, plan);
 
         Line(console, "[bold]Plays[/]");
         if (plan.Plays.Count == 0)
@@ -52,6 +53,16 @@ public static class PlanText
         }
     }
 
+    static void WriteCopies(IAnsiConsole console, InfraPlan plan)
+    {
+        if (plan.Copies.Count == 0)
+            return;
+        Line(console, "[bold]Copies[/]");
+        foreach (var copy in plan.Copies)
+        foreach (var change in copy.Changes)
+            Line(console, $"  {Marker(change)} {Markup.Escape(copy.Label)}: {Markup.Escape(change.Text)}");
+    }
+
     static void WriteHost(IAnsiConsole console, HostPlan host)
     {
         var name = Markup.Escape(host.Host.Name);
@@ -71,7 +82,7 @@ public static class PlanText
         {
             if (role.External)
             {
-                Line(console, $"      {Markup.Escape(role.Name)} [grey](external role; handled in a later milestone (#49))[/]");
+                Line(console, $"      {Markup.Escape(role.Name)} [grey](role {Markup.Escape(Planner.UnresolvedNote)})[/]");
                 shown = true;
                 continue;
             }

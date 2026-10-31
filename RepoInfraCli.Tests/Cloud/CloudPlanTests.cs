@@ -8,13 +8,13 @@ namespace RepoInfraCli.Tests.Cloud;
 public class CloudPlanTests
 {
     const string WebDroplet = """
-        cloud.droplet "web-1" {
-            image = "ubuntu-24-04-x64",
-            size = "s-2vcpu-4gb",
-            region = "fra1",
-            tags = { "web" },
-        }
-        """;
+                              cloud.droplet "web-1" {
+                                  image = "ubuntu-24-04-x64",
+                                  size = "s-2vcpu-4gb",
+                                  region = "fra1",
+                                  tags = { "web" },
+                              }
+                              """;
 
     public const string DeployKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHy8kCtkaMsfaJx4rW3OUKD4E7dOQGsGcGv3FIC1k6Iv deploy@example";
 
@@ -97,16 +97,66 @@ public class CloudPlanTests
     [Test]
     public void CreateOnlyFieldsWarnAndReplaceFieldsShowReplace()
     {
-        harness.Script(WebDroplet);
-        harness.Account("droplets", "droplets", CloudHarness.Droplet(region: "ams3", size: "s-1vcpu-1gb", tags: ["web", "infra:test"]));
+        harness.Script(WebDroplet.Replace("tags = { \"web\" },", "tags = { \"web\" },\n    monitoring = false,"));
+        harness.Account("droplets", "droplets", CloudHarness.Droplet(region: "ams3", tags: ["web", "infra:test"]));
 
         var result = harness.Run("plan", "--resources-only");
         var lines = CloudHarness.Lines(result.Output);
 
         Assert.That(result.ExitCode, Is.EqualTo(InfraExitCodes.Success), result.Output + result.Errors);
         Assert.That(lines, Does.Contain("  -/+ digitalocean droplet web-1: replace: region ams3 -> fra1"));
-        Assert.That(lines, Does.Contain("  ? digitalocean droplet web-1: size s-1vcpu-1gb -> s-2vcpu-4gb is create-only; not changed (recreate the droplet to change it)"));
+        Assert.That(lines, Does.Contain("  ? digitalocean droplet web-1: monitoring true -> false is create-only; not changed (recreate the droplet to change it)"));
         Assert.That(result.Output, Does.Contain("1 to replace"));
+    }
+
+    [Test]
+    public void SizeChangeResizesTheDropletInPlaceWithPowerOffAndOn()
+    {
+        harness.Script(WebDroplet);
+        harness.Account("droplets", "droplets", CloudHarness.Droplet(size: "s-1vcpu-1gb", tags: ["web", "infra:test"]));
+        const string actions = $"{CloudHarness.DigitalOcean}droplets/3164444/actions";
+        static string Action(int id, string status) => $$$"""{"action":{"id":{{{id}}},"status":"{{{status}}}"}}""";
+        harness.Http
+            .On("POST", actions, Action(1, "in-progress"), System.Net.HttpStatusCode.Created)
+            .On("POST", actions, Action(2, "in-progress"), System.Net.HttpStatusCode.Created)
+            .On("POST", actions, Action(3, "in-progress"), System.Net.HttpStatusCode.Created)
+            .On("GET", $"{actions}/1", Action(1, "in-progress"))
+            .On("GET", $"{actions}/1", Action(1, "completed"))
+            .On("GET", $"{actions}/2", Action(2, "completed"))
+            .On("GET", $"{actions}/3", Action(3, "completed"))
+            .On("GET", $"{CloudHarness.DigitalOcean}droplets/3164444", new JsonObject { ["droplet"] = CloudHarness.Droplet(tags: ["web", "infra:test"]) }.ToJsonString());
+
+        var plan = harness.Run("plan", "--resources-only");
+        var apply = harness.Run("apply", "--resources-only", "--yes");
+
+        Assert.That(CloudHarness.Lines(plan.Output), Does.Contain("  ~ digitalocean droplet web-1: size s-1vcpu-1gb -> s-2vcpu-4gb (power-off resize)"));
+        Assert.That(plan.Output, Does.Not.Contain("replace"));
+        Assert.That(apply.ExitCode, Is.EqualTo(InfraExitCodes.Success), apply.Output + apply.Errors);
+        var posted = harness.Http.Changes.Select(request => request.Json!.ToJsonString()).ToList();
+        Assert.That(posted, Is.EqualTo(new[]
+        {
+            """{"type":"power_off"}""",
+            """{"type":"resize","size":"s-2vcpu-4gb","disk":false}""",
+            """{"type":"power_on"}""",
+        }));
+        Assert.That(harness.Http.Sent("GET", "actions/1"), Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void FailedResizeActionFailsTheApply()
+    {
+        harness.Script(WebDroplet);
+        harness.Account("droplets", "droplets", CloudHarness.Droplet(size: "s-1vcpu-1gb", tags: ["web", "infra:test"]));
+        const string actions = $"{CloudHarness.DigitalOcean}droplets/3164444/actions";
+        harness.Http
+            .On("POST", actions, """{"action":{"id":1,"status":"in-progress"}}""", System.Net.HttpStatusCode.Created)
+            .On("GET", $"{actions}/1", """{"action":{"id":1,"status":"errored"}}""");
+
+        var apply = harness.Run("apply", "--resources-only", "--yes");
+
+        Assert.That(apply.ExitCode, Is.Not.EqualTo(InfraExitCodes.Success));
+        Assert.That(apply.Output + apply.Errors, Does.Contain("droplet web-1 power_off failed"));
+        Assert.That(harness.Http.Changes, Has.Count.EqualTo(1));
     }
 
     [Test]
@@ -162,10 +212,10 @@ public class CloudPlanTests
     public void ApplyCreatesTheDropletThenPlansItsHostTrustingTheNewKey()
     {
         harness.Script("""
-            local web1 = cloud.droplet "web-1" { image = "ubuntu-24-04-x64", size = "s-2vcpu-4gb", region = "fra1" }
-            local web = web1:host { user = "root" }
-            infra.play "base" { hosts = { web }, roles = { function(h) h:apt { packages = { "curl" } } end } }
-            """);
+                       local web1 = cloud.droplet "web-1" { image = "ubuntu-24-04-x64", size = "s-2vcpu-4gb", region = "fra1" }
+                       local web = web1:host { user = "root" }
+                       infra.play "base" { hosts = { web }, roles = { function(h) h:apt { packages = { "curl" } } end } }
+                       """);
         var created = CloudHarness.Droplet(tags: ["infra:test"]);
         var booting = created.DeepClone().AsObject();
         booting["status"] = "new";
@@ -196,9 +246,9 @@ public class CloudPlanTests
     public void RecordContentDriftIsPatchedWithTheMarkerComment()
     {
         harness.Script("""
-            local zone = dns.zone "example.com"
-            zone.record "api" { type = "A", content = "198.51.100.7", proxied = true }
-            """);
+                       local zone = dns.zone "example.com"
+                       zone.record "api" { type = "A", content = "198.51.100.7", proxied = true }
+                       """);
         harness.Http
             .On("GET", CloudHarness.Zones, FakeCloud.Fixture("cf-zones.json"))
             .On("GET", CloudHarness.ExampleRecords, FakeCloud.Fixture("cf-records.json"))
@@ -231,9 +281,9 @@ public class CloudPlanTests
     public void FirewallIsOwnedByItsNamePrefixAndDiffsRules()
     {
         harness.Script("""
-            local web1 = cloud.droplet "web-1" { image = "ubuntu-24-04-x64", size = "s-2vcpu-4gb", region = "fra1" }
-            cloud.firewall "web" { droplets = { web1.id }, inbound = { { tcp = 22, from = { "10.0.0.0/24" } }, { tcp = 443 } } }
-            """);
+                       local web1 = cloud.droplet "web-1" { image = "ubuntu-24-04-x64", size = "s-2vcpu-4gb", region = "fra1" }
+                       cloud.firewall "web" { droplets = { web1.id }, inbound = { { tcp = 22, from = { "10.0.0.0/24" } }, { tcp = 443 } } }
+                       """);
         harness.Account("droplets", "droplets", CloudHarness.Droplet(tags: ["infra:test"]))
             .Account("firewalls", "firewalls", CloudHarness.Fixture("do-firewall.json"));
 

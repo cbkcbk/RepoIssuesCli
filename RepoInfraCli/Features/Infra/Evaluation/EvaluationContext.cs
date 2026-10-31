@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using NuLua;
 using NuLua.Luau;
+using RepoInfraCli.Features.Infra.Evaluation.Natives;
 using RepoInfraCli.Features.Infra.Graph;
 
 namespace RepoInfraCli.Features.Infra.Evaluation;
@@ -38,6 +39,10 @@ public sealed partial class EvaluationContext
     public GraphRecorder Recorder { get; } = new();
 
     public List<InfraDiagnostic> Diagnostics { get; } = [];
+
+    public NativeModuleRegistry Natives { get; init; } = NativeModuleRegistry.Default;
+
+    public List<ImportedRepo> Imports { get; } = [];
 
     public bool IsReference => Options.Mode == EvaluationMode.Reference;
 

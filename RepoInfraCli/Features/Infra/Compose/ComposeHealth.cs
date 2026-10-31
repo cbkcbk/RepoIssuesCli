@@ -11,19 +11,33 @@ public sealed record ComposeWait(TimeSpan Timeout, TimeSpan Interval)
     public static ComposeWait Default { get; } = new(TimeSpan.FromMinutes(2), TimeSpan.FromSeconds(2));
 }
 
-public sealed record ServiceStatus(string Name, string State, string Health, string? Address, bool? HttpOk)
+public sealed record ServiceStatus(string Name, string State, string Health)
 {
-    public bool Ready => State == "running" && Health is "healthy" or "none" && HttpOk is null or true;
+    public bool Ready => State == "running" && Health is "healthy" or "none";
 
     public bool Stopped => State is "exited" or "dead" or "missing";
 
-    public string Describe() =>
-        State == "missing" ? "no container" : string.Join(", ", new[] { State, Health == "none" ? null : Health, HttpOk == false ? "http check failing" : null }.OfType<string>());
+    public string Describe() => State == "missing" ? "no container" : Health == "none" ? State : $"{State}, {Health}";
 }
 
 public static class ComposeHealth
 {
     const int LogLines = 20;
+
+    const string TcpGet =
+        "exec 3<>\"/dev/tcp/$1/$2\" && printf 'GET %s HTTP/1.0\\r\\nHost: %s\\r\\nConnection: close\\r\\n\\r\\n' \"$3\" \"$1\" >&3"
+        + " && read -r -t 5 status <&3 && case \"$status\" in \"HTTP/\"*\" \"[23]??*) exit 0;; esac; exit 1";
+
+    public static string HttpTest(string url)
+    {
+        var quoted = Sh.Quote(url);
+        var fallback = Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttp
+            ? $"bash -c {Sh.Quote(TcpGet)} healthcheck {Sh.Join([uri.IdnHost, uri.Port.ToString(CultureInfo.InvariantCulture), uri.PathAndQuery])}"
+            : "exit 1";
+        return $"if command -v curl >/dev/null 2>&1; then curl -fsS -o /dev/null --max-time 5 {quoted}; "
+               + $"elif command -v wget >/dev/null 2>&1; then wget -q -O /dev/null -T 5 {quoted}; "
+               + $"else {fallback}; fi";
+    }
 
     public static async Task WaitAsync(IHostConnection connection, ComposeFiles files, ComposeWait wait, CancellationToken cancellationToken)
     {
@@ -48,40 +62,20 @@ public static class ComposeHealth
             .AppendLine($"for s in {Sh.Join(files.Services.Select(service => service.Name))}; do")
             .AppendLine($"  id=$(docker compose -p {Sh.Quote(files.Project)} ps -a -q \"$s\" 2>/dev/null | head -n 1)")
             .AppendLine("  if [ -z \"$id\" ]; then echo \"$s missing\"; continue; fi")
-            .AppendLine("  echo \"$s $(docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}{{range .NetworkSettings.Networks}} {{.IPAddress}}{{end}}' \"$id\")\"")
+            .AppendLine("  echo \"$s $(docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \"$id\")\"")
             .AppendLine("done")
             .ToString();
         var result = await connection.RunCheckedAsync($"compose {files.Project} status", script, cancellationToken);
         var lines = Sh.Lines(result.Stdout).ToDictionary(line => line.Key, line => line.Value, StringComparer.Ordinal);
 
-        var statuses = new List<ServiceStatus>();
-        foreach (var service in files.Services)
-        {
-            var parts = lines.GetValueOrDefault(service.Name, "missing").Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var state = parts.ElementAtOrDefault(0) ?? "missing";
-            var health = parts.ElementAtOrDefault(1) ?? "none";
-            var address = parts.Skip(2).FirstOrDefault(ip => ip.Length > 0);
-            bool? http = null;
-            if (service.HttpHealthcheck is { } url && state == "running")
-                http = await HttpOkAsync(connection, HostUrl(url, address), cancellationToken);
-            statuses.Add(new ServiceStatus(service.Name, state, health, address, http));
-        }
-        return statuses;
-    }
-
-    public static string HostUrl(string url, string? address)
-    {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || address is null || uri.Host is not ("localhost" or "127.0.0.1" or "0.0.0.0" or "[::1]"))
-            return url;
-        return new UriBuilder(uri) { Host = address }.Uri.ToString();
-    }
-
-    static async Task<bool> HttpOkAsync(IHostConnection connection, string url, CancellationToken cancellationToken)
-    {
-        var quoted = Sh.Quote(url);
-        var script = $"if command -v curl >/dev/null 2>&1; then curl -fsS -o /dev/null --max-time 5 {quoted}; else wget -q -O /dev/null -T 5 {quoted}; fi && echo ok";
-        var result = await connection.RunAsync(script, default, cancellationToken);
-        return result.Stdout.Trim() == "ok";
+        return
+        [
+            .. files.Services.Select(service =>
+            {
+                var parts = lines.GetValueOrDefault(service.Name, "missing").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                return new ServiceStatus(service.Name, parts.ElementAtOrDefault(0) ?? "missing", parts.ElementAtOrDefault(1) ?? "none");
+            })
+        ];
     }
 
     static async Task<Exception> FailureAsync(IHostConnection connection, ComposeFiles files, ServiceStatus status, string what, CancellationToken cancellationToken)

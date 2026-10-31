@@ -14,5 +14,9 @@ public sealed record ResourceNode(
     SourceLocation? Location,
     IReadOnlyList<NodeId> DependsOn)
 {
+    public Marker? Reference { get; init; }
+
     public bool UsesNamePrefix => Marker.UsesNamePrefix(Kind);
+
+    public bool IsLookup => Existing || Reference is not null;
 }

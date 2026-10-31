@@ -71,9 +71,11 @@ public sealed class FirewallHandler : ResourceHandler
                 if (rule[protocol] is { } ports)
                     rules.Add(new RuleSpec(protocol, ports.Display() is "all" or "0" ? AllPorts : ports.Display(), addresses));
             }
+
             if (rule.GetBool("icmp"))
                 rules.Add(new RuleSpec("icmp", AllPorts, addresses));
         }
+
         return rules;
     }
 
@@ -130,13 +132,14 @@ public sealed class FirewallHandler : ResourceHandler
 
     public override async Task<LiveResource> MarkAsync(ProviderSession session, LiveResource live, OwnerMark mark, CancellationToken cancellationToken)
     {
-        var name = new Marker(mark.Owner, null).PrefixedName(mark.Name);
+        var name = mark.Marker.PrefixedName(mark.Name);
         var body = new JsonObject { ["name"] = name };
         foreach (var key in (string[])["inbound_rules", "outbound_rules", "droplet_ids", "tags"])
         {
             if (live.Raw.ValueKind == JsonValueKind.Object && live.Raw.At(key) is { } value)
                 body[key] = JsonNode.Parse(value.GetRawText());
         }
+
         await session.DigitalOcean.SendAsync(HttpMethod.Put, $"v2/firewalls/{live.Id}", body, cancellationToken);
         return live with { Name = name, Mark = mark };
     }

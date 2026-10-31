@@ -1,6 +1,7 @@
 using RepoInfraCli.Features.Infra.Apps;
 using RepoInfraCli.Features.Infra.Graph;
 using RepoInfraCli.Features.Infra.Hosts.Tasks;
+using RepoInfraCli.Features.Infra.Postgres;
 
 namespace RepoInfraCli.Features.Infra.Plan;
 
@@ -12,9 +13,12 @@ public sealed record InfraPlan(
 {
     public IReadOnlyList<BuildPlan> Builds { get; init; } = [];
 
+    public IReadOnlyList<CopyPlan> Copies { get; init; } = [];
+
     public IEnumerable<TaskPlan> Tasks => Plays.SelectMany(play => play.Hosts).SelectMany(host => host.Roles).SelectMany(role => role.Tasks);
 
-    public IEnumerable<Change> Changes => Resources.SelectMany(resource => resource.Changes).Concat(Builds.SelectMany(build => build.Changes)).Concat(Tasks.SelectMany(task => task.Changes));
+    public IEnumerable<Change> Changes => Resources.SelectMany(resource => resource.Changes).Concat(Builds.SelectMany(build => build.Changes))
+        .Concat(Copies.SelectMany(copy => copy.Changes)).Concat(Tasks.SelectMany(task => task.Changes));
 
     public bool HasDrift => Changes.Any(change => change.Marker.IsDrift());
 

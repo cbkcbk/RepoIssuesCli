@@ -62,6 +62,21 @@ public class AppBuildTests
     }
 
     [Test]
+    public void OfflineValidateSkipsTheContainerSettingsCheck()
+    {
+        var tools = new FakeBuildTools();
+
+        var offline = Run(Web(), tools, "validate", "--offline");
+        var readsOffline = tools.PropertyReads.Count;
+        var full = Run(Web(), tools, "validate");
+
+        Assert.That(offline.ExitCode, Is.Zero, offline.Output + offline.Errors);
+        Assert.That(full.ExitCode, Is.Zero, full.Output + full.Errors);
+        Assert.That(readsOffline, Is.Zero);
+        Assert.That(tools.PropertyReads, Has.Count.EqualTo(1));
+    }
+
+    [Test]
     public void PlanShowsBuildsBetweenResourcesAndPlaysAndDeploysTheBuiltTag()
     {
         var result = Run(Web(), new FakeBuildTools(), "plan");
@@ -118,9 +133,9 @@ public class AppBuildTests
     }
 
     [Test]
-    public void DirtyTreeNeedsAllowDirtyAndGetsATimestampedTag()
+    public void DirtyTreeNeedsAllowDirtyAndIsTaggedByTheHashOfItsChanges()
     {
-        var tools = new FakeBuildTools { Dirty = true };
+        var tools = new FakeBuildTools { DirtyHash = "0123456789ab" };
 
         var blocked = Run(Web(), tools, "plan", "--json");
         var allowed = Run(Web(), tools, "plan", "--allow-dirty", "--json");
@@ -130,8 +145,20 @@ public class AppBuildTests
         Assert.That(problem, Does.Contain("uncommitted changes").And.Contain("--allow-dirty"));
         Assert.That(allowed.ExitCode, Is.Zero, allowed.Output);
         var build = JsonDocument.Parse(allowed.Output).RootElement.GetProperty("builds")[0];
-        Assert.That(build.GetProperty("image").GetString(), Does.Match(@"^registry\.example/snappy/api:sha1-dirty-\d{14}$"));
+        Assert.That(build.GetProperty("image").GetString(), Is.EqualTo($"{Image}-dirty-0123456789ab"));
         Assert.That(build.GetProperty("apps")[0].GetString(), Is.EqualTo("api"));
+    }
+
+    [Test]
+    public void UnchangedDirtyTreeReusesItsImage()
+    {
+        var tools = new FakeBuildTools { DirtyHash = "0123456789ab", ExistingImages = [$"{Image}-dirty-0123456789ab"] };
+
+        var result = Run(Web(), tools, "apply", "--yes", "--play", "apps", "--allow-dirty");
+
+        Assert.That(result.ExitCode, Is.Zero, result.Output + result.Errors);
+        Assert.That(result.Output, Does.Contain($"{Image}-dirty-0123456789ab is already in the registry"));
+        Assert.That(tools.Published, Is.Empty);
     }
 
     [Test]

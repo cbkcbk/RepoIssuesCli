@@ -43,6 +43,7 @@ public sealed class SpacesBucketHandler : ResourceHandler
                 buckets.Add(Live(name, region, mark));
             }
         }
+
         return buckets;
     }
 
@@ -126,6 +127,7 @@ public sealed class SpacesBucketHandler : ResourceHandler
             else
                 await spaces.DeleteAsync(region, node.Name, null, "lifecycle", cancellationToken);
         }
+
         if (changed.Contains(MarkerField))
             live = await MarkAsync(context.Session, live, context.Mark, cancellationToken);
         return await BindAsync(context.Session, node, live, null, cancellationToken);
@@ -156,7 +158,9 @@ public sealed class SpacesBucketHandler : ResourceHandler
 
     public override async Task<LiveResource> MarkAsync(ProviderSession session, LiveResource live, OwnerMark mark, CancellationToken cancellationToken)
     {
-        var tagging = $"infra-owner={Uri.EscapeDataString(mark.Owner)}&infra-name={Uri.EscapeDataString(mark.Name)}";
+        var tagging = $"infra-project={Uri.EscapeDataString(mark.Project)}"
+                      + (mark.Env is null ? "" : $"&infra-env={Uri.EscapeDataString(mark.Env)}")
+                      + $"&infra-name={Uri.EscapeDataString(mark.Name)}";
         await session.Spaces.PutAsync(live.Fields["region"], live.Name, MarkerObject, "", mark.Text, Headers("x-amz-tagging", tagging), cancellationToken);
         return live with { Mark = mark };
     }

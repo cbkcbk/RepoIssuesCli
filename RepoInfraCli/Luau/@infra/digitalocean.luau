@@ -102,6 +102,8 @@ export type Existing = {
 
 export type ProviderOptions = {
     token: types.Secret,
+    spaces_access_key: types.Secret?,
+    spaces_secret_key: types.Secret?,
 }
 
 export type Provider = {

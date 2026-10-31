@@ -45,13 +45,13 @@ public class ComposeTaskTests
 
     static FakeHost Converged(ComposeFiles files, string runningImage = Image, string envMode = "600") =>
         new FakeHost(FakeHost.Node()).On("sha256sum", $"""
-            file compose.yaml {Hash(files.Yaml)} 644
-            file .env {Hash(files.Env)} {envMode}
-            docker
-            network edge
-            service api {runningImage} running
+                                                       file compose.yaml {Hash(files.Yaml)} 644
+                                                       file .env {Hash(files.Env)} {envMode}
+                                                       docker
+                                                       network edge
+                                                       service api {runningImage} running
 
-            """);
+                                                       """);
 
     [Test]
     public async Task FreshHostCreatesFilesAndNetwork()
@@ -138,16 +138,16 @@ public class ComposeTaskTests
     }
 
     [Test]
-    public async Task ApplyWritesFilesCreatesNetworksRunsUpAndWaitsForHttpHealth()
+    public async Task ApplyWritesFilesCreatesNetworksRunsUpAndWaitsForDockerHealth()
     {
         var task = ApiTask();
         var host = new FakeHost(FakeHost.Node())
             .On("sha256sum", "docker\n")
-            .On("docker inspect", "api running none 172.18.0.5 \n")
-            .On("curl", "ok\n");
-        var probe = await Module.ProbeAsync(Context(host, task), CancellationToken.None);
+            .OnEach("docker inspect", "api running starting\n", "api running healthy\n");
+        var patient = new ComposeTask(new ComposeWait(TimeSpan.FromSeconds(30), TimeSpan.Zero));
+        var probe = await patient.ProbeAsync(Context(host, task), CancellationToken.None);
 
-        await Module.ApplyAsync(Context(host, task), probe, CancellationToken.None);
+        await patient.ApplyAsync(Context(host, task), probe, CancellationToken.None);
 
         var uploads = host.Uploads.ToList();
         Assert.That(uploads.Select(upload => (upload.Path, upload.Mode, upload.Owner)), Is.EqualTo(new[]
@@ -157,11 +157,13 @@ public class ComposeTaskTests
         }));
         var yaml = Encoding.UTF8.GetString(uploads[0].Content);
         Assert.That(yaml, Does.Contain("TOKEN: \"${API_TOKEN}\"").And.Not.Contain(Token));
+        Assert.That(yaml, Does.Contain("    healthcheck:\n      test:\n        - \"CMD-SHELL\"\n").And.Contain("'http://localhost:8080/health'"));
         Assert.That(Encoding.UTF8.GetString(uploads[1].Content), Does.Contain($"API_TOKEN='{Token}'"));
-        var scripts = string.Join("\n---\n", host.Scripts);
-        Assert.That(scripts, Does.Contain("docker network inspect 'edge' >/dev/null 2>&1 || docker network create 'edge'")
-            .And.Contain("cd '/srv/api'").And.Contain("docker compose -p 'api' up -d --remove-orphans")
-            .And.Contain("'http://172.18.0.5:8080/health'"));
+        var scripts = host.Scripts.ToList();
+        Assert.That(string.Join("\n---\n", scripts), Does.Contain("docker network inspect 'edge' >/dev/null 2>&1 || docker network create 'edge'")
+            .And.Contain("cd '/srv/api'").And.Contain("docker compose -p 'api' up -d --remove-orphans"));
+        Assert.That(scripts.Count(script => script.Contains("docker inspect", StringComparison.Ordinal)), Is.EqualTo(2));
+        Assert.That(scripts, Has.None.Contains("curl").And.None.Contains("wget"));
     }
 
     [Test]
@@ -170,13 +172,13 @@ public class ComposeTaskTests
         var task = ApiTask();
         var host = new FakeHost(FakeHost.Node())
             .On("sha256sum", "docker\n")
-            .On("docker inspect", "api running unhealthy 172.18.0.5\n")
+            .On("docker inspect", "api running unhealthy\n")
             .On("logs --no-color", $"starting\nusing token {Token}\nfailed\n");
         var probe = await Module.ProbeAsync(Context(host, task), CancellationToken.None);
 
         var error = Assert.ThrowsAsync<HostException>(() => Module.ApplyAsync(Context(host, task), probe, CancellationToken.None));
 
-        Assert.That(error!.Message, Does.Contain("service api did not become healthy within 0s (running, unhealthy, http check failing)")
+        Assert.That(error!.Message, Does.Contain("service api did not become healthy within 0s (running, unhealthy)")
             .And.Contain("using token (secret)").And.Not.Contain(Token));
     }
 
@@ -190,12 +192,5 @@ public class ComposeTaskTests
         var error = Assert.ThrowsAsync<HostException>(() => Module.ApplyAsync(Context(host, task), probe, CancellationToken.None));
 
         Assert.That(error!.Message, Does.StartWith("service api stopped (exited)"));
-    }
-
-    [Test]
-    public void LocalhostHealthUrlsAreRewrittenToTheContainerAddress()
-    {
-        Assert.That(ComposeHealth.HostUrl("http://localhost:8080/health", "10.1.2.3"), Is.EqualTo("http://10.1.2.3:8080/health"));
-        Assert.That(ComposeHealth.HostUrl("http://api.internal/health", "10.1.2.3"), Is.EqualTo("http://api.internal/health"));
     }
 }

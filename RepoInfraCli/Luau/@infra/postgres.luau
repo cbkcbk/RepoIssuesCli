@@ -19,6 +19,11 @@ export type BackupOptions = {
     prefix: string?,
 }
 
+export type CopyOptions = {
+    scrub: string?,
+    migrate: types.App?,
+}
+
 local postgres = {}
 
 function postgres.database(name: string): (options: DatabaseOptions) -> Database
@@ -30,6 +35,10 @@ function postgres.server(database: Database): types.ComposeService
 end
 
 function postgres.backup(database: Database): (options: BackupOptions) -> types.ComposeService
+    error("native")
+end
+
+function postgres.copy(from: Database, to: Database): (options: CopyOptions) -> ()
     error("native")
 end
 

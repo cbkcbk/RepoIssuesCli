@@ -1,0 +1,17 @@
+{
+  "id": "01a18f69-810c-76c4-b004-60dee0982d4e",
+  "number": 50,
+  "name": "Infra db copy: copy a postgres database elsewhere, as command and apply step",
+  "description": "Copy a postgres database (typically prod) somewhere else, as a command and as an optional apply step. See docs infra-cli/db-copy.\n\nCommand (only these flags):\n  infra db copy \u003Cdatabase\u003E --to \u003Ctarget\u003E [--scrub \u003Cfile.sql\u003E] [--migrate] [--confirm \u003Cowner\u003E]\n\u003Cdatabase\u003E is a declared database (postgres.database or cluster.database: api, reports, crm). Naming a cluster or server is an error listing its databases. \u003Ctarget\u003E is local:\u003Cdb\u003E or a declared database (resolved with --env). --confirm works as for destroy.\n\nLuau step: postgres.copy(from, to) { scrub = scrub.sql, migrate = app }. Shown in plan in its own group between Builds and Plays with marker !, and runs on every apply (after builds, before plays). migrate names the infra.app whose dotnet.container project runs the migrations; the CLI --migrate uses the app that the copy step or the target database\u0027s deploy references, and fails if that is ambiguous.\n\nConnections:\n- DigitalOcean cluster: direct host on port 25060 (never the pool), sslmode=require. On a connect timeout, say to add this machine\u0027s IP to the cluster\u0027s trusted sources.\n- Self-hosted postgres.server: through an SSH port forward over the existing host connection to the container.\n- local:\u003Cdb\u003E: INFRA_LOCAL_PG, default postgres://postgres@localhost:5432.\n- Refuse when source and target are the same database.\n\nChecks before any work: source SHOW server_version_num major matches the declared version; a cloud source copied to local: requires --scrub; a protected target needs the typed owner or --confirm in CI.\n\nPipeline:\n1. Create \u003Cdb\u003E__infra_tmp_\u003Ctimestamp\u003E on the target.\n2. pg_dump -Fc --no-owner --no-acl piped in .NET into pg_restore --no-owner --no-acl, each in a named postgres:\u003Cmajor\u003E container; localhost becomes host.docker.internal for the restore container.\n3. Credentials only via PG* environment variables, never argv or logs.\n4. Any pg_dump failure is fatal; pg_restore errors are fatal unless on a small allowlist of harmless extension errors.\n5. Scrub file in one transaction on the temp database.\n6. --migrate / migrate: dotnet ef database update --connection ... on the temp database.\n7. Swap: drop the old target WITH (FORCE), rename temp to the target name.\nOn any error or Ctrl\u002BC: docker rm -f both containers and drop the temp database; the old target is untouched until step 7.\n\nTests: Testcontainers with two postgres:17 instances: successful copy, scrub applied, migrations applied, failed copy leaves the old target intact, cancellation cleans up. Unit-test the safety rules and the error allowlist.\n",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "Medium",
+  "blockedBy": [
+    48
+  ],
+  "tags": [
+    "infra"
+  ],
+  "created": "2026-10-31T00:43:38+00:00",
+  "updated": "2026-10-31T01:36:57+00:00"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "01a19292-db95-7638-aa87-c26435fb9c23",
+  "number": 53,
+  "name": "docs --body-stdin keeps a leading byte-order mark from PowerShell pipes",
+  "description": "When PowerShell pipes text into docs (\u0060$body | docs edit x --body-stdin\u0060), the body can start with a UTF-8 byte-order mark. DocsInput.ReadBody reads System.Console.In and NormalizeBody keeps the mark, so it is stored at the start of the entry body (seen in docs show --json on infra-cli/claude-plugin and infra-cli/ownership-markers; both were rewritten with --body-file).\n\nFix: strip a leading byte-order mark in ReadBody/NormalizeBody (covers --body-stdin and --body-file -), or read stdin through a UTF-8 StreamReader that drops the preamble, as the docs hook does. Also check the issues CLI for the same pattern on stdin inputs. Add a test that a stdin body starting with a byte-order mark is stored without it.\n\nThe infra hook hit the same bug and strips the mark in RepoInfraCli/Cli/Commands/HookCommand.cs.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Open",
+  "priority": "Medium",
+  "locations": [
+    {
+      "path": "RepoDocsCli/Cli/DocsInput.cs",
+      "line": 145,
+      "span": 1,
+      "symbol": "DocsInput.ReadBody",
+      "context": "80a1f509c7d1",
+      "body": "b524e1140ba4"
+    }
+  ],
+  "tags": [
+    "bug",
+    "docs"
+  ],
+  "created": "2026-10-31T15:27:40+00:00",
+  "updated": "2026-10-31T15:27:40+00:00"
+}

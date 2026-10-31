@@ -1,8 +1,11 @@
 using System.Collections.Concurrent;
 using RepoInfraCli.Features.Infra.Apps;
 using RepoInfraCli.Features.Infra.Graph;
+using RepoInfraCli.Features.Infra.Hosts;
 using RepoInfraCli.Features.Infra.Hosts.Tasks;
 using RepoInfraCli.Features.Infra.Logging;
+using RepoInfraCli.Features.Infra.Postgres;
+using RepoInfraCli.Features.Infra.Secrets;
 
 namespace RepoInfraCli.Features.Infra.Plan;
 
@@ -25,13 +28,15 @@ public sealed record ApplyResult(IReadOnlyList<ApplyStep> Steps)
     public bool PartiallyApplied => Failure is not null && Applied > 0;
 }
 
-public sealed class Applier(HostTaskRegistry? tasks = null, ContainerBuilds? builds = null)
+public sealed class Applier(HostTaskRegistry? tasks = null, ContainerBuilds? builds = null, CopySteps? copies = null)
 {
     public const string BuildsPlay = "builds";
+    public const string CopiesPlay = "copies";
     public const string LocalHost = "local";
 
     readonly HostTaskRegistry modules = tasks ?? HostTaskRegistry.Default;
     readonly ContainerBuilds containerBuilds = builds ?? ContainerBuilds.Default;
+    readonly CopySteps copySteps = copies ?? CopySteps.Default;
 
     public async Task<ApplyResult> ApplyAsync(PlanRun run, InfraLog log, Action<ApplyStep>? progress = null, CancellationToken cancellationToken = default)
     {
@@ -46,7 +51,7 @@ public sealed class Applier(HostTaskRegistry? tasks = null, ContainerBuilds? bui
             progress?.Invoke(step);
         }
 
-        if (!await ApplyBuildsAsync(run, Record, cancellationToken))
+        if (!await ApplyBuildsAsync(run, Record, cancellationToken) || !await ApplyCopiesAsync(run, log, Record, cancellationToken))
             return new ApplyResult([.. steps]);
 
         foreach (var play in run.Plan.Plays)
@@ -74,6 +79,29 @@ public sealed class Applier(HostTaskRegistry? tasks = null, ContainerBuilds? bui
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 record(new ApplyStep(BuildsPlay, LocalHost, role, build.Label, ApplyOutcome.Failed, exception.Message));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    async Task<bool> ApplyCopiesAsync(PlanRun run, InfraLog log, Action<ApplyStep> record, CancellationToken cancellationToken)
+    {
+        foreach (var copy in run.Plan.Copies)
+        {
+            try
+            {
+                await copySteps.ApplyAsync(copy, run, log, cancellationToken);
+                record(new ApplyStep(CopiesPlay, LocalHost, CopyNode.Kind, copy.Label, ApplyOutcome.Applied));
+            }
+            catch (Exception exception) when (exception is DatabaseCopyException or HostException or SecretUnavailableException)
+            {
+                record(new ApplyStep(CopiesPlay, LocalHost, CopyNode.Kind, copy.Label, ApplyOutcome.Failed, exception.Message));
+                return false;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                record(new ApplyStep(CopiesPlay, LocalHost, CopyNode.Kind, copy.Label, ApplyOutcome.Failed, CtrlC.Message));
                 return false;
             }
         }

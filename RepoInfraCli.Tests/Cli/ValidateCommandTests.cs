@@ -21,7 +21,7 @@ public class ValidateCommandTests
         var result = repo.Run("validate");
 
         Assert.That(result.ExitCode, Is.EqualTo(InfraExitCodes.Success), result.Output + result.Errors);
-        Assert.That(result.Output, Is.EqualTo("No problems found.\n"));
+        Assert.That(result.Output, Does.Contain("repo-unavailable").And.Contain("platform-infra").And.EndWith("1 warning(s) found.\n"));
     }
 
     [Test]
@@ -47,13 +47,13 @@ public class ValidateCommandTests
         Assert.That(json.EnumerateObject().Select(property => property.Name), Is.EqualTo(new[] { "valid", "errors", "warnings", "summary" }));
         Assert.That(json.GetProperty("valid").GetBoolean(), Is.True);
         Assert.That(json.GetProperty("errors").GetArrayLength(), Is.Zero);
-        Assert.That(json.GetProperty("warnings").GetArrayLength(), Is.Zero);
+        Assert.That(json.GetProperty("warnings").EnumerateArray().Select(warning => warning.GetProperty("code").GetString()), Is.EqualTo(new[] { "repo-unavailable" }));
         Assert.That(summary.GetProperty("resources").GetInt32(), Is.EqualTo(11));
         Assert.That(summary.GetProperty("hosts").GetInt32(), Is.EqualTo(3));
         Assert.That(summary.GetProperty("plays").GetInt32(), Is.EqualTo(5));
         Assert.That(summary.GetProperty("apps").GetInt32(), Is.EqualTo(1));
         Assert.That(summary.GetProperty("tasks").GetInt32(), Is.GreaterThan(20));
-        Assert.That(summary.GetProperty("secrets").GetInt32(), Is.EqualTo(5));
+        Assert.That(summary.GetProperty("secrets").GetInt32(), Is.EqualTo(7));
     }
 
     [Test]
@@ -68,7 +68,7 @@ public class ValidateCommandTests
             .And.Contain("digitalocean droplet web-1 exported")
             .And.Contain("baseline: 5 task(s)")
             .And.Contain("platform-infra/node_exporter: (external)")
-            .And.Contain("No problems found."));
+            .And.Contain("1 warning(s) found."));
     }
 
     [Test]
@@ -87,8 +87,8 @@ public class ValidateCommandTests
     public void ErrorsExitOneAndShowFileAndLine()
     {
         repo.WriteScript("""
-            local h = infra.host "a" { address = "10.0.0.1", user = "root", colour = "blue" }
-            """);
+                         local h = infra.host "a" { address = "10.0.0.1", user = "root", colour = "blue" }
+                         """);
 
         var result = repo.Run("validate");
 
@@ -100,8 +100,8 @@ public class ValidateCommandTests
     public void JsonErrorsCarryCodeFileAndLine()
     {
         repo.WriteScript("""
-            infra.host "a" { user = "root" }
-            """);
+                         infra.host "a" { user = "root" }
+                         """);
 
         var result = repo.Run("validate", "--json");
         var json = JsonDocument.Parse(result.Output).RootElement;
@@ -119,9 +119,9 @@ public class ValidateCommandTests
     public void ScriptErrorsAreReportedWithTheirLine()
     {
         repo.WriteScript("""
-            local x = nil
-            x.y = 1
-            """);
+                         local x = nil
+                         x.y = 1
+                         """);
 
         var json = JsonDocument.Parse(repo.Run("validate", "--json").Output).RootElement;
         var error = json.GetProperty("errors")[0];
@@ -170,8 +170,8 @@ public class ValidateCommandTests
     public void KnownEnvValidatesAndUnknownEnvIsAnError()
     {
         repo.WriteScript("""
-            assert(infra.env == "prod", "env is " .. tostring(infra.env))
-            """);
+                         assert(infra.env == "prod", "env is " .. tostring(infra.env))
+                         """);
         repo.WriteFile(".repo-infra/envs/prod/.keep", "");
 
         var known = repo.Run("validate", "--env", "prod");
@@ -203,8 +203,10 @@ public class ValidateCommandTests
 
         Assert.That(result.ExitCode, Is.Zero, result.Output);
         var events = File.ReadAllLines(log).Select(line => JsonDocument.Parse(line).RootElement).ToList();
-        Assert.That(events.Select(entry => entry.GetProperty("event").GetString()), Does.Contain("command.start").And.Contain("evaluate.done").And.Contain("command.end"));
-        Assert.That(events.All(entry => entry.TryGetProperty("time", out _) && entry.TryGetProperty("level", out _)), Is.True);
+        Assert.That(events.Select(entry => entry.GetProperty("EventName").GetString()), Does.Contain("command.start").And.Contain("evaluate.done").And.Contain("command.end"));
+        Assert.That(events.All(entry => entry.TryGetProperty("@t", out _) && entry.TryGetProperty("@m", out _)), Is.True);
+        Assert.That(events.Select(entry => entry.GetProperty("RunId").GetString()).Distinct().Count(), Is.EqualTo(1));
+        Assert.That(events.All(entry => entry.GetProperty("Command").GetString() == "validate"), Is.True);
     }
 
     [Test]

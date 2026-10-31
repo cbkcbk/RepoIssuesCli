@@ -7,8 +7,13 @@ namespace RepoInfraCli.Features.Infra.Evaluation.Natives;
 public sealed class DigitalOceanModule : INativeModule
 {
     public const string ProviderKind = "digitalocean";
+    public const string SpacesAccessKey = "spaces_access_key";
+    public const string SpacesSecretKey = "spaces_secret_key";
 
-    static readonly ObjectShape ProviderOptions = Object("ProviderOptions", Required("token", Secret));
+    static readonly ObjectShape ProviderOptions = Object("ProviderOptions",
+        Required("token", Secret),
+        Optional(SpacesAccessKey, Secret),
+        Optional(SpacesSecretKey, Secret));
 
     static readonly ObjectShape SshKeyOptions = Object("SshKeyOptions", Required("public_key", Shapes.File), Protect);
 

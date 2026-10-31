@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using RepoCli.Core.Features.Json;
 using RepoInfraCli.Features.Infra.Apps;
 using RepoInfraCli.Features.Infra.Hosts.Tasks;
+using RepoInfraCli.Features.Infra.Postgres;
 
 namespace RepoInfraCli.Features.Infra.Plan;
 
@@ -15,6 +16,8 @@ public sealed record PlanView(
 {
     public IReadOnlyList<BuildView>? Builds { get; init; }
 
+    public IReadOnlyList<CopyView>? Copies { get; init; }
+
     public static PlanView From(InfraPlan plan) => new(
         plan.HasDrift,
         plan.Summary,
@@ -23,7 +26,21 @@ public sealed record PlanView(
         [.. plan.Problems.Select(problem => new ProblemView(problem.Host, problem.Message))])
     {
         Builds = plan.Builds.Count > 0 ? [.. plan.Builds.Select(BuildView.From)] : null,
+        Copies = plan.Copies.Count > 0 ? [.. plan.Copies.Select(CopyView.From)] : null,
     };
+}
+
+public sealed record CopyView(string Source, string Target, string? Scrub, string? Migrate, bool Protected, string? File, int? Line, IReadOnlyList<ChangeView> Changes)
+{
+    public static CopyView From(CopyPlan copy) => new(
+        copy.From,
+        copy.To,
+        copy.Copy.Scrub,
+        copy.Migrate,
+        copy.Protected,
+        copy.Copy.Location?.File,
+        copy.Copy.Location?.Line,
+        [.. copy.Changes.Select(ChangeView.From)]);
 }
 
 public sealed record BuildView(string Kind, string Name, IReadOnlyList<string> Apps, string? Image, IReadOnlyList<ChangeView> Changes, string? Note, string? Error)

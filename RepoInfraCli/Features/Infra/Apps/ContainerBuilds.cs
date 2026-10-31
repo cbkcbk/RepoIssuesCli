@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
 using RepoInfraCli.Features.Infra.Evaluation.Natives;
 using RepoInfraCli.Features.Infra.Graph;
@@ -7,11 +6,11 @@ using RepoInfraCli.Features.Infra.Plan;
 
 namespace RepoInfraCli.Features.Infra.Apps;
 
-public sealed partial class ContainerBuilds(IBuildTools tools, TimeProvider? time = null)
+public sealed partial class ContainerBuilds(IBuildTools tools)
 {
     public static ContainerBuilds Default { get; } = new(DotnetBuildTools.Default);
 
-    sealed record TreeState(bool Dirty, string? Error, string Stamp);
+    sealed record TreeState(string? DirtyHash, string? Error);
 
     public static IReadOnlyList<(BuildNode Build, IReadOnlyList<string> Apps)> Included(InfraGraph graph, PlanFilter filter) =>
     [
@@ -44,14 +43,13 @@ public sealed partial class ContainerBuilds(IBuildTools tools, TimeProvider? tim
 
     async Task<TreeState> TreeAsync(InfraWorkspace workspace, CancellationToken cancellationToken)
     {
-        var stamp = (time ?? TimeProvider.System).GetUtcNow().ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
         try
         {
-            return new TreeState(await tools.IsDirtyAsync(workspace.Root, cancellationToken), null, stamp);
+            return new TreeState(await tools.DirtyHashAsync(workspace.Root, cancellationToken), null);
         }
         catch (BuildToolException exception)
         {
-            return new TreeState(false, exception.Message, stamp);
+            return new TreeState(null, exception.Message);
         }
     }
 
@@ -86,12 +84,13 @@ public sealed partial class ContainerBuilds(IBuildTools tools, TimeProvider? tim
         var tag = build.Options.GetString("tag") ?? "";
         if (tag.Length == 0)
             return Failed("the tag is empty; infra.git.sha is empty outside a git repository with commits");
-        if (tree.Dirty)
+        if (tree.DirtyHash is { } dirtyHash)
         {
             if (!allowDirty)
-                return Failed($"the working tree has uncommitted changes; commit them, or pass --allow-dirty to build {tag}-dirty-<timestamp>");
-            tag = $"{tag}-dirty-{tree.Stamp}";
+                return Failed($"the working tree has uncommitted changes; commit them, or pass --allow-dirty to build {tag}-dirty-<hash of the changes>");
+            tag = $"{tag}-dirty-{dirtyHash}";
         }
+
         if (!ValidTag().IsMatch(tag))
             return Failed($"\"{tag}\" is not a valid image tag (letters, digits, '_', '.', '-'; at most 128)");
 

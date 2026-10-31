@@ -61,7 +61,7 @@ public sealed class SshKeyHandler : ResourceHandler
 
     public override async Task<LiveResource> MarkAsync(ProviderSession session, LiveResource live, OwnerMark mark, CancellationToken cancellationToken)
     {
-        var name = new Marker(mark.Owner, null).PrefixedName(mark.Name);
+        var name = mark.Marker.PrefixedName(mark.Name);
         await session.DigitalOcean.SendAsync(HttpMethod.Put, $"v2/account/keys/{live.Id}", new JsonObject { ["name"] = name }, cancellationToken);
         return live with { Name = name, Mark = mark };
     }

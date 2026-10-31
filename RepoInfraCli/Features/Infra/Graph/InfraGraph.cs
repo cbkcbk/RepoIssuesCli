@@ -12,6 +12,8 @@ public sealed record InfraGraph(
     IReadOnlyList<SecretRef> Secrets,
     ExportsNode? Exports)
 {
+    public IReadOnlyList<CopyNode> Copies { get; init; } = [];
+
     public Marker Marker => new(Project.Name, Env);
 
     public IEnumerable<TaskNode> Tasks => Plays.SelectMany(play => play.Runs).SelectMany(run => run.Tasks);

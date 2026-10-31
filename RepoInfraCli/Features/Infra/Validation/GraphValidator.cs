@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using RepoInfraCli.Features.Infra.Graph;
+using RepoInfraCli.Features.Infra.Postgres;
 
 namespace RepoInfraCli.Features.Infra.Validation;
 
@@ -14,6 +15,7 @@ public static partial class GraphValidator
         .. Duplicates(graph.Apps, app => app.Name, app => $"app \"{app.Name}\"", app => app.Location),
         .. NamePrefixKinds(graph),
         .. PlayReferences(graph),
+        .. PostgresValidator.Validate(graph),
     ];
 
     static IEnumerable<InfraDiagnostic> Names(InfraGraph graph)
@@ -23,7 +25,16 @@ public static partial class GraphValidator
                 $"project name \"{graph.Project.Name}\" must be lowercase letters, digits and dashes; it is part of every ownership marker", graph.Project.Location);
         if (graph.Env is { } env && !OwnerName().IsMatch(env))
             yield return InfraDiagnostic.Error(DiagnosticCodes.InvalidName, $"env name \"{env}\" must be lowercase letters, digits and dashes; it is part of every ownership marker");
+        if (graph.Project.Name.Contains(Marker.NameSeparator))
+            yield return InfraDiagnostic.Error(DiagnosticCodes.NameSeparator, SeparatorMessage($"project name \"{graph.Project.Name}\""), graph.Project.Location);
+        if (graph.Env is { } separated && separated.Contains(Marker.NameSeparator))
+            yield return InfraDiagnostic.Error(DiagnosticCodes.NameSeparator, SeparatorMessage($"env name \"{separated}\""));
+        foreach (var resource in graph.Resources.Where(resource => resource.UsesNamePrefix && !resource.Existing && resource.Name.Contains(Marker.NameSeparator)))
+            yield return InfraDiagnostic.Error(DiagnosticCodes.NameSeparator, SeparatorMessage($"{resource.Kind} name \"{resource.Name}\""), resource.Location);
     }
+
+    static string SeparatorMessage(string what) =>
+        $"{what} can't contain \"{Marker.NameSeparator}\"; it separates project, env and name in the live names of firewalls, SSH keys and registries";
 
     static IEnumerable<InfraDiagnostic> Duplicates<T>(IEnumerable<T> nodes, Func<T, string> key, Func<T, string> describe, Func<T, SourceLocation?> location)
     {

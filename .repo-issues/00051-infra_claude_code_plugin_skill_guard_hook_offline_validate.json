@@ -1,0 +1,21 @@
+{
+  "id": "01a19281-1792-718e-bd3e-8f0748018ed3",
+  "number": 51,
+  "name": "Infra Claude Code plugin: skill, guard hook, offline validate hook",
+  "description": "Claude Code plugin for the infra CLI, generated like the docs and issues plugins. Design: docs show infra-cli/claude-plugin.\n\n- \u0060infra generate-plugin\u0060 from InfraPlugin.cs via PluginGenerator: plugins/infra (skill \u002B hooks/hooks.json), marketplace entry, marketplace description becomes \u0027issues, docs and infra CLIs\u0027. Exit-code table from InfraExitCodes (adds 5, 6). \u0060infra hook\u0060 left out of the command table.\n- Skill: authoring-first (point at @infra stubs; seven traps: Output\u003CT\u003E opaque, sandbox, secret refs, env branches, \u0060--\u0060 names and no protect/export on firewall/ssh key/registry, removal deletes unless protected, runtime-only validation) plus operating (\u0060--json\u0060 everywhere, plan summary with counts and every delete/replace/protected/drift line before any apply in the same turn, secrets set only via the user\u0027s \u0060! infra secrets set\u0060). Trigger description per the design.\n- \u0060infra hook bash\u0060 (PreToolUse, matcher Bash|PowerShell, onFailure block): split on ; \u0026\u0026 || | newlines, classify every infra/infra.exe segment, strictest wins. ask: apply, adopt, destroy, restore (not --list), db copy, secrets set/init/recipients add/remove, --accept-new-hosts. deny: secrets show. Unclassifiable infra mention: ask. ask becomes deny (run it yourself with !) in bypassPermissions, acceptEdits, dontAsk or unknown modes; if the hook input lacks the mode, deny outside default/auto.\n- \u0060infra validate --offline\u0060: skip msbuild build checks, cached repos only, no fetch; uncached gives repo-unavailable warning.\n- \u0060infra hook edit\u0060 (PostToolUse Edit|Write|MultiEdit, .repo-infra/**/*.luau only): runs the offline validation; errors block with file:line code message, warnings as context, clean silent.\n- Tests (NUnit): table-driven guard classifier (~30 commands), offline validate makes no msbuild/git calls, generator output includes hooks.json and exit codes 5/6.\n- After building: test hook ask under bypass mode by hand and record the result as a docs gotcha.",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "InProgress",
+  "priority": "Medium",
+  "tags": [
+    "infra"
+  ],
+  "created": "2026-10-31T15:08:16+00:00",
+  "updated": "2026-10-31T15:23:36+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-31T15:23:36+00:00",
+      "text": "Built: InfraPlugin.cs, plugins/infra (generated), infra hook shell|edit, validate --offline, tests (all 1202 pass). Deviations from the issue text, recorded in docs infra-cli/claude-plugin: no onFailure block (guard fails closed itself; a missing infra on PATH would block every shell call), event named shell not bash, an infra mention only asks behind a launcher or variable, edit hook hides repo-unavailable and checks every env. Left: install the plugin and confirm by hand that ask prompts in default mode."
+    }
+  ]
+}

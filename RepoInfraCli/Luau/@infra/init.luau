@@ -30,7 +30,7 @@ function infra.file(path: string): FileRef
     error("native")
 end
 
--- Ownership marker on live resources: infra:<project>-<env> name=<name> [protect] [exported]
+-- Ownership marker on live resources: infra:<project> [env=<env>] name=<name> [protect] [exported]
 function infra.project(name: string): (options: types.ProjectOptions) -> ()
     error("native")
 end

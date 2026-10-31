@@ -20,6 +20,8 @@ public abstract class CloudCommand<TSettings>(IAnsiConsole console, ErrorConsole
 {
     protected CloudServices Cloud => cloud;
 
+    protected ISecretResolver Secrets => secrets;
+
     protected override int Run(InfraWorkspace workspace, TSettings settings, InfraLog log) =>
         RunAsync(workspace, settings, log).GetAwaiter().GetResult();
 

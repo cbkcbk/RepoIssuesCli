@@ -144,27 +144,33 @@ public class PlanCommandTests
     }
 
     [Test]
-    public void DropletHostsWaitForTheirAddressAndExternalHostsAreSkipped()
+    public void DropletHostsWaitForTheirAddressAndUnfetchedHostsFailThePlan()
     {
         repo.CopyDemo();
         var connector = new FakeConnector();
 
-        var result = Run(connector, "plan", "--play", "edge", "--play", "nas", "--hosts-only");
+        var edge = Run(connector, "plan", "--play", "edge", "--hosts-only");
+        var nas = Run(connector, "plan", "--play", "nas", "--hosts-only");
 
-        Assert.That(result.ExitCode, Is.Zero, result.Output + result.Errors);
-        Assert.That(result.Output, Does.Contain("web-1 (address known after apply; skipped)").And.Contain("nas (external host from repo.provider; handled in a later milestone (#49))"));
+        Assert.That(edge.ExitCode, Is.Zero, edge.Output + edge.Errors);
+        Assert.That(edge.Output, Does.Contain("web-1 (address known after apply; skipped)"));
+        Assert.That(nas.ExitCode, Is.EqualTo(InfraExitCodes.Invalid), nas.Output + nas.Errors);
+        Assert.That(nas.Output, Does.Contain("nas (from a repo.provider that could not be fetched)"));
         Assert.That(connector.Connects, Is.Empty);
     }
 
     [Test]
-    public void BuildHostOfTheDemoPlansWithExternalRoleNoted()
+    public void BuildHostOfTheDemoPlansButTheUnfetchedRoleFailsThePlan()
     {
         repo.CopyDemo();
         var connector = new FakeConnector();
 
         var result = Run(connector, "plan", "--play", "build", "--hosts-only");
 
-        Assert.That(result.Output, Does.Contain("build-1 ubuntu@10.0.0.21").And.Contain("platform-infra/node_exporter (external role").And.Contain("+ apt: install ufw"));
+        Assert.That(result.ExitCode, Is.EqualTo(InfraExitCodes.Invalid), result.Output + result.Errors);
+        Assert.That(result.Output, Does.Contain("build-1 ubuntu@10.0.0.21")
+            .And.Contain("platform-infra/node_exporter (role from a repo.provider that could not be fetched)")
+            .And.Contain("+ apt: install ufw"));
         Assert.That(connector.Connects.Single().Options.Address, Is.EqualTo("10.0.0.21"));
     }
 

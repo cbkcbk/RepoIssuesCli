@@ -20,23 +20,46 @@ public static partial class InfraEvaluator
 
     public static EvaluationResult Evaluate(InfraWorkspace workspace, EvaluationOptions options, NativeModuleRegistry natives)
     {
-        if (EnvRules.Check(workspace, options.Env) is { } envProblem)
-            return new EvaluationResult(null, [envProblem]);
-        if (!workspace.IsInitialized)
-            return new EvaluationResult(null, [InfraDiagnostic.Error(DiagnosticCodes.ScriptError, $"No {RepoLocator.InfraFolderName}/{InfraWorkspace.EntryFileName} in {workspace.Root}")]);
+        if (Precheck(workspace, options.Env) is { } problem)
+            return new EvaluationResult(null, [problem]);
 
-        using var state = LuauState.Create();
-        OpenSandbox(state);
-        var context = new EvaluationContext(workspace, options, state);
-        var loader = new InfraModuleLoader(context, natives);
-        state.UseModuleLoader(loader);
-        InstallPrint(context);
+        using var session = Open(workspace, options, natives);
+        return session.Result;
+    }
 
+    public static InfraDiagnostic? Precheck(InfraWorkspace workspace, string? env) =>
+        EnvRules.Check(workspace, env)
+        ?? (workspace.IsInitialized ? null : InfraDiagnostic.Error(DiagnosticCodes.ScriptError, $"No {workspace.RelativePath(workspace.EntryFile)} in {workspace.Root}"));
+
+    public static EvaluationSession Open(InfraWorkspace workspace, EvaluationOptions options, NativeModuleRegistry natives)
+    {
+        var state = LuauState.Create();
+        var context = new EvaluationContext(workspace, options, state) { Natives = natives };
+        var session = new EvaluationSession(context);
+        try
+        {
+            OpenSandbox(state);
+            var loader = new InfraModuleLoader(context, natives);
+            state.UseModuleLoader(loader);
+            InstallPrint(context);
+            Execute(session, loader);
+            return session;
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
+    }
+
+    static void Execute(EvaluationSession session, InfraModuleLoader loader)
+    {
+        var (context, options, workspace) = (session.Context, session.Context.Options, session.Context.Workspace);
         InfraGraph? graph = null;
         try
         {
-            var exports = RunEntry(context, loader);
-            RecordExports(context, exports);
+            session.Exports = RunEntry(context, loader);
+            RecordExports(context, session.Exports);
             if (!context.IsReference)
                 ExpandPlays(context);
             graph = Finish(context);
@@ -53,13 +76,13 @@ public static partial class InfraEvaluator
         options.Log?.Debug("evaluate.done", $"Evaluated {workspace.RelativePath(workspace.EntryFile)}", new Dictionary<string, object?>
         {
             ["mode"] = options.Mode.ToString(),
-            ["env"] = options.Env,
+            ["evaluatedEnv"] = options.Env,
             ["resources"] = graph?.Resources.Count,
             ["diagnostics"] = context.Diagnostics.Count,
         });
 
-        var diagnostics = graph is null ? context.Diagnostics : [.. context.Diagnostics, .. GraphValidator.Validate(graph)];
-        return new EvaluationResult(graph, diagnostics);
+        IReadOnlyList<InfraDiagnostic> diagnostics = graph is null ? [.. context.Diagnostics] : [.. context.Diagnostics, .. GraphValidator.Validate(graph)];
+        session.Result = new EvaluationResult(graph, diagnostics);
     }
 
     static void OpenSandbox(LuauState state)
@@ -155,6 +178,7 @@ public static partial class InfraEvaluator
                         runs.Add(Run(context, host, RoleRun.AppPrefix + app.Name, () => deploy.Invoke([table, context.Output(app.Build.Id, "image")])));
                 }
             }
+
             recorder.Runs[play.Id] = runs;
         }
     }
@@ -162,11 +186,24 @@ public static partial class InfraEvaluator
     static RoleRun RunRole(EvaluationContext context, NodeId host, LuaValue table, LuaValue role, int index)
     {
         if (role.Type != LuaValueType.Function)
-            return new RoleRun(host, context.RawString(role, Shapes.RoleTag) ?? $"role{index + 1}", true, []);
+        {
+            var hostName = context.Recorder.Hosts.FirstOrDefault(node => node.Id == host)?.Name ?? host.Value;
+            return RunImported(context, host, hostName, context.RawString(role, Shapes.RoleTag) ?? $"role{index + 1}");
+        }
 
         var run = Run(context, host, null, () => role.Read<LuaFunction>().Invoke([table]));
         return run.Role.Length == 0 ? run with { Role = $"role{index + 1}" } : run;
     }
+
+    public static RoleRun RunExported(EvaluationContext context, NodeId host, string hostName, LuaValue role, string name) =>
+        role.Type == LuaValueType.Function
+            ? Run(context, host, name, () => role.Read<LuaFunction>().Invoke([HostTasks.For(context).Table(host, hostName)]))
+            : RunImported(context, host, hostName, context.RawString(role, Shapes.RoleTag) ?? name);
+
+    static RoleRun RunImported(EvaluationContext context, NodeId host, string hostName, string role) =>
+        context.Imports.FirstOrDefault(imported => role.StartsWith(imported.Label + "/", StringComparison.Ordinal)) is { } source
+            ? source.Run(host, hostName, role[(source.Label.Length + 1)..])
+            : new RoleRun(host, role, true, []);
 
     static RoleRun Run(EvaluationContext context, NodeId host, string? role, Action invoke)
     {
@@ -180,6 +217,7 @@ public static partial class InfraEvaluator
         {
             context.Recorder.CurrentRun = null;
         }
+
         return new RoleRun(host, recorder.Role ?? "", false, [.. recorder.Tasks]);
     }
 
@@ -196,7 +234,7 @@ public static partial class InfraEvaluator
         return context.Recorder.Build(context.Options.Env);
     }
 
-    static InfraDiagnostic ScriptDiagnostic(EvaluationContext context, LuaException exception)
+    public static InfraDiagnostic ScriptDiagnostic(EvaluationContext context, LuaException exception)
     {
         var first = exception.Message.Split('\n')[0].Trim();
         return ErrorPosition().Match(first) is { Success: true } match

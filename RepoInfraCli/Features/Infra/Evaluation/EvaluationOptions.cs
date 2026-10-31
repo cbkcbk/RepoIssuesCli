@@ -1,5 +1,7 @@
+using System.Collections.Immutable;
 using RepoInfraCli.Features.Infra.Graph;
 using RepoInfraCli.Features.Infra.Logging;
+using RepoInfraCli.Features.Infra.Repos;
 
 namespace RepoInfraCli.Features.Infra.Evaluation;
 
@@ -16,6 +18,10 @@ public sealed record EvaluationOptions
     public EvaluationMode Mode { get; init; } = EvaluationMode.Full;
 
     public InfraLog? Log { get; init; }
+
+    public RepoCache Repos { get; init; } = RepoCache.Default;
+
+    public ImmutableList<string> RepoChain { get; init; } = [];
 }
 
 public sealed record EvaluationResult(InfraGraph? Graph, IReadOnlyList<InfraDiagnostic> Diagnostics)

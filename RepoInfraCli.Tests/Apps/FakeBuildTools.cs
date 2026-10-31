@@ -7,7 +7,7 @@ public sealed class FakeBuildTools : IBuildTools
 {
     public ContainerProperties Properties { get; init; } = ContainerProperties.None;
 
-    public bool Dirty { get; init; }
+    public string? DirtyHash { get; init; }
 
     public HashSet<string> ExistingImages { get; init; } = [];
 
@@ -25,7 +25,7 @@ public sealed class FakeBuildTools : IBuildTools
         return Task.FromResult(Properties);
     }
 
-    public Task<bool> IsDirtyAsync(string root, CancellationToken cancellationToken) => Task.FromResult(Dirty);
+    public Task<string?> DirtyHashAsync(string root, CancellationToken cancellationToken) => Task.FromResult(DirtyHash);
 
     public Task<TagCheck> TagExistsAsync(string registry, string repository, string tag, CancellationToken cancellationToken) =>
         Task.FromResult(new TagCheck(ExistingImages.Contains($"{registry}/{repository}:{tag}")));

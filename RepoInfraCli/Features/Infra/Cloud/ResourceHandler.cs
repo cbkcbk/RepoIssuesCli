@@ -43,7 +43,7 @@ public abstract class ResourceHandler
         Task.FromResult(live);
 
     public virtual LiveResource? FindOwned(ResourceNode node, IEnumerable<LiveResource> pool, Marker marker) =>
-        pool.FirstOrDefault(live => live.Mark is { } mark && mark.Owner == marker.Owner && mark.Name == node.Name);
+        pool.FirstOrDefault(live => live.Mark is { } mark && mark.BelongsTo(marker) && mark.Name == node.Name);
 
     public virtual LiveResource? FindUnowned(ResourceNode node, IEnumerable<LiveResource> pool, Marker marker) =>
         pool.FirstOrDefault(live => live.Mark is null && (live.Name == node.Name || live.Name == LiveName(node, marker)));

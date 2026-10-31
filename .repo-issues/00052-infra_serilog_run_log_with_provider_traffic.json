@@ -1,0 +1,21 @@
+{
+  "id": "01a19291-35cc-7472-a74f-693fd15a2d37",
+  "number": 52,
+  "name": "Infra: Serilog run log with provider traffic",
+  "description": "Serilog writes the existing \u0060--log \u003CPATH\u003E\u0060 run log, and the log records provider traffic in detail for debugging a run. Terms: docs show infra-cli/glossary (provider, provider traffic).\n\n- Serilog (Serilog.Sinks.File \u002B CompactJsonFormatter, CLEF) replaces InfraLog\u0027s hand-rolled JSONL writer. No new option. InfraLog keeps its API and Spectre console output; -v/-vv only affect the console. The file records everything (Debug and traffic) regardless of -v.\n- Appends across runs; every event carries RunId, Command, Env, EventName.\n- Provider traffic: cloud HTTP (DigitalOcean, Cloudflare, Spaces), registry HTTP (one DelegatingHandler, also wired into RegistryClient), SSH commands (command, exit code, stdout, stderr), local processes (args, exit code, output). Every poll is logged.\n- Two events per call: provider.request before sending, provider.response or provider.failed after, sharing RequestId. Structured Provider, method, URL, status, DurationMs.\n- Bodies as exact text after redaction, capped at 64 KB with the full length noted; binary bodies as content type and length only.\n- Redaction: credential headers (Authorization, Cookie, X-Amz-Security-Token, signatures) always (secret); bodies and output through SecretRedactor; credential-named JSON properties (password, token, private_key, secret, uri/connection_string) replaced; process environment variables by name only.\n- Tests (NUnit): ValidateCommandTests and InfraLogTests move to CLEF; fake handler tests for redaction and request/response pairing.\n- After: update docs infra-cli/commands (--log).",
+  "author": "cbk \u003Ccbk@snappy.no\u003E",
+  "status": "Done",
+  "priority": "Medium",
+  "tags": [
+    "infra"
+  ],
+  "created": "2026-10-31T15:25:52+00:00",
+  "updated": "2026-10-31T15:40:26+00:00",
+  "comments": [
+    {
+      "author": "cbk \u003Ccbk@snappy.no\u003E",
+      "created": "2026-10-31T15:40:26+00:00",
+      "text": "Built: Serilog CLEF writer behind InfraLog (RunId/Command/Env/EventName), TrafficCall request/response pairs, TrafficHandler on cloud and registry HttpClients, ProcessRunner and db copy docker processes, HostSession ssh traffic; redaction per the issue. Tests: InfraLogTests, ValidateCommandTests moved to CLEF; new ProviderTrafficTests and HostSession traffic tests (459 infra tests pass). Renamed event fields env-\u003EevaluatedEnv (evaluate.done) and command-\u003Escript (host.command) to avoid clashing with enriched Env/Command. Not covered: Npgsql connections, SSH port forwards. Docs: infra-cli/run-log, infra-cli/commands."
+    }
+  ]
+}

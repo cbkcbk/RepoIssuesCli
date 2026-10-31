@@ -18,7 +18,7 @@ public sealed class DropletHandler : ResourceHandler
         new("region", FieldMode.Replace),
         new("image", FieldMode.Replace),
         new("vpc", FieldMode.Replace),
-        new("size", FieldMode.CreateOnly),
+        new("size", Note: "power-off resize"),
         new("ssh_keys", FieldMode.CreateOnly),
         new("monitoring", FieldMode.CreateOnly),
         new("tags"),
@@ -84,6 +84,7 @@ public sealed class DropletHandler : ResourceHandler
             if (options[flag] is not null)
                 desired[flag] = CloudValues.Flag(options, flag);
         }
+
         if (options["vpc"] is { } vpc)
             desired["vpc"] = values.Text(vpc);
         if (options["ssh_keys"] is { } keys)
@@ -123,14 +124,42 @@ public sealed class DropletHandler : ResourceHandler
     public override async Task<LiveResource> UpdateAsync(ResourceContext context, LiveResource live, IReadOnlySet<string> changed, CancellationToken cancellationToken)
     {
         var client = context.Session.DigitalOcean;
+        if (changed.Contains("size"))
+            await ResizeAsync(context, live, cancellationToken);
         if (changed.Contains("backups"))
         {
             var type = context.Node.Options.GetBool("backups") ? "enable_backups" : "disable_backups";
             await client.SendAsync(HttpMethod.Post, $"v2/droplets/{live.Id}/actions", new JsonObject { ["type"] = type }, cancellationToken);
         }
+
         if (changed.Contains("tags") || changed.Contains(MarkerField))
             await client.SyncTagsAsync("droplet", live.Id, live.Tags, [.. UserTags(context.Node, context.Values), .. context.Mark.Tags], cancellationToken);
         return Live((await client.GetAsync($"v2/droplets/{live.Id}", cancellationToken)).At("droplet")!.Value);
+    }
+
+    static async Task ResizeAsync(ResourceContext context, LiveResource live, CancellationToken cancellationToken)
+    {
+        if (live.Raw.ValueKind != JsonValueKind.Object || live.Raw.Text("status") != "off")
+            await ActionAsync(context, live, new JsonObject { ["type"] = "power_off" }, cancellationToken);
+        await ActionAsync(context, live, new JsonObject { ["type"] = "resize", ["size"] = Option(context.Node, "size"), ["disk"] = false }, cancellationToken);
+        await ActionAsync(context, live, new JsonObject { ["type"] = "power_on" }, cancellationToken);
+    }
+
+    static async Task ActionAsync(ResourceContext context, LiveResource live, JsonObject body, CancellationToken cancellationToken)
+    {
+        var client = context.Session.DigitalOcean;
+        var what = $"droplet {context.Node.Name} {body["type"]!.GetValue<string>()}";
+        var started = await client.PostAsync($"v2/droplets/{live.Id}/actions", body, "action", cancellationToken);
+        await context.Session.WaitAsync(what, async token =>
+        {
+            var action = (await client.GetAsync($"v2/droplets/{live.Id}/actions/{started.Text("id")}", token)).At("action");
+            return action?.Text("status") switch
+            {
+                "completed" => action,
+                "errored" => throw new CloudApiException($"{what} failed"),
+                _ => null,
+            };
+        }, cancellationToken);
     }
 
     public override Task DeleteAsync(ProviderSession session, LiveResource live, CancellationToken cancellationToken) =>

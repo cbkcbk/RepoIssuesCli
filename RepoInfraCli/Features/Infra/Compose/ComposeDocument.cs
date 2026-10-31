@@ -5,7 +5,7 @@ using RepoInfraCli.Features.Infra.Plan;
 
 namespace RepoInfraCli.Features.Infra.Compose;
 
-public sealed record ComposeService(string Name, string? Image, string? HttpHealthcheck);
+public sealed record ComposeService(string Name, string? Image);
 
 public sealed record ComposeFiles(
     string Project,
@@ -24,7 +24,7 @@ public sealed record ComposeFiles(
 
 public sealed partial class ComposeDocument
 {
-    public const string HttpHealthcheckField = "x-infra-healthcheck-http";
+    const string DefaultHttpInterval = "5s";
 
     static readonly string[] ServiceFieldOrder = ["image", "restart", "command", "ports", "networks", "volumes", "environment", "labels", "healthcheck", "depends_on"];
     static readonly string[] StringOnlyFields = ["environment", "labels"];
@@ -48,6 +48,8 @@ public sealed partial class ComposeDocument
 
     public static string ProjectName(string name) => NotProjectCharacter().Replace(name.ToLowerInvariant(), "-").Trim('-') is { Length: > 0 } project ? project : "app";
 
+    public static string ProjectDirectory(string project, MapValue options) => (options.GetString("dir") ?? $"/opt/{project}").TrimEnd('/');
+
     public static string NetworkName(NodeId network)
     {
         var value = network.Value;
@@ -57,7 +59,7 @@ public sealed partial class ComposeDocument
     ComposeFiles Build(string name, MapValue options)
     {
         var project = ProjectName(name);
-        var directory = (options.GetString("dir") ?? $"/opt/{project}").TrimEnd('/');
+        var directory = ProjectDirectory(project, options);
         var services = new List<ComposeService>();
         var serviceEntries = new List<KeyValuePair<string, YamlNode>>();
 
@@ -92,7 +94,6 @@ public sealed partial class ComposeDocument
     YamlNode Service(string name, MapValue service, out ComposeService spec)
     {
         var entries = new List<KeyValuePair<string, YamlNode>>();
-        string? http = null;
 
         foreach (var (field, value) in service.Entries.OrderBy(entry => Order(entry.Key)).ThenBy(entry => entry.Key, StringComparer.Ordinal))
         {
@@ -102,11 +103,8 @@ public sealed partial class ComposeDocument
                 case "networks":
                     entries.Add(new(field, new YamlSequence([.. Items(value).Select((item, index) => Network(item, [.. path, $"{index}"]))])));
                     break;
-                case "healthcheck" when value is MapValue healthcheck:
-                    http = healthcheck["http"] is { } url ? Text(url, [.. path, "http"]) : null;
-                    var rest = healthcheck.Without("http");
-                    if (rest.Entries.Count > 0)
-                        entries.Add(new(field, Node(rest, path, quoteAll: false)));
+                case "healthcheck" when value is MapValue healthcheck && healthcheck["http"] is not null:
+                    entries.Add(new(field, HttpHealthcheck(healthcheck, path)));
                     break;
                 default:
                     entries.Add(new(field, Node(value, path, StringOnlyFields.Contains(field))));
@@ -114,11 +112,23 @@ public sealed partial class ComposeDocument
             }
         }
 
-        if (http is not null)
-            entries.Add(new(HttpHealthcheckField, new YamlScalar(Escape(http))));
-
         var image = service["image"] is { } imageValue ? Peek(imageValue) : null;
-        spec = new ComposeService(name, image, http);
+        spec = new ComposeService(name, image);
+        return new YamlMapping(entries);
+    }
+
+    YamlMapping HttpHealthcheck(MapValue healthcheck, string[] path)
+    {
+        if (healthcheck["test"] is not null)
+            throw new TaskPlanException($"{string.Join('.', path)} takes http or test, not both");
+        var url = Text(healthcheck["http"]!, [.. path, "http"]);
+        var entries = new List<KeyValuePair<string, YamlNode>>
+        {
+            new("test", new YamlSequence([new YamlScalar("CMD-SHELL"), new YamlScalar(Escape(ComposeHealth.HttpTest(url)))])),
+        };
+        if (healthcheck["interval"] is null)
+            entries.Add(new("interval", new YamlScalar(DefaultHttpInterval)));
+        entries.AddRange(((YamlMapping)Node(healthcheck.Without("http"), path, quoteAll: false)).Entries);
         return new YamlMapping(entries);
     }
 

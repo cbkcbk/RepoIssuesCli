@@ -1,13 +1,18 @@
 using System.ComponentModel;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using RepoInfraCli.Features.Infra.Logging;
 
 namespace RepoInfraCli.Features.Infra.Apps;
 
 public sealed class DotnetBuildTools(IProcessRunner runner, RegistryClient registryClient) : IBuildTools
 {
+    const int DirtyHashLength = 12;
     static readonly string[] PropertyNames = ["ContainerRegistry", "ContainerRepository", "ContainerBaseImage", "ContainerFamily"];
 
-    public static DotnetBuildTools Default { get; } = new(ProcessRunner.Instance, new RegistryClient(ProcessRunner.Instance));
+    public static DotnetBuildTools Default { get; } =
+        new(ProcessRunner.Instance, new RegistryClient(ProcessRunner.Instance, new TrafficHandler(new HttpClientHandler(), "registry")));
 
     public async Task<ContainerProperties> ReadPropertiesAsync(string project, CancellationToken cancellationToken)
     {
@@ -32,12 +37,31 @@ public sealed class DotnetBuildTools(IProcessRunner runner, RegistryClient regis
         }
     }
 
-    public async Task<bool> IsDirtyAsync(string root, CancellationToken cancellationToken)
+    public async Task<string?> DirtyHashAsync(string root, CancellationToken cancellationToken)
     {
-        var result = await RunAsync("git", ["-C", root, "status", "--porcelain"], root, cancellationToken);
+        if ((await GitAsync(root, ["status", "--porcelain"], cancellationToken)).Trim().Length == 0)
+            return null;
+
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        hash.AppendData(Encoding.UTF8.GetBytes(await GitAsync(root, ["diff", "HEAD", "--binary"], cancellationToken)));
+        var untracked = (await GitAsync(root, ["ls-files", "--others", "--exclude-standard", "-z"], cancellationToken))
+            .Split('\0', StringSplitOptions.RemoveEmptyEntries)
+            .Order(StringComparer.Ordinal);
+        foreach (var path in untracked)
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes($"\0{path}\0"));
+            hash.AppendData(await File.ReadAllBytesAsync(Path.Combine(root, path), cancellationToken));
+        }
+
+        return Convert.ToHexStringLower(hash.GetHashAndReset())[..DirtyHashLength];
+    }
+
+    async Task<string> GitAsync(string root, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    {
+        var result = await RunAsync("git", ["-C", root, .. arguments], root, cancellationToken);
         if (!result.Succeeded)
-            throw new BuildToolException($"git status failed in {root}: {result.Tail()}");
-        return result.Stdout.Trim().Length > 0;
+            throw new BuildToolException($"git {arguments[0]} failed in {root}: {result.Tail()}");
+        return result.Stdout;
     }
 
     public Task<TagCheck> TagExistsAsync(string registry, string repository, string tag, CancellationToken cancellationToken) =>

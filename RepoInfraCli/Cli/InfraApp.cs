@@ -57,6 +57,18 @@ public static class InfraApp
             config.AddCommand<DestroyCommand>("destroy")
                 .WithExample("destroy")
                 .WithExample("destroy", "web-1", "--yes", "--confirm", "snappy-prod");
+            config.AddCommand<RestoreCommand>("restore")
+                .WithExample("restore", "api", "--list")
+                .WithExample("restore", "api", "--into", "api_drill")
+                .WithExample("restore", "api", "--at", "2026-10-30T03:00Z")
+                .WithExample("restore", "api", "--dump", "postgres/api/api-20261030T030000Z.dump", "--yes");
+            config.AddBranch("db", db =>
+            {
+                db.SetDescription("Postgres databases declared in infra.luau.");
+                db.AddCommand<DbCopyCommand>("copy")
+                    .WithExample("db", "copy", "api", "--to", "local:api_dev", "--scrub", "scrub.sql", "--env", "prod")
+                    .WithExample("db", "copy", "main/reports", "--to", "local:reports", "--scrub", "scrub.sql", "--migrate");
+            });
             config.AddBranch("secrets", secretsBranch =>
             {
                 secretsBranch.SetDescription("Encrypted secrets in .repo-infra/secrets.yaml, resolved by secret 'x/y' in infra.luau.");
@@ -73,6 +85,11 @@ public static class InfraApp
                     recipients.AddCommand<RecipientsRemoveCommand>("remove").WithExample("secrets", "recipients", "remove", "ci-github");
                 });
             });
+            config.AddCommand<HookCommand>("hook")
+                .WithExample("hook", "shell");
+#if DEBUG
+            config.AddCommand<RepoCli.Core.Cli.Plugin.GeneratePluginCommand<Plugin.InfraPlugin>>(RepoCli.Core.Cli.Plugin.PluginGenerator.CommandName);
+#endif
             services?.Invoke(config.Settings.Registrar);
         });
         return app;

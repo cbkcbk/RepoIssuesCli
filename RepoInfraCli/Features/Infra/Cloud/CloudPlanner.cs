@@ -50,7 +50,8 @@ public sealed class CloudPlanner(CloudServices cloud) : IResourcePlanner, ILiveR
                 cloud.State.Pend(node.Id);
                 continue;
             }
-            if (node.Existing)
+
+            if (node.IsLookup)
                 continue;
             if (match.Unowned is { } unowned)
             {
@@ -58,6 +59,7 @@ public sealed class CloudPlanner(CloudServices cloud) : IResourcePlanner, ILiveR
                 cloud.State.Pend(node.Id);
                 continue;
             }
+
             plan.Diff(match);
         }
 
@@ -70,6 +72,7 @@ public sealed class CloudPlanner(CloudServices cloud) : IResourcePlanner, ILiveR
                     log.Info("cloud.prune.kept", $"{stray.Session.Provider.Kind} {stray.Handler.Kind} {stray.Handler.Display(stray.Live)} is no longer in {InfraWorkspace.EntryFileName} but is {mark.KeepReason}; kept");
                     continue;
                 }
+
                 plan.Add(new ResourceDiff(ResourceAction.Delete, stray.Handler, stray.Session, null, stray.Live, new HashSet<string>()),
                     [Change.Remove($"delete {stray.Live.Id} (no longer in {InfraWorkspace.EntryFileName})")]);
             }
@@ -127,7 +130,7 @@ public sealed class CloudPlanner(CloudServices cloud) : IResourcePlanner, ILiveR
             {
                 if (!desired.TryGetValue(field.Name, out var wanted) || !live.Fields.TryGetValue(field.Name, out var current) || wanted == current)
                     continue;
-                var text = $"{field.Name} {Show(field, current)} -> {Show(field, wanted)}";
+                var text = $"{field.Name} {Show(field, current)} -> {Show(field, wanted)}" + (field.Note is { } note ? $" ({note})" : "");
                 switch (field.Mode)
                 {
                     case FieldMode.Replace:

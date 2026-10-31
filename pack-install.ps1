@@ -18,7 +18,10 @@ foreach ($tool in $tools) {
     dotnet pack $project -c Release -p:Version=$version
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-    dotnet tool uninstall -g $package *> $null
+    if (dotnet tool list -g | Select-String -Pattern "^$($package.ToLowerInvariant())\s" -Quiet) {
+        dotnet tool uninstall -g $package
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
     dotnet tool install -g $package --add-source nupkg --version $version
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

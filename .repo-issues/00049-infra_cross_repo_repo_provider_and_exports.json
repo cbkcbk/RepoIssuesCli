@@ -4,7 +4,7 @@
   "name": "Infra cross-repo: repo.provider and exports",
   "description": "Milestone 7. repo.provider { url, ref, path? }: sparse partial clone via git into a cache under LOCALAPPDATA/repo-infra/repos/\u003Chash\u003E, reference-mode evaluation (lookups by the other project\u0027s markers, plays don\u0027t run), read returned Exports, lazy blob fetch for files used by imported roles. Exported resources get the exported marker. See docs infra-cli/envs-and-repos.",
   "author": "cbk \u003Ccbk@snappy.no\u003E",
-  "status": "Open",
+  "status": "Done",
   "priority": "Low",
   "blockedBy": [
     47
@@ -13,5 +13,5 @@
     "infra"
   ],
   "created": "2026-10-30T00:41:02+00:00",
-  "updated": "2026-10-30T00:41:11+00:00"
+  "updated": "2026-10-31T02:29:13+00:00"
 }

@@ -26,7 +26,11 @@ infra.project "snappy" {
 
 -- Providers -------------------------------------------------------------------
 
-local doProvider = digitalocean.provider { token = secret "digitalocean/token" }
+local doProvider = digitalocean.provider {
+    token = secret "digitalocean/token",
+    spaces_access_key = secret "digitalocean/spaces_access_key",
+    spaces_secret_key = secret "digitalocean/spaces_secret_key",
+}
 local cfProvider = cloudflare.provider { api_token = secret "cloudflare/token" }
 local platform = repo.provider { url = "git@github.com:snappy/platform-infra.git", ref = "v1" }
 
@@ -179,12 +183,6 @@ local function database(h: Host)
                 credentials = secret "spaces/backups",
                 schedule = "0 3 * * *",
                 prefix = "postgres/api",
-            },
-            backup_reports = postgres.backup(reportsDb) {
-                bucket = backups,
-                credentials = secret "spaces/backups",
-                schedule = "30 3 * * *",
-                prefix = "postgres/reports",
             },
         },
     }

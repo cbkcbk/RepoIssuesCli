@@ -19,7 +19,7 @@ public sealed class DestroyCommand(IAnsiConsole console, ErrorConsole errors, IS
             return InfraExitCodes.Invalid;
 
         var owner = inventory.Marker.Owner;
-        var owned = Targets(inventory).Where(target => target.Live is { Mark: { } mark } && mark.Owner == owner && target.Node is not { Existing: true }).ToList();
+        var owned = Targets(inventory).Where(target => target.Live is { Mark: { } mark } && mark.BelongsTo(inventory.Marker) && target.Node is not { Existing: true }).ToList();
         var selected = Select(owned, settings.Names).OrderBy(target => target.Handler.DestroyRank).ToList();
         var kept = selected.Where(target => target.Live!.Mark!.Keeps).ToList();
         var doomed = selected.Except(kept).ToList();
@@ -38,6 +38,7 @@ public sealed class DestroyCommand(IAnsiConsole console, ErrorConsole errors, IS
             foreach (var target in kept)
                 CliOutput.WriteUnwrappedLine(Console, $"  [grey]{Markup.Escape(target.Label)}: kept ({target.Live!.Mark!.KeepReason})[/]");
         }
+
         if (doomed.Count == 0)
         {
             Report(settings, [], kept, null, "Nothing to destroy.");
@@ -95,6 +96,7 @@ public sealed class DestroyCommand(IAnsiConsole console, ErrorConsole errors, IS
                 error)));
             return;
         }
+
         if (error is not null)
             CliOutput.WriteUnwrappedLine(Errors, $"[red]Error:[/] {Markup.Escape(error)}");
         if (summary is not null)

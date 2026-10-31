@@ -16,7 +16,7 @@ public interface IBuildTools
 {
     Task<ContainerProperties> ReadPropertiesAsync(string project, CancellationToken cancellationToken);
 
-    Task<bool> IsDirtyAsync(string root, CancellationToken cancellationToken);
+    Task<string?> DirtyHashAsync(string root, CancellationToken cancellationToken);
 
     Task<TagCheck> TagExistsAsync(string registry, string repository, string tag, CancellationToken cancellationToken);
 
